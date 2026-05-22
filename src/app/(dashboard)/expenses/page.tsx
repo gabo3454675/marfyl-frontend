@@ -1,0 +1,1272 @@
+'use client';
+
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Plus, Edit, Trash2, Search, Loader2, DollarSign, TrendingDown, Package, Briefcase, FileSpreadsheet, Upload, Download } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import apiClient from '@/lib/api';
+import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useDebounce } from '@/hooks/useDebounce';
+import { usePermission } from '@/hooks/usePermission';
+
+// Lazy load del componente de gráficos pesados
+const ExpenseCharts = dynamic(() => import('@/components/expense-charts'), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>,
+});
+
+interface Expense {
+  id: number;
+  date: string;
+  amount: number;
+  description: string;
+  referenceNumber?: string | null;
+  status: 'PENDING' | 'PAID';
+  supplier?: {
+    id: number;
+    name: string;
+  } | null;
+  category: {
+    id: number;
+    name: string;
+  };
+  amountPaid?: number;
+  balanceDue?: number;
+}
+
+interface Supplier {
+  id: number;
+  name: string;
+  taxId?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+}
+
+interface ExpenseCategory {
+  id: number;
+  name: string;
+  description?: string | null;
+}
+
+interface ExpenseStats {
+  totalMonth: number;
+  inventoryTotal: number;
+  operationalTotal: number;
+  categoryBreakdown: {
+    categoryId: number;
+    categoryName: string;
+    amount: number;
+  }[];
+}
+
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+
+interface CatalogProduct {
+  id: number;
+  name: string;
+}
+
+interface PurchaseImportPreview {
+  dryRun: true;
+  totalAmount: number;
+  lines: Array<{
+    productId: number;
+    name: string;
+    sku: string | null;
+    quantity: number;
+    unitCostUsd: number;
+    lineTotal: number;
+  }>;
+  errors: Array<{ row?: number; line?: number; message: string }>;
+  unmatched: Array<{ row?: number; line?: number; code: string; reason: string }>;
+  canConfirm: boolean;
+}
+
+export default function ExpensesPage() {
+  const searchParams = useSearchParams();
+  const { selectedCompanyId } = useAuthStore();
+  const { canManageExpenses, canDelete } = usePermission();
+  
+  // Todos los hooks deben estar antes de cualquier retorno condicional
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
+  const [stats, setStats] = useState<ExpenseStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
+  const [isSupplierDialogOpen, setIsSupplierDialogOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState('expenses');
+  const [catalogProducts, setCatalogProducts] = useState<CatalogProduct[]>([]);
+  const [purchaseLines, setPurchaseLines] = useState<
+    { productId: string; quantity: string; unitCostUsd: string }[]
+  >([{ productId: '', quantity: '1', unitCostUsd: '' }]);
+
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<PurchaseImportPreview | null>(null);
+  const [importSubmitting, setImportSubmitting] = useState(false);
+  const [importMeta, setImportMeta] = useState({
+    date: new Date().toISOString().split('T')[0],
+    supplierId: '',
+    referenceNumber: '',
+    description: '',
+    initialPayment: '',
+  });
+
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const { formatForDisplay } = useDisplayCurrency();
+
+  const [expenseFormData, setExpenseFormData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    amount: '',
+    description: '',
+    referenceNumber: '',
+    status: 'PENDING' as 'PENDING' | 'PAID',
+    supplierId: '',
+    categoryId: '',
+    initialPayment: '',
+  });
+
+  const [supplierFormData, setSupplierFormData] = useState({
+    name: '',
+    taxId: '',
+    email: '',
+    phone: '',
+    address: '',
+  });
+
+  const fetchExpenses = useCallback(async () => {
+    if (!selectedCompanyId) return;
+
+    try {
+      const response = await apiClient.get<Expense[]>('/expenses');
+      setExpenses(response.data);
+    } catch (error) {
+      console.error('Error fetching expenses:', error);
+      alert('Error al cargar los gastos');
+    }
+  }, [selectedCompanyId]);
+
+  const fetchSuppliers = useCallback(async () => {
+    if (!selectedCompanyId) return;
+
+    try {
+      const response = await apiClient.get<Supplier[]>('/suppliers');
+      setSuppliers(response.data);
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+    }
+  }, [selectedCompanyId]);
+
+  const fetchCategories = useCallback(async () => {
+    if (!selectedCompanyId) return;
+
+    try {
+      const response = await apiClient.get<ExpenseCategory[]>('/expense-categories');
+      setCategories(response.data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  }, [selectedCompanyId]);
+
+  const fetchStats = useCallback(async () => {
+    if (!selectedCompanyId) return;
+
+    try {
+      const response = await apiClient.get<ExpenseStats>('/expenses/stats');
+      setStats(response.data);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  }, [selectedCompanyId]);
+
+  const fetchCatalogProducts = useCallback(async () => {
+    if (!selectedCompanyId) return;
+    try {
+      const res = await apiClient.get<CatalogProduct[]>('/products');
+      setCatalogProducts(res.data);
+    } catch {
+      setCatalogProducts([]);
+    }
+  }, [selectedCompanyId]);
+
+  useEffect(() => {
+    if (selectedCompanyId && canManageExpenses) {
+      setLoading(true);
+      Promise.all([
+        fetchExpenses(),
+        fetchSuppliers(),
+        fetchCategories(),
+        fetchStats(),
+        fetchCatalogProducts(),
+      ]).finally(() => {
+        setLoading(false);
+      });
+    }
+  }, [
+    selectedCompanyId,
+    canManageExpenses,
+    fetchExpenses,
+    fetchSuppliers,
+    fetchCategories,
+    fetchStats,
+    fetchCatalogProducts,
+  ]);
+
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t === 'suppliers') setActiveTab('suppliers');
+    if (t === 'import') setActiveTab('import');
+  }, [searchParams]);
+
+  const handleDownloadPurchaseTemplate = useCallback(async () => {
+    try {
+      const response = await apiClient.get('/expenses/purchase-invoice-template', {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], {
+        type:
+          response.headers?.['content-type'] ||
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'factura-compra-plantilla.xlsx';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      alert(err.response?.data?.message || 'No se pudo descargar la plantilla');
+    }
+  }, []);
+
+  // useMemo debe estar antes del return condicional
+  const filteredExpenses = useMemo(() => {
+    if (!debouncedSearchQuery) return expenses;
+    const query = debouncedSearchQuery.toLowerCase();
+    return expenses.filter(
+      (expense) =>
+        expense.description.toLowerCase().includes(query) ||
+        expense.supplier?.name.toLowerCase().includes(query) ||
+        expense.category.name.toLowerCase().includes(query) ||
+        expense.referenceNumber?.toLowerCase().includes(query)
+    );
+  }, [expenses, debouncedSearchQuery]);
+
+  // Si no tiene permisos para gestionar gastos, mostrar mensaje después de todos los hooks
+  if (!canManageExpenses) {
+    return (
+      <div className="p-4 md:p-8 max-w-7xl mx-auto">
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground">
+              No tienes permisos para acceder a esta sección.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const handleOpenExpenseDialog = (expense?: Expense) => {
+    if (expense) {
+      setEditingExpense(expense);
+      setExpenseFormData({
+        date: new Date(expense.date).toISOString().split('T')[0],
+        amount: expense.amount.toString(),
+        description: expense.description,
+        referenceNumber: expense.referenceNumber || '',
+        status: expense.status,
+        supplierId: expense.supplier?.id.toString() || '',
+        categoryId: expense.category.id.toString(),
+        initialPayment: '',
+      });
+    } else {
+      setEditingExpense(null);
+      setExpenseFormData({
+        date: new Date().toISOString().split('T')[0],
+        amount: '',
+        description: '',
+        referenceNumber: '',
+        status: 'PENDING',
+        supplierId: '',
+        categoryId: '',
+        initialPayment: '',
+      });
+      setPurchaseLines([{ productId: '', quantity: '1', unitCostUsd: '' }]);
+    }
+    setIsExpenseDialogOpen(true);
+  };
+
+  const handleCloseExpenseDialog = () => {
+    setIsExpenseDialogOpen(false);
+    setEditingExpense(null);
+  };
+
+  const handleSaveExpense = async () => {
+    if (!expenseFormData.amount || !expenseFormData.description || !expenseFormData.categoryId) {
+      alert('Por favor completa todos los campos requeridos');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const payload: Record<string, unknown> = {
+        date: expenseFormData.date,
+        amount: parseFloat(expenseFormData.amount),
+        description: expenseFormData.description,
+        referenceNumber: expenseFormData.referenceNumber || undefined,
+        status: expenseFormData.status,
+        supplierId: expenseFormData.supplierId ? parseInt(expenseFormData.supplierId) : undefined,
+        categoryId: parseInt(expenseFormData.categoryId),
+      };
+
+      if (!editingExpense) {
+        const ip = parseFloat(expenseFormData.initialPayment);
+        if (Number.isFinite(ip) && ip > 0) {
+          payload.initialPayment = ip;
+        }
+        const lines = purchaseLines
+          .filter((l) => l.productId)
+          .map((l) => ({
+            productId: parseInt(l.productId, 10),
+            quantity: parseInt(l.quantity, 10) || 1,
+            unitCostUsd: l.unitCostUsd ? parseFloat(l.unitCostUsd) : undefined,
+          }));
+        if (lines.length > 0) {
+          payload.purchaseLines = lines;
+        }
+      }
+
+      if (editingExpense) {
+        await apiClient.patch(`/expenses/${editingExpense.id}`, payload);
+        alert('Gasto actualizado exitosamente');
+      } else {
+        await apiClient.post('/expenses', payload);
+        alert('Gasto registrado exitosamente');
+      }
+
+      handleCloseExpenseDialog();
+      fetchExpenses();
+      fetchStats();
+    } catch (error: any) {
+      console.error('Error saving expense:', error);
+      alert(error.response?.data?.message || 'Error al guardar el gasto');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteExpense = async (id: number) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este gasto?')) {
+      return;
+    }
+
+    try {
+      await apiClient.delete(`/expenses/${id}`);
+      alert('Gasto eliminado exitosamente');
+      fetchExpenses();
+      fetchStats();
+    } catch (error: any) {
+      console.error('Error deleting expense:', error);
+      alert(error.response?.data?.message || 'Error al eliminar el gasto');
+    }
+  };
+
+  const handleOpenSupplierDialog = (supplier?: Supplier) => {
+    if (supplier) {
+      setEditingSupplier(supplier);
+      setSupplierFormData({
+        name: supplier.name,
+        taxId: supplier.taxId || '',
+        email: supplier.email || '',
+        phone: supplier.phone || '',
+        address: supplier.address || '',
+      });
+    } else {
+      setEditingSupplier(null);
+      setSupplierFormData({
+        name: '',
+        taxId: '',
+        email: '',
+        phone: '',
+        address: '',
+      });
+    }
+    setIsSupplierDialogOpen(true);
+  };
+
+  const handleCloseSupplierDialog = () => {
+    setIsSupplierDialogOpen(false);
+    setEditingSupplier(null);
+  };
+
+  const handleSaveSupplier = async () => {
+    if (!supplierFormData.name) {
+      alert('El nombre es requerido');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      if (editingSupplier) {
+        await apiClient.patch(`/suppliers/${editingSupplier.id}`, supplierFormData);
+        alert('Proveedor actualizado exitosamente');
+      } else {
+        await apiClient.post('/suppliers', supplierFormData);
+        alert('Proveedor creado exitosamente');
+      }
+
+      handleCloseSupplierDialog();
+      fetchSuppliers();
+    } catch (error: any) {
+      console.error('Error saving supplier:', error);
+      alert(error.response?.data?.message || 'Error al guardar el proveedor');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteSupplier = async (id: number) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este proveedor?')) {
+      return;
+    }
+
+    try {
+      await apiClient.delete(`/suppliers/${id}`);
+      alert('Proveedor eliminado exitosamente');
+      fetchSuppliers();
+    } catch (error: any) {
+      console.error('Error deleting supplier:', error);
+      alert(error.response?.data?.message || 'Error al eliminar el proveedor');
+    }
+  };
+
+  const runPurchaseImportPreview = async () => {
+    if (!importFile) {
+      alert('Selecciona un archivo Excel (.xlsx) o PDF');
+      return;
+    }
+    setImportSubmitting(true);
+    setImportPreview(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', importFile);
+      fd.append('confirm', 'false');
+      const res = await apiClient.post<PurchaseImportPreview>('/expenses/import-purchase', fd);
+      setImportPreview(res.data);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      alert(err.response?.data?.message || 'Error al leer el archivo');
+    } finally {
+      setImportSubmitting(false);
+    }
+  };
+
+  const confirmPurchaseImport = async () => {
+    if (!importFile || !importPreview?.canConfirm) return;
+    setImportSubmitting(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', importFile);
+      fd.append('confirm', 'true');
+      fd.append('date', importMeta.date);
+      if (importMeta.supplierId) fd.append('supplierId', importMeta.supplierId);
+      if (importMeta.referenceNumber.trim()) fd.append('referenceNumber', importMeta.referenceNumber.trim());
+      if (importMeta.description.trim()) fd.append('description', importMeta.description.trim());
+      if (importMeta.initialPayment.trim()) {
+        const ip = parseFloat(importMeta.initialPayment);
+        if (Number.isFinite(ip) && ip > 0) fd.append('initialPayment', String(ip));
+      }
+      await apiClient.post('/expenses/import-purchase', fd);
+      alert('Factura de compra registrada y stock actualizado');
+      setImportFile(null);
+      setImportPreview(null);
+      fetchExpenses();
+      fetchStats();
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      alert(err.response?.data?.message || 'Error al registrar la compra');
+    } finally {
+      setImportSubmitting(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('es-VE', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  // Preparar datos para gráfico de torta
+  const pieChartData = stats?.categoryBreakdown.map((item, index) => ({
+    name: item.categoryName,
+    value: item.amount,
+    color: COLORS[index % COLORS.length],
+  })) || [];
+
+  return (
+    <div className="p-4 md:p-8 max-w-7xl mx-auto">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold mb-2">Gestión de Gastos</h1>
+            <p className="text-muted-foreground">Registra y monitorea los egresos de tu empresa</p>
+          </div>
+          {canManageExpenses && (
+            <Button onClick={() => handleOpenExpenseDialog()}>
+              <Plus className="mr-2 h-4 w-4" />
+              Registrar Gasto
+            </Button>
+          )}
+        </div>
+
+        {/* Métricas */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Gastos del Mes</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {stats ? formatForDisplay(stats.totalMonth) : formatForDisplay(0)}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Facturas de Proveedores</CardTitle>
+              <Package className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {stats ? formatForDisplay(stats.inventoryTotal) : formatForDisplay(0)}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Gastos Operativos</CardTitle>
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {stats ? formatForDisplay(stats.operationalTotal) : formatForDisplay(0)}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Gráficos (Lazy Loaded) */}
+        {stats && stats.categoryBreakdown.length > 0 && (
+          <ExpenseCharts categoryBreakdown={stats.categoryBreakdown} formatCurrency={formatForDisplay} />
+        )}
+
+        {/* Tabs para Gastos y Proveedores */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="flex flex-wrap h-auto gap-1">
+            <TabsTrigger value="expenses">Gastos</TabsTrigger>
+            <TabsTrigger value="import">Importar factura</TabsTrigger>
+            <TabsTrigger value="suppliers">Proveedores</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="expenses" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <CardTitle>Historial de Gastos</CardTitle>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar gastos..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 w-full sm:w-64"
+                    />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : filteredExpenses.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    No hay gastos registrados
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Fecha</TableHead>
+                          <TableHead>Proveedor</TableHead>
+                          <TableHead>Categoría</TableHead>
+                          <TableHead>Descripción</TableHead>
+                          <TableHead>Referencia</TableHead>
+                          <TableHead>Monto</TableHead>
+                          <TableHead>Abonado</TableHead>
+                          <TableHead>Saldo</TableHead>
+                          <TableHead>Estado</TableHead>
+                          <TableHead>Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredExpenses.map((expense) => (
+                          <TableRow key={expense.id}>
+                            <TableCell>{formatDate(expense.date)}</TableCell>
+                            <TableCell>{expense.supplier?.name || '-'}</TableCell>
+                            <TableCell>{expense.category.name}</TableCell>
+                            <TableCell className="max-w-xs truncate">{expense.description}</TableCell>
+                            <TableCell>{expense.referenceNumber || '-'}</TableCell>
+                            <TableCell className="font-semibold">
+                              {formatForDisplay(expense.amount)}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {formatForDisplay(expense.amountPaid ?? 0)}
+                            </TableCell>
+                            <TableCell className="text-sm text-amber-800 dark:text-amber-300">
+                              {formatForDisplay(expense.balanceDue ?? 0)}
+                            </TableCell>
+                            <TableCell>
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  expense.status === 'PAID'
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                                    : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                                }`}
+                              >
+                                {expense.status === 'PAID' ? 'Pagado' : 'Pendiente'}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                {canManageExpenses && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleOpenExpenseDialog(expense)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                {canDelete && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteExpense(expense.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="import" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileSpreadsheet className="h-5 w-5" />
+                  Importar factura de compra
+                </CardTitle>
+                <CardDescription>
+                  Sube un Excel con columnas de código (SKU o código de barras), cantidad y costo unitario USD, o un
+                  PDF con una línea por ítem: <code className="text-xs bg-muted px-1 rounded">CODIGO CANTIDAD COSTO</code>.
+                  Se creará un gasto en categoría Inventario, movimientos de compra y se actualizará el stock.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={handleDownloadPurchaseTemplate}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Descargar plantilla Excel
+                  </Button>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Archivo (.xlsx, .xls o .pdf)</Label>
+                    <Input
+                      type="file"
+                      accept=".xlsx,.xls,.pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/pdf"
+                      onChange={(e) => {
+                        setImportPreview(null);
+                        setImportFile(e.target.files?.[0] ?? null);
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Fecha del gasto</Label>
+                    <Input
+                      type="date"
+                      value={importMeta.date}
+                      onChange={(e) => setImportMeta((m) => ({ ...m, date: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Proveedor (opcional)</Label>
+                    <select
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      value={importMeta.supplierId}
+                      onChange={(e) => setImportMeta((m) => ({ ...m, supplierId: e.target.value }))}
+                    >
+                      <option value="">—</option>
+                      {suppliers.map((s) => (
+                        <option key={s.id} value={String(s.id)}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Referencia / N° factura (opcional)</Label>
+                    <Input
+                      value={importMeta.referenceNumber}
+                      onChange={(e) => setImportMeta((m) => ({ ...m, referenceNumber: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Descripción (opcional; si vacía se genera automática)</Label>
+                    <Input
+                      value={importMeta.description}
+                      onChange={(e) => setImportMeta((m) => ({ ...m, description: e.target.value }))}
+                      placeholder="Ej: Compra Diageo abril"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Abono inicial USD (opcional)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={importMeta.initialPayment}
+                      onChange={(e) => setImportMeta((m) => ({ ...m, initialPayment: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={runPurchaseImportPreview}
+                    disabled={importSubmitting || !importFile}
+                  >
+                    {importSubmitting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="mr-2 h-4 w-4" />
+                    )}
+                    Vista previa
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={confirmPurchaseImport}
+                    disabled={importSubmitting || !importPreview?.canConfirm}
+                  >
+                    Registrar compra
+                  </Button>
+                </div>
+
+                {importPreview && (
+                  <div className="space-y-4 rounded-lg border p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-semibold">
+                        Total estimado: {formatForDisplay(importPreview.totalAmount)}
+                      </p>
+                      {!importPreview.canConfirm && (
+                        <span className="text-sm text-destructive">
+                          Corrija errores antes de confirmar
+                        </span>
+                      )}
+                    </div>
+                    {importPreview.lines.length > 0 && (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Producto</TableHead>
+                              <TableHead>SKU</TableHead>
+                              <TableHead className="text-right">Cant.</TableHead>
+                              <TableHead className="text-right">Costo u.</TableHead>
+                              <TableHead className="text-right">Subtotal</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {importPreview.lines.map((line) => (
+                              <TableRow key={line.productId}>
+                                <TableCell>{line.name}</TableCell>
+                                <TableCell className="text-muted-foreground">{line.sku || '—'}</TableCell>
+                                <TableCell className="text-right">{line.quantity}</TableCell>
+                                <TableCell className="text-right">{formatForDisplay(line.unitCostUsd)}</TableCell>
+                                <TableCell className="text-right">{formatForDisplay(line.lineTotal)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                    {importPreview.errors.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium text-destructive mb-2">Errores</p>
+                        <ul className="list-disc pl-5 text-sm space-y-1">
+                          {importPreview.errors.map((err, i) => (
+                            <li key={i}>
+                              {err.row != null && `Fila ${err.row}: `}
+                              {err.line != null && `Línea PDF ${err.line}: `}
+                              {err.message}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {importPreview.unmatched.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-2">
+                          Códigos no reconocidos o no aplicables
+                        </p>
+                        <ul className="list-disc pl-5 text-sm space-y-1">
+                          {importPreview.unmatched.map((u, i) => (
+                            <li key={i}>
+                              {u.code}: {u.reason}
+                              {u.row != null && ` (fila ${u.row})`}
+                              {u.line != null && ` (línea PDF ${u.line})`}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="suppliers" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <CardTitle>Proveedores</CardTitle>
+                  {canManageExpenses && (
+                    <Button onClick={() => handleOpenSupplierDialog()}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Nuevo Proveedor
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {suppliers.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    No hay proveedores registrados
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nombre</TableHead>
+                          <TableHead>RIF/ID</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Teléfono</TableHead>
+                          <TableHead>Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {suppliers.map((supplier) => (
+                          <TableRow key={supplier.id}>
+                            <TableCell className="font-medium">{supplier.name}</TableCell>
+                            <TableCell>{supplier.taxId || '-'}</TableCell>
+                            <TableCell>{supplier.email || '-'}</TableCell>
+                            <TableCell>{supplier.phone || '-'}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleOpenSupplierDialog(supplier)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteSupplier(supplier.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Dialog para Registrar/Editar Gasto */}
+        <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingExpense ? 'Editar Gasto' : 'Registrar Nuevo Gasto'}
+              </DialogTitle>
+              <DialogDescription>
+                Completa los datos del gasto o compra realizada
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="date">Fecha *</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={expenseFormData.date}
+                    onChange={(e) =>
+                      setExpenseFormData({ ...expenseFormData, date: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Monto (USD) *</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={expenseFormData.amount}
+                    onChange={(e) =>
+                      setExpenseFormData({ ...expenseFormData, amount: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="categoryId">Categoría *</Label>
+                <select
+                  id="categoryId"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={expenseFormData.categoryId}
+                  onChange={(e) =>
+                    setExpenseFormData({ ...expenseFormData, categoryId: e.target.value })
+                  }
+                >
+                  <option value="">Selecciona una categoría</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="supplierId">Proveedor (Opcional)</Label>
+                <select
+                  id="supplierId"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={expenseFormData.supplierId}
+                  onChange={(e) =>
+                    setExpenseFormData({ ...expenseFormData, supplierId: e.target.value })
+                  }
+                >
+                  <option value="">Sin proveedor</option>
+                  {suppliers.map((supplier) => (
+                    <option key={supplier.id} value={supplier.id}>
+                      {supplier.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="referenceNumber">Número de Referencia</Label>
+                <Input
+                  id="referenceNumber"
+                  value={expenseFormData.referenceNumber}
+                  onChange={(e) =>
+                    setExpenseFormData({ ...expenseFormData, referenceNumber: e.target.value })
+                  }
+                  placeholder="Nro. de factura del proveedor"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Descripción *</Label>
+                <Input
+                  id="description"
+                  value={expenseFormData.description}
+                  onChange={(e) =>
+                    setExpenseFormData({ ...expenseFormData, description: e.target.value })
+                  }
+                  placeholder="Descripción del gasto"
+                />
+              </div>
+
+              {!editingExpense && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="initialPayment">Abono inicial (USD, opcional)</Label>
+                    <Input
+                      id="initialPayment"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={expenseFormData.initialPayment}
+                      onChange={(e) =>
+                        setExpenseFormData({ ...expenseFormData, initialPayment: e.target.value })
+                      }
+                      placeholder="0 — registrar pago al ingresar la factura de proveedor"
+                    />
+                  </div>
+                  <div className="rounded-lg border border-border p-3 space-y-2">
+                    <p className="text-sm font-medium">Cargar inventario desde factura de compra (opcional)</p>
+                    <p className="text-xs text-muted-foreground">
+                      Por cada línea se suma stock y se registra movimiento COMPRA. Use categoría acorde (p. ej.
+                      Inventario).
+                    </p>
+                    {purchaseLines.map((line, idx) => (
+                      <div key={idx} className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Producto</Label>
+                          <select
+                            className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                            value={line.productId}
+                            onChange={(e) => {
+                              const next = [...purchaseLines];
+                              next[idx] = { ...next[idx], productId: e.target.value };
+                              setPurchaseLines(next);
+                            }}
+                          >
+                            <option value="">—</option>
+                            {catalogProducts.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Cantidad</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={line.quantity}
+                            onChange={(e) => {
+                              const next = [...purchaseLines];
+                              next[idx] = { ...next[idx], quantity: e.target.value };
+                              setPurchaseLines(next);
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Costo unit. USD</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="opcional"
+                            value={line.unitCostUsd}
+                            onChange={(e) => {
+                              const next = [...purchaseLines];
+                              next[idx] = { ...next[idx], unitCostUsd: e.target.value };
+                              setPurchaseLines(next);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setPurchaseLines((prev) => [
+                          ...prev,
+                          { productId: '', quantity: '1', unitCostUsd: '' },
+                        ])
+                      }
+                    >
+                      Añadir línea de compra
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="status">Estado</Label>
+                <select
+                  id="status"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={expenseFormData.status}
+                  onChange={(e) =>
+                    setExpenseFormData({
+                      ...expenseFormData,
+                      status: e.target.value as 'PENDING' | 'PAID',
+                    })
+                  }
+                >
+                  <option value="PENDING">Pendiente</option>
+                  <option value="PAID">Pagado</option>
+                </select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseExpenseDialog}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveExpense} disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  'Guardar'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog para Crear/Editar Proveedor */}
+        <Dialog open={isSupplierDialogOpen} onOpenChange={setIsSupplierDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {editingSupplier ? 'Editar Proveedor' : 'Nuevo Proveedor'}
+              </DialogTitle>
+              <DialogDescription>
+                {editingSupplier
+                  ? 'Actualiza la información del proveedor'
+                  : 'Registra un nuevo proveedor en el sistema'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="supplier-name">Nombre *</Label>
+                <Input
+                  id="supplier-name"
+                  value={supplierFormData.name}
+                  onChange={(e) =>
+                    setSupplierFormData({ ...supplierFormData, name: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="supplier-taxId">RIF/ID</Label>
+                <Input
+                  id="supplier-taxId"
+                  value={supplierFormData.taxId}
+                  onChange={(e) =>
+                    setSupplierFormData({ ...supplierFormData, taxId: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="supplier-email">Email</Label>
+                <Input
+                  id="supplier-email"
+                  type="email"
+                  value={supplierFormData.email}
+                  onChange={(e) =>
+                    setSupplierFormData({ ...supplierFormData, email: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="supplier-phone">Teléfono</Label>
+                <Input
+                  id="supplier-phone"
+                  value={supplierFormData.phone}
+                  onChange={(e) =>
+                    setSupplierFormData({ ...supplierFormData, phone: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="supplier-address">Dirección</Label>
+                <Input
+                  id="supplier-address"
+                  value={supplierFormData.address}
+                  onChange={(e) =>
+                    setSupplierFormData({ ...supplierFormData, address: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseSupplierDialog}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveSupplier} disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  'Guardar'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
+  );
+}
