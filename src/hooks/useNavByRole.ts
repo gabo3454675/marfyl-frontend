@@ -11,17 +11,12 @@ export interface NavItem {
 }
 
 /**
- * Determina si un ítem del menú debe mostrarse según permisos y reglas especiales (ej. Inspección solo Davean).
- * Centraliza la lógica para Sidebar y BottomNav: solo se muestran módulos a los que el usuario tiene acceso.
+ * Determina si un ítem del menú debe mostrarse según permisos del rol.
  */
 export function canShowNavItem(
   item: NavItem,
   permissions: ReturnType<typeof usePermission>,
-  options?: { canSeeInspections?: boolean },
 ): boolean {
-  if (item.id === 'inspections') {
-    return options?.canSeeInspections === true;
-  }
   if (item.permission) {
     const value = permissions[item.permission];
     const hasPermission = value === true;

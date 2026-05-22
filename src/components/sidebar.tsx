@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { ChevronLeft, Grid2x2, ShoppingCart, Box, ChevronDown, LogOut, Check, DollarSign, FileText, Users, Settings, Download, CreditCard, Car, PackageMinus, History, BarChart3, Wallet, AlertTriangle, TrendingUp, Truck, Landmark, Wine } from 'lucide-react';
+import { ChevronLeft, Grid2x2, ShoppingCart, Box, ChevronDown, LogOut, Check, DollarSign, FileText, Users, Settings, Download, CreditCard, PackageMinus, History, BarChart3, Wallet, AlertTriangle, TrendingUp, Truck, Landmark, Wine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -41,7 +41,6 @@ const navigationItems = [
   { id: 'accounts-payable', label: 'Cuentas por pagar', icon: Landmark, href: '/accounts-payable', permission: 'canManageExpenses' },
   { id: 'alertas-stock', label: 'Alertas inventario', icon: AlertTriangle, href: '/alertas-stock', permission: 'canManageInventory' },
   { id: 'tasas', label: 'Tasas BCV / Diferencial', icon: TrendingUp, href: '/tasas', permission: 'canManageExpenses' },
-  { id: 'inspections', label: 'Inspección vehículo', icon: Car, href: '/inspections', permission: 'canManageInventory' },
   { id: 'settings', label: 'Configuración', icon: Settings, href: '/settings', permission: 'canManageTeam' },
 ];
 
@@ -109,7 +108,6 @@ export default function Sidebar() {
     if (pathname.startsWith('/expenses')) return 'expenses';
     if (pathname.startsWith('/suppliers')) return 'suppliers';
     if (pathname.startsWith('/accounts-payable')) return 'accounts-payable';
-    if (pathname.startsWith('/inspections')) return 'inspections';
     if (pathname.startsWith('/settings')) return 'settings';
     return 'dashboard';
   };
@@ -176,12 +174,6 @@ export default function Sidebar() {
 
   // ID seleccionado (priorizar organizationId)
   const selectedId = selectedOrganizationId || selectedCompanyId;
-
-  // Inspección vehículo: exclusivo para organización Davean o rol SUPER_ADMIN
-  const currentOrgName = (getCurrentOrganization() as { name?: string } | null)?.name ?? '';
-  const canSeeInspections =
-    !!user?.isSuperAdmin ||
-    currentOrgName.toLowerCase().includes('davean');
 
   return (
     <aside
@@ -384,7 +376,7 @@ export default function Sidebar() {
                 ['dashboard', 'pos', 'invoices', 'history', 'cierre-caja'].includes(item.id),
               )
               .filter((item) =>
-                canShowNavItem(item as NavItem, permissions, { canSeeInspections }),
+                canShowNavItem(item as NavItem, permissions),
               )
               .map((item) => (
                 <Button
@@ -413,7 +405,7 @@ export default function Sidebar() {
                 ['products', 'movements', 'alertas-stock', 'autoconsumo'].includes(item.id),
               )
               .filter((item) =>
-                canShowNavItem(item as NavItem, permissions, { canSeeInspections }),
+                canShowNavItem(item as NavItem, permissions),
               )
               .map((item) => (
                 <Button
@@ -442,7 +434,7 @@ export default function Sidebar() {
                 ['customers', 'credits', 'expenses', 'suppliers', 'accounts-payable'].includes(item.id),
               )
               .filter((item) =>
-                canShowNavItem(item as NavItem, permissions, { canSeeInspections }),
+                canShowNavItem(item as NavItem, permissions),
               )
               .map((item) => (
                 <Button
@@ -468,10 +460,10 @@ export default function Sidebar() {
             </p>
             {navigationItems
               .filter((item) =>
-                ['tasas', 'inspections', 'settings'].includes(item.id),
+                ['tasas', 'settings'].includes(item.id),
               )
               .filter((item) =>
-                canShowNavItem(item as NavItem, permissions, { canSeeInspections }),
+                canShowNavItem(item as NavItem, permissions),
               )
               .map((item) => (
                 <Button
@@ -497,7 +489,7 @@ export default function Sidebar() {
         {isCollapsed &&
           navigationItems
             .filter((item) =>
-              canShowNavItem(item as NavItem, permissions, { canSeeInspections }),
+              canShowNavItem(item as NavItem, permissions),
             )
             .map((item) => (
               <Button

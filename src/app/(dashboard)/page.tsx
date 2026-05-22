@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { MoreVertical, TrendingUp, Users, FileText, AlertCircle, Loader2, ListTodo, ExternalLink, Receipt, Percent, Banknote } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -256,9 +256,6 @@ export default function DashboardPage() {
   const [strategy, setStrategy] = useState<DashboardStrategy>(DEFAULT_STRATEGY);
   const [loadingStrategy, setLoadingStrategy] = useState(false);
   const [taskCategoryFilter, setTaskCategoryFilter] = useState<string>('');
-  const searchParams = useSearchParams();
-  const [inspeccionRestringidaMessage, setInspeccionRestringidaMessage] = useState(false);
-
   const canSeeCreatedByMe = isSuperAdmin || isAdmin || isManager;
   const { formatForDisplay, displayCurrency } = useDisplayCurrency();
   const selectedIdRef = useRef<number | null>(selectedId);
@@ -466,13 +463,6 @@ export default function DashboardPage() {
     }
   }, [mounted, _hasHydrated, isAuthenticated, canViewFinancialCharts, fetchDashboardStrategy]);
 
-  useEffect(() => {
-    if (searchParams.get('error') === 'inspeccion_restringida') {
-      setInspeccionRestringidaMessage(true);
-      router.replace('/');
-    }
-  }, [searchParams, router]);
-
   // Mientras se carga en el servidor o hidrata, mostrar un estado de carga
   if (!mounted || !_hasHydrated) {
     return (
@@ -515,21 +505,6 @@ export default function DashboardPage() {
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground">Esto es lo que está pasando con tu negocio hoy.</p>
       </div>
-
-      {/* Mensaje al redirigir desde Inspección sin acceso */}
-      {inspeccionRestringidaMessage && (
-        <Card className="mb-6 bg-amber-500/10 border-amber-500/40">
-          <CardContent className="py-4 flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
-            <p className="text-sm text-foreground">
-              No tienes acceso al módulo de Inspección de vehículos. Está restringido a la empresa autorizada (Davean) y a usuarios con rol ADMIN u OPERATOR.
-            </p>
-            <Button variant="ghost" size="sm" className="shrink-0" onClick={() => setInspeccionRestringidaMessage(false)}>
-              Cerrar
-            </Button>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Estado de carga */}
       {loading && (

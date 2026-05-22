@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Grid2x2, ShoppingCart, Box, MoreVertical, Users, FileText, CreditCard, DollarSign, Settings, LogOut, Car, PackageMinus, History, BarChart3, Wallet, AlertTriangle, TrendingUp, Truck, Landmark } from 'lucide-react';
+import { Grid2x2, ShoppingCart, Box, MoreVertical, Users, FileText, CreditCard, DollarSign, Settings, LogOut, PackageMinus, History, BarChart3, Wallet, AlertTriangle, TrendingUp, Truck, Landmark } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import {
@@ -45,7 +45,6 @@ const additionalMenuItems = [
   { id: 'tasas', label: 'Tasas BCV / Diferencial', icon: TrendingUp, href: '/tasas', permission: 'canManageExpenses' as const },
   { id: 'movements', label: 'Movimientos inventario', icon: PackageMinus, href: '/inventory/movements', permission: 'canManageInventory' as const },
   { id: 'autoconsumo', label: 'Autoconsumo', icon: BarChart3, href: '/autoconsumo', permission: 'canManageInventory' as const },
-  { id: 'inspections', label: 'Inspección vehículo', icon: Car, href: '/inspections', permission: 'canManageInventory' as const },
   { id: 'settings', label: 'Configuración', icon: Settings, href: '/settings', permission: 'canManageTeam' as const },
 ];
 
@@ -130,17 +129,11 @@ export default function BottomNav() {
 
   const activeItem = getActiveItem();
 
-  const currentOrgName = (currentOrg as { name?: string } | null)?.name ?? '';
-  const role = String(permissions.role || '').toUpperCase();
-  const canSeeInspections =
-    !!user?.isSuperAdmin ||
-    currentOrgName.toLowerCase().includes('davean');
-
   const visibleMainNav = navigationItems.filter((item) =>
-    canShowNavItem(item, permissions, { canSeeInspections }),
+    canShowNavItem(item, permissions),
   );
   const filteredAdditionalItems = additionalMenuItems.filter((item) =>
-    canShowNavItem(item, permissions, { canSeeInspections }),
+    canShowNavItem(item, permissions),
   );
 
   const handleMenuItemClick = (href: string) => {
