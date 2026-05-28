@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { clearSessionCookie, setSessionCookie } from '@/lib/auth-session-cookie';
 
 export interface Company {
   id: number;
@@ -81,6 +82,7 @@ export const useAuthStore = create<AuthState>()(
         }
         if (typeof window !== 'undefined') {
           localStorage.setItem('auth_token', token);
+          setSessionCookie();
         }
         const organizations = user.organizations || [];
         const companies = user.companies || [];
@@ -100,6 +102,7 @@ export const useAuthStore = create<AuthState>()(
       setToken: (token: string) => {
         if (typeof window !== 'undefined') {
           localStorage.setItem('auth_token', token);
+          setSessionCookie();
         }
         set({ token });
         if (typeof window !== 'undefined') {
@@ -118,6 +121,7 @@ export const useAuthStore = create<AuthState>()(
       clearAuth: () => {
         if (typeof window !== 'undefined') {
           localStorage.removeItem('auth_token');
+          clearSessionCookie();
         }
         set({
           user: null,

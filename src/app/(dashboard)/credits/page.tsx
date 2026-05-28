@@ -116,7 +116,7 @@ export default function CreditsPage() {
 
   if (!canManageCustomers) {
     return (
-      <div className="p-4 md:p-8 max-w-7xl mx-auto">
+      <div className="w-full min-w-0">
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">
@@ -197,7 +197,7 @@ export default function CreditsPage() {
     new Date(s).toLocaleDateString('es-VE', { dateStyle: 'short', timeStyle: 'short' });
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto">
+    <div className="w-full min-w-0 max-w-4xl">
       <div className="mb-6">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">Cuentas por Cobrar</h1>
         <p className="text-muted-foreground">Créditos a clientes y registro de abonos</p>

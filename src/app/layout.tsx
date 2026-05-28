@@ -66,7 +66,7 @@ export default function RootLayout({
         />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var k='marfyl-theme';try{var v=localStorage.getItem(k)||localStorage.getItem('disis-theme');if(v){var s=JSON.parse(v);if(s&&s.state&&s.state.theme==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}else document.documentElement.classList.remove('dark');}catch(e){document.documentElement.classList.remove('dark');}})();`,
+            __html: `(function(){var k='marfyl-theme';try{var v=localStorage.getItem(k)||localStorage.getItem('disis-theme');if(v){var s=JSON.parse(v);if(s&&s.state&&s.state.theme==='light')document.documentElement.classList.remove('dark');else document.documentElement.classList.add('dark');}else document.documentElement.classList.add('dark');}catch(e){document.documentElement.classList.add('dark');}})();`,
           }}
         />
       </head>

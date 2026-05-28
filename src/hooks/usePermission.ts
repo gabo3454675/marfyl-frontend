@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { isFiscalPreviewMode } from '@/lib/fiscal-preview';
 
 /**
  * Lista de organizaciones para el usuario actual (igual lógica que el switcher).
@@ -45,6 +46,33 @@ export function usePermission() {
   );
 
   const permissions = useMemo(() => {
+    if (isFiscalPreviewMode()) {
+      return {
+        role: 'ADMIN' as const,
+        isSuperAdmin: false,
+        isAdmin: true,
+        isManager: true,
+        isSeller: true,
+        isWarehouse: true,
+        isFiscal: true,
+        canManageFiscal: true,
+        canManageExpenses: true,
+        canManageTeam: true,
+        canDelete: true,
+        canInviteMembers: true,
+        canAssignTasks: true,
+        canCreateOrganization: false,
+        canViewReports: true,
+        canManageSettings: true,
+        canAnulateInvoices: true,
+        canDeleteInvoices: true,
+        canManageProducts: true,
+        canManageInventory: true,
+        canManageCustomers: true,
+        canViewDashboard: true,
+        canViewFinancialCharts: true,
+      };
+    }
     const roleString = currentOrg?.role?.toString() ?? '';
     const role = roleString.toUpperCase().trim() as
       | 'SUPER_ADMIN'
@@ -52,6 +80,7 @@ export function usePermission() {
       | 'MANAGER'
       | 'SELLER'
       | 'WAREHOUSE'
+      | 'FISCAL'
       | string;
 
     const isSuperAdmin = role === 'SUPER_ADMIN';
@@ -59,6 +88,7 @@ export function usePermission() {
     const isManager = role === 'MANAGER';
     const isSeller = role === 'SELLER';
     const isWarehouse = role === 'WAREHOUSE';
+    const isFiscal = role === 'FISCAL';
 
     return {
       role,
@@ -67,6 +97,8 @@ export function usePermission() {
       isManager,
       isSeller,
       isWarehouse,
+      isFiscal,
+      canManageFiscal: isSuperAdmin || isAdmin || isFiscal,
       canManageExpenses: isSuperAdmin || isAdmin || isManager,
       canManageTeam: isSuperAdmin || isAdmin,
       canDelete: isSuperAdmin || isAdmin,

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Grid2x2, ShoppingCart, Box, MoreVertical, Users, FileText, CreditCard, DollarSign, Settings, LogOut, PackageMinus, History, BarChart3, Wallet, AlertTriangle, TrendingUp, Truck, Landmark } from 'lucide-react';
+import { FISCAL_NAV_ITEMS } from '@/config/fiscal-nav';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import {
@@ -148,8 +149,8 @@ export default function BottomNav() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 lg:hidden bg-card border-t border-border z-50">
-      <div className="flex items-center justify-around h-20 px-2">
+    <nav className="bottom-nav-fixed" aria-label="Navegación principal">
+      <div className="bottom-nav-inner">
         {visibleMainNav.map((item) => (
             <Button
             key={item.id}
@@ -182,7 +183,10 @@ export default function BottomNav() {
               <MoreVertical className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="h-auto max-h-[80vh] pb-20 overflow-y-auto">
+          <SheetContent
+            side="bottom"
+            className="h-auto max-h-[min(80dvh,32rem)] pb-[calc(var(--app-bottom-chrome)+0.75rem)] overflow-y-auto"
+          >
             <SheetHeader>
               <SheetTitle>Menú</SheetTitle>
             </SheetHeader>
@@ -231,8 +235,37 @@ export default function BottomNav() {
               )}
             </div>
 
-            <div className="mt-6 space-y-2">
+            <div className="mt-4 space-y-1">
               <ThemeToggle variant="full" className="mb-2" />
+              {permissions.canManageFiscal && (
+                <div className="pt-3 mt-3 border-t border-border">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-2">
+                    Fiscal MARFYL
+                  </p>
+                  <div className="space-y-0.5 pl-1 border-l-2 border-primary/25 ml-1">
+                  {FISCAL_NAV_ITEMS.map((item) => {
+                    const isActive = pathname.startsWith(item.href) && (item.href !== '/fiscal' || pathname === '/fiscal');
+                    return (
+                      <Button
+                        key={item.id}
+                        variant="ghost"
+                        className={cn(
+                          'w-full justify-start gap-3 h-11 pl-6',
+                          isActive
+                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                            : 'text-foreground hover:bg-secondary',
+                        )}
+                        onClick={() => handleMenuItemClick(item.href)}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span className="text-sm">{item.label}</span>
+                      </Button>
+                    );
+                  })}
+                  </div>
+                </div>
+              )}
+              <div className="pt-3 mt-3 border-t border-border space-y-0.5">
               {filteredAdditionalItems.map((item) => {
                 const isActive = pathname.startsWith(item.href);
                 return (
@@ -252,6 +285,7 @@ export default function BottomNav() {
                   </Button>
                 );
               })}
+              </div>
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-3 h-12 mt-4 pt-4 border-t border-border text-destructive hover:text-destructive hover:bg-destructive/10"

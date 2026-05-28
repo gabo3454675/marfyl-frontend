@@ -85,7 +85,7 @@ export function PWAInstallPrompt() {
   }
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 lg:left-auto lg:right-4 lg:w-96 z-50 animate-in slide-in-from-bottom-5">
+    <div className="fixed left-4 right-4 z-50 bottom-[calc(var(--app-bottom-chrome)+0.75rem)] md:bottom-4 md:left-auto md:right-4 md:w-96 max-md:max-w-lg max-md:mx-auto">
       <Card className="border-2 border-primary shadow-lg">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">

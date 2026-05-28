@@ -9,10 +9,18 @@ import Link from 'next/link';
 import { authService } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Mail, Lock, Loader2, Sparkles, ArrowRight } from 'lucide-react';
+import { isFiscalPreviewMode } from '@/lib/fiscal-preview';
+import { LOGIN_COPY, PRICING_TEASER } from '@/lib/content/marketing-copy';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (isFiscalPreviewMode()) {
+      router.replace('/');
+    }
+  }, [router]);
   const setAuth = useAuthStore((state) => state.setAuth);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -69,11 +77,19 @@ function LoginForm() {
           </div>
           <div className="text-center space-y-2">
             <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-indigo-600 bg-clip-text text-transparent">
-              Bienvenido de vuelta
+              {LOGIN_COPY.title}
             </CardTitle>
-            <CardDescription className="text-base">
-              Ingresa tus credenciales para acceder a tu cuenta
-            </CardDescription>
+            <CardDescription className="text-base">{LOGIN_COPY.subtitle}</CardDescription>
+            {isFiscalPreviewMode() && (
+              <p className="text-center text-sm pt-2 space-y-1">
+                <Link href="/" className="block font-semibold text-primary hover:underline">
+                  Entrar al dashboard sin login →
+                </Link>
+                <Link href="/pos" className="block text-muted-foreground hover:underline">
+                  POS · Facturas · Fiscal
+                </Link>
+              </p>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -179,6 +195,23 @@ function LoginForm() {
                 >
                   ¿Tienes contraseña temporal? Cámbiala aquí
                 </Link>
+              </div>
+              <div className="pt-2 border-t border-border/60 space-y-1">
+                <p className="text-xs text-muted-foreground">{LOGIN_COPY.demoHint}</p>
+                <Link
+                  href={LOGIN_COPY.learnMoreHref}
+                  className="text-sm text-[hsl(var(--marketing-accent))] font-medium hover:underline inline-flex items-center gap-1"
+                >
+                  {LOGIN_COPY.learnMoreLabel}
+                  <ArrowRight className="h-3 w-3" />
+                </Link>
+                <a
+                  href={PRICING_TEASER.mailto}
+                  className="text-sm text-primary font-medium hover:underline inline-flex items-center gap-1 block"
+                >
+                  {PRICING_TEASER.contactLabel}
+                  <ArrowRight className="h-3 w-3 inline" />
+                </a>
               </div>
             </div>
           </form>

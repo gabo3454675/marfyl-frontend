@@ -50,6 +50,11 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        fiscal: {
+          accent: 'hsl(var(--fiscal-accent))',
+          warning: 'hsl(var(--fiscal-warning))',
+          surface: 'hsl(var(--fiscal-surface))',
+        },
         sidebar: {
           DEFAULT: 'hsl(var(--sidebar))',
           foreground: 'hsl(var(--sidebar-foreground))',

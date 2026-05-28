@@ -14,6 +14,7 @@ import {
 import { Loader2, Trash2, Users, AlertTriangle, Package, CreditCard } from 'lucide-react';
 import apiClient, { invoiceService } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
+import { HelpCenterCard } from '@/components/help/help-center-card';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -74,13 +75,15 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-3xl mx-auto">
+    <div className="w-full min-w-0 max-w-3xl">
       <div className="mb-6">
         <h1 className="text-3xl md:text-4xl font-bold mb-2">Configuración</h1>
         <p className="text-muted-foreground">Ajustes de la organización y herramientas de administración</p>
       </div>
 
       <div className="space-y-6">
+        <HelpCenterCard />
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

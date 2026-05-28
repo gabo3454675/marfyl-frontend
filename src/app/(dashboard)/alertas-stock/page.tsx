@@ -15,6 +15,10 @@ import { AlertTriangle, Loader2, Package, RefreshCw } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 import Link from 'next/link';
+import { EmptyStatePanel } from '@/components/help/empty-state-panel';
+import { ContentFaqSheet } from '@/components/help/content-faq-sheet';
+import { EMPTY_STATES } from '@/lib/content/marketing-copy';
+import { INVENTORY_FAQ } from '@/lib/content/faq-content';
 
 interface AlertaProducto {
   id: number;
@@ -67,10 +71,18 @@ export default function AlertasStockPage() {
             Productos con stock por debajo del mínimo. Las notificaciones se envían al registrar autoconsumos o ajustes que dejen el stock bajo el mínimo.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => { setLoading(true); fetchAlertas(); }}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Actualizar
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <ContentFaqSheet
+            title="Alertas de inventario"
+            description="Cómo se generan y qué hacer cuando un producto aparece en la lista."
+            items={INVENTORY_FAQ}
+            triggerLabel="Ayuda"
+          />
+          <Button variant="outline" size="sm" onClick={() => { setLoading(true); fetchAlertas(); }}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Actualizar
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -94,9 +106,13 @@ export default function AlertasStockPage() {
         </CardHeader>
         <CardContent>
           {items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Revisa el <Link href="/products" className="underline">inventario</Link> para ajustar cantidades o mínimos.
-            </p>
+            <EmptyStatePanel
+              title={EMPTY_STATES.stockAlerts.title}
+              description={EMPTY_STATES.stockAlerts.description}
+              tips={[...EMPTY_STATES.stockAlerts.tips]}
+              primaryCta={EMPTY_STATES.stockAlerts.primaryCta}
+              secondaryCta={EMPTY_STATES.stockAlerts.secondaryCta}
+            />
           ) : (
             <div className="overflow-x-auto">
               <Table>

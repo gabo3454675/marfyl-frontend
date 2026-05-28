@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useLayoutEffect, useState, useCallback } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { isFiscalPreviewMode, seedFiscalPreviewAuth } from '@/lib/fiscal-preview';
+import { readSessionCookieFromDocument, setSessionCookie } from '@/lib/auth-session-cookie';
 import { useAuthStore } from '@/store/useAuthStore';
 import { apiClient } from '@/lib/api';
 import Sidebar from '@/components/sidebar';
@@ -11,8 +13,11 @@ import { DisplayCurrencyToggle } from '@/components/display-currency-toggle';
 import { TasksNotificationBell } from '@/components/tasks-notification-bell';
 import { NotificationFeedProvider } from '@/hooks/useNotificationFeed';
 import { RateConfigModal } from '@/components/rate-config-modal';
-import { PermissionDebug } from '@/components/permission-debug';
 import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
+import { AssistantProvider } from '@/components/assistant/assistant-provider';
+import { MarfylAssistant } from '@/components/assistant/marfyl-assistant';
+import { DmAmbientMotion } from '@/components/ui/dm-ambient-motion';
+import { DevAppSwitcher } from '@/components/marketing/dev-app-switcher';
 import { useSync } from '@/hooks/useSync';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
@@ -23,6 +28,9 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname() ?? '';
+  const isAssistantRoute = pathname === '/assistant' || pathname.startsWith('/assistant/');
+  const devPreview = isFiscalPreviewMode();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const hasHydrated = useAuthStore((state) => state._hasHydrated);
   const selectedOrganizationId = useAuthStore((state) => state.selectedOrganizationId);
@@ -86,6 +94,10 @@ export default function DashboardLayout({
   }, [isAuthenticated, selectedId, syncOrganizationRate]);
 
   // Asegurar que solo renderizamos en el cliente
+  useLayoutEffect(() => {
+    if (devPreview) seedFiscalPreviewAuth();
+  }, [devPreview]);
+
   useEffect(() => {
     setMounted(true);
     // Forzar hidratación si no se ha completado después de 500ms
@@ -95,15 +107,26 @@ export default function DashboardLayout({
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [hasHydrated]);
+  }, [hasHydrated, devPreview]);
+
+  useEffect(() => {
+    if (mounted && hasHydrated && isAuthenticated && !readSessionCookieFromDocument()) {
+      setSessionCookie();
+    }
+  }, [mounted, hasHydrated, isAuthenticated]);
 
   useEffect(() => {
     // Solo redirigir después de que el estado se haya hidratado y montado
     if (mounted && hasHydrated) {
-      if (!isAuthenticated) {
-        router.push('/login');
+      if (!isAuthenticated && !devPreview) {
+        if (pathname === '/' || pathname === '') {
+          router.replace('/empresa');
+        } else {
+          router.push('/login');
+        }
         return;
       }
+      if (devPreview) return;
 
       // requiresPasswordChange: bloquear acceso hasta actualizar clave temporal
       if (user?.requiresPasswordChange) {
@@ -144,7 +167,7 @@ export default function DashboardLayout({
         }
       }
     }
-  }, [mounted, hasHydrated, isAuthenticated, selectedId, hasOrganizations, user, router]);
+  }, [mounted, hasHydrated, isAuthenticated, selectedId, hasOrganizations, user, router, devPreview]);
 
   // Mientras se carga o hidrata, mostrar un estado de carga
   if (!mounted || !hasHydrated) {
@@ -159,7 +182,7 @@ export default function DashboardLayout({
   }
 
   // Si no está autenticado después de hidratar, mostrar carga mientras redirige
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !devPreview) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center">
@@ -199,19 +222,31 @@ export default function DashboardLayout({
 
   return (
     <NotificationFeedProvider>
-      <div className="flex flex-col lg:flex-row min-h-screen bg-background text-foreground">
+      <AssistantProvider>
+      <div className="dm-app-shell flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden md:flex-row">
+        <DmAmbientMotion palette="a" intensity="subtle" />
         {/* Desktop Sidebar */}
         <Sidebar />
 
         {/* Main Content */}
-        <main className="flex-1 flex flex-col pb-24 lg:pb-0 min-w-0 overflow-x-hidden">
-          {/* Header: indicador de tasa + campanita de tareas */}
+        <main className="flex flex-1 flex-col min-h-0 min-w-0">
           <header className="sticky top-0 z-10 flex shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-3 border-b border-border bg-background/95 px-3 py-2 sm:px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <TasksNotificationBell />
             <DisplayCurrencyToggle className="shrink-0" short />
             <ExchangeRateIndicator onOpenConfig={() => setRateConfigModalOpen(true)} className="shrink-0" />
           </header>
-          <div className="flex-1 min-w-0 overflow-x-hidden">{children}</div>
+          {devPreview && <DevAppSwitcher />}
+          <div
+            className={
+              isAssistantRoute
+                ? 'flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden'
+                : 'app-main-scroll'
+            }
+          >
+            <div className={isAssistantRoute ? 'flex flex-1 flex-col min-h-0 min-w-0' : 'app-page-shell'}>
+              {children}
+            </div>
+          </div>
         </main>
 
         {/* Modal de configuración de tasa (abierto desde el indicador o la campanita) */}
@@ -223,9 +258,10 @@ export default function DashboardLayout({
         {/* PWA Install Prompt */}
         <PWAInstallPrompt />
 
-        {/* Debug Component (solo en desarrollo) */}
-        <PermissionDebug />
+        {!isAssistantRoute && <MarfylAssistant />}
+
       </div>
+      </AssistantProvider>
     </NotificationFeedProvider>
   );
 }

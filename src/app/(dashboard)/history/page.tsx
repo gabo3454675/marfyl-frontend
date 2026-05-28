@@ -157,7 +157,7 @@ export default function HistoryPage() {
 
   if (!canManageCustomers) {
     return (
-      <div className="p-4 md:p-8 max-w-7xl mx-auto">
+      <div className="w-full min-w-0">
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">No tienes permisos para acceder a esta sección.</p>
@@ -168,7 +168,7 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto">
+    <div className="w-full min-w-0">
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold mb-2">Historial de Ventas</h1>

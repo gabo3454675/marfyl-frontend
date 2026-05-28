@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/useAuthStore';
+import { isFiscalPreviewMode } from '@/lib/fiscal-preview';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 import MetricCard from '@/components/metric-card';
 import NotificationsSection from '@/components/notifications-section';
@@ -379,7 +380,7 @@ export default function DashboardPage() {
   }, [fetchMyPendingTasks, fetchCreatedByMeTasks]);
 
   useEffect(() => {
-    if (mounted && _hasHydrated && !isAuthenticated) {
+    if (mounted && _hasHydrated && !isAuthenticated && !isFiscalPreviewMode()) {
       router.push('/login');
     }
   }, [mounted, _hasHydrated, isAuthenticated, router]);
@@ -466,7 +467,7 @@ export default function DashboardPage() {
   // Mientras se carga en el servidor o hidrata, mostrar un estado de carga
   if (!mounted || !_hasHydrated) {
     return (
-      <div className="min-w-0 overflow-x-hidden px-4 py-5 sm:px-5 md:px-6 lg:px-8 max-w-7xl mx-auto">
+      <div className="w-full min-w-0">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <span className="ml-2 text-sm sm:text-base text-muted-foreground">Cargando...</span>
@@ -475,8 +476,7 @@ export default function DashboardPage() {
     );
   }
 
-  // Si no está autenticado después de montar e hidratar, no renderizar nada (será redirigido)
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !isFiscalPreviewMode()) {
     return null;
   }
 
@@ -497,7 +497,7 @@ export default function DashboardPage() {
   const userName = user?.fullName?.split(' ')[0] || user?.email?.split('@')[0] || 'Usuario';
 
   return (
-    <div className="min-w-0 overflow-x-hidden px-4 py-5 sm:px-5 sm:py-6 md:px-6 md:py-7 lg:px-8 lg:py-8 max-w-7xl mx-auto">
+    <div className="w-full min-w-0">
       {/* Header - Siempre visible */}
       <div className="mb-5 md:mb-8">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1.5 md:mb-2 truncate">

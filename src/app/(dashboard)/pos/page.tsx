@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import apiClient, { invoiceService } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePermission } from '@/hooks/usePermission';
+import { FiscalIntegrationStrip } from '@/components/fiscal/v2/fiscal-integration-strip';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -29,6 +30,7 @@ import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { db } from '@/lib/db';
 import { toast } from 'sonner';
 import { round2 } from '@/lib/currencyConversion';
+import { computeCartIva } from '@/lib/tax-calculator';
 
 interface Product {
   id: number;
@@ -95,7 +97,7 @@ interface TicketSummary {
 
 export default function POSPage() {
   const { selectedCompanyId, getCurrentOrganization } = useAuthStore();
-  const { canManageCustomers } = usePermission();
+  const { canManageCustomers, canManageFiscal } = usePermission();
   const rawRate = useExchangeRate();
   const tasaBcv = Number.isFinite(rawRate) && rawRate > 0 ? rawRate : 1;
   const [products, setProducts] = useState<Product[]>([]);
@@ -268,14 +270,12 @@ export default function POSPage() {
     setCart((prevCart) => prevCart.filter((item) => item.product.id !== productId));
   };
 
-  /** Total en USD (solo cobro real, sin IVA/IGTF). */
-  const { subtotal, total } = useMemo(() => {
-    const subUsd = cart.reduce(
-      (sum, item) => sum + Number(item.product.salePrice) * item.quantity,
-      0
-    );
-    const subRounded = round2(subUsd);
-    return { subtotal: subRounded, total: subRounded };
+  const { subtotal, ivaAmount, total } = useMemo(() => {
+    const lines = cart.map((item) => ({
+      amount: Number(item.product.salePrice) * item.quantity,
+      isExempt: item.product.isExempt,
+    }));
+    return computeCartIva(lines);
   }, [cart]);
 
   /** Suma de líneas de pago combinado en equivalente USD (validación vs total). */
@@ -511,7 +511,7 @@ export default function POSPage() {
 
   if (!canManageCustomers) {
     return (
-      <div className="p-4 md:p-8 max-w-7xl mx-auto">
+      <div className="w-full min-w-0">
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">
@@ -524,9 +524,10 @@ export default function POSPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto h-full flex flex-col">
+    <div className="w-full min-w-0 h-full flex flex-col">
       <div className="mb-2 md:mb-6">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 md:mb-2">Punto de Venta</h1>
+        {canManageFiscal && <FiscalIntegrationStrip variant="pos" className="mb-2 md:mb-3" />}
         <p className="text-muted-foreground text-sm md:text-base">Procesa ventas rápidamente</p>
       </div>
 
@@ -968,10 +969,17 @@ export default function POSPage() {
                 )}
               </div>
 
-              {/* Resumen: solo cobro real (sin IVA/IGTF) */}
-              <div className="space-y-2 pt-4 border-t border-border">
-                <div className="flex justify-between font-bold text-lg">
-                  <span>Total</span>
+              <div className="space-y-2 pt-4 border-t border-border text-sm">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span>{formatCurrency(subtotal)}</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>IVA (16%)</span>
+                  <span>{formatCurrency(ivaAmount)}</span>
+                </div>
+                <div className="flex justify-between font-bold text-lg pt-1">
+                  <span>Total a cobrar</span>
                   <span>{formatCurrency(total)}</span>
                 </div>
                 {(paymentMethod === 'CASH_BS' || paymentMethod === 'PAGO_MOVIL') && (

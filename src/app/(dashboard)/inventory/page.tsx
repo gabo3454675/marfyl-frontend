@@ -6,7 +6,7 @@ import { Plus } from 'lucide-react';
 
 export default function InventoryPage() {
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto">
+    <div className="w-full min-w-0">
       <div className="space-y-6">
         <div className="flex flex-col gap-4">
           <div>

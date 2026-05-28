@@ -4,7 +4,10 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { ChevronLeft, Grid2x2, ShoppingCart, Box, ChevronDown, LogOut, Check, DollarSign, FileText, Users, Settings, Download, CreditCard, PackageMinus, History, BarChart3, Wallet, AlertTriangle, TrendingUp, Truck, Landmark, Wine } from 'lucide-react';
+import { ChevronLeft, ChevronDown, LogOut, Check, Download } from 'lucide-react';
+import { FISCAL_NAV_ITEMS, isFiscalRoute, resolveFiscalNavId } from '@/config/fiscal-nav';
+import { APP_NAV_ITEMS, APP_NAV_SECTIONS, getNavItem, resolveAppNavId } from '@/config/app-nav';
+import { FiscalNavCollapsible, NavSection, SidebarNavLink } from '@/components/layout/sidebar-nav-parts';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -24,30 +27,17 @@ import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { ThemeToggle } from '@/components/theme-toggle';
 
-const navigationItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Grid2x2, href: '/', permission: 'canViewDashboard' },
-  { id: 'pos', label: 'POS', icon: ShoppingCart, href: '/pos', permission: 'canManageCustomers' },
-  { id: 'products', label: 'Inventario', icon: Box, href: '/products', permission: 'canManageProducts' },
-  { id: 'servicios-combos', label: 'Servicios y combos', icon: Wine, href: '/servicios-combos', permission: 'canManageProducts' },
-  { id: 'movements', label: 'Movimientos inventario', icon: PackageMinus, href: '/inventory/movements', permission: 'canManageInventory' },
-  { id: 'autoconsumo', label: 'Autoconsumo', icon: BarChart3, href: '/autoconsumo', permission: 'canManageInventory' },
-  { id: 'customers', label: 'Clientes', icon: Users, href: '/customers', permission: 'canManageCustomers' },
-  { id: 'invoices', label: 'Facturas', icon: FileText, href: '/invoices', permission: 'canManageCustomers' },
-  { id: 'history', label: 'Historial de Ventas', icon: History, href: '/history', permission: 'canManageCustomers' },
-  { id: 'cierre-caja', label: 'Cierre de caja', icon: Wallet, href: '/cierre-caja', permission: 'canManageCustomers' },
-  { id: 'credits', label: 'Cuentas por Cobrar', icon: CreditCard, href: '/credits', permission: 'canManageCustomers' },
-  { id: 'expenses', label: 'Gastos', icon: DollarSign, href: '/expenses', permission: 'canManageExpenses' },
-  { id: 'suppliers', label: 'Proveedores', icon: Truck, href: '/suppliers', permission: 'canManageExpenses' },
-  { id: 'accounts-payable', label: 'Cuentas por pagar', icon: Landmark, href: '/accounts-payable', permission: 'canManageExpenses' },
-  { id: 'alertas-stock', label: 'Alertas inventario', icon: AlertTriangle, href: '/alertas-stock', permission: 'canManageInventory' },
-  { id: 'tasas', label: 'Tasas BCV / Diferencial', icon: TrendingUp, href: '/tasas', permission: 'canManageExpenses' },
-  { id: 'settings', label: 'Configuración', icon: Settings, href: '/settings', permission: 'canManageTeam' },
-];
+const navigationItems = APP_NAV_ITEMS;
 
 export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [fiscalOpen, setFiscalOpen] = useState(() => isFiscalRoute(pathname ?? ''));
+
+  useEffect(() => {
+    if (isFiscalRoute(pathname ?? '')) setFiscalOpen(true);
+  }, [pathname]);
   const { 
     user, 
     clearAuth, 
@@ -93,23 +83,10 @@ export default function Sidebar() {
   const permissions = usePermission();
   const { isInstallable, install } = usePWAInstall();
   
-  // Determinar el item activo basado en la ruta actual
   const getActiveItem = () => {
-    if (pathname === '/') return 'dashboard';
-    if (pathname.startsWith('/pos')) return 'pos';
-    if (pathname.startsWith('/products')) return 'products';
-    if (pathname.startsWith('/inventory/movements')) return 'movements';
-    if (pathname.startsWith('/autoconsumo')) return 'autoconsumo';
-    if (pathname.startsWith('/inventory')) return 'products';
-    if (pathname.startsWith('/customers')) return 'customers';
-    if (pathname.startsWith('/invoices')) return 'invoices';
-    if (pathname.startsWith('/history')) return 'history';
-    if (pathname.startsWith('/credits')) return 'credits';
-    if (pathname.startsWith('/expenses')) return 'expenses';
-    if (pathname.startsWith('/suppliers')) return 'suppliers';
-    if (pathname.startsWith('/accounts-payable')) return 'accounts-payable';
-    if (pathname.startsWith('/settings')) return 'settings';
-    return 'dashboard';
+    const fid = resolveFiscalNavId(pathname ?? '');
+    if (fid) return fid;
+    return resolveAppNavId(pathname ?? '');
   };
 
   const activeItem = getActiveItem();
@@ -178,7 +155,7 @@ export default function Sidebar() {
   return (
     <aside
       className={cn(
-        'hidden lg:flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 h-screen sticky top-0 overflow-hidden',
+        'hidden md:flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 h-full min-h-0 shrink-0 overflow-hidden',
         isCollapsed ? 'w-20' : 'w-64'
       )}
     >
@@ -365,84 +342,77 @@ export default function Sidebar() {
       )}
 
       {/* Navigation - Scrollable */}
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto overflow-x-hidden min-h-0">
-        {!isCollapsed && (
-          <>
-            <p className="px-2 text-[11px] font-semibold uppercase tracking-wide text-sidebar-foreground/60">
-              Ventas y Caja
-            </p>
-            {navigationItems
-              .filter((item) =>
-                ['dashboard', 'pos', 'invoices', 'history', 'cierre-caja'].includes(item.id),
-              )
-              .filter((item) =>
-                canShowNavItem(item as NavItem, permissions),
-              )
-              .map((item) => (
-                <Button
-                  key={item.id}
-                  asChild
-                  variant={activeItem === item.id ? 'default' : 'ghost'}
-                  className={cn(
-                    'w-full justify-start gap-3',
-                    activeItem === item.id
-                      ? 'bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent',
-                  )}
-                >
-                  <Link href={item.href} prefetch>
-                    <item.icon className="h-5 w-5 flex-shrink-0" />
-                    <span>{item.label}</span>
-                  </Link>
-                </Button>
-              ))}
+      <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden sidebar-scroll">
+        {!isCollapsed ? (
+          <div className="p-3 pb-4 flex flex-col gap-0">
+            {APP_NAV_SECTIONS.filter((s) => s.id !== 'config').map((section) => {
+              const items = section.itemIds
+                .map((id) => getNavItem(id))
+                .filter(Boolean)
+                .filter((item) => canShowNavItem(item as NavItem, permissions));
+              if (items.length === 0) return null;
+              return (
+                <NavSection key={section.id} label={section.label}>
+                  {items.map((item) => (
+                    <SidebarNavLink
+                      key={item!.id}
+                      item={item!}
+                      active={activeItem === item!.id}
+                    />
+                  ))}
+                </NavSection>
+              );
+            })}
 
-            <p className="px-2 mt-4 text-[11px] font-semibold uppercase tracking-wide text-sidebar-foreground/60">
-              Inventario
-            </p>
-            {navigationItems
-              .filter((item) =>
-                ['products', 'movements', 'alertas-stock', 'autoconsumo'].includes(item.id),
-              )
-              .filter((item) =>
-                canShowNavItem(item as NavItem, permissions),
-              )
-              .map((item) => (
-                <Button
-                  key={item.id}
-                  asChild
-                  variant={activeItem === item.id ? 'default' : 'ghost'}
-                  className={cn(
-                    'w-full justify-start gap-3',
-                    activeItem === item.id
-                      ? 'bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent',
-                  )}
-                >
-                  <Link href={item.href} prefetch>
-                    <item.icon className="h-5 w-5 flex-shrink-0" />
-                    <span>{item.label}</span>
-                  </Link>
-                </Button>
-              ))}
+            {permissions.canManageFiscal && (
+              <FiscalNavCollapsible
+                pathname={pathname ?? ''}
+                fiscalOpen={fiscalOpen}
+                onToggle={() => setFiscalOpen((o) => !o)}
+              />
+            )}
 
-            <p className="px-2 mt-4 text-[11px] font-semibold uppercase tracking-wide text-sidebar-foreground/60">
-              Clientes y Finanzas
-            </p>
-            {navigationItems
-              .filter((item) =>
-                ['customers', 'credits', 'expenses', 'suppliers', 'accounts-payable'].includes(item.id),
-              )
-              .filter((item) =>
-                canShowNavItem(item as NavItem, permissions),
-              )
+            {APP_NAV_SECTIONS.filter((s) => s.id === 'config').map((section) => {
+              const items = section.itemIds
+                .map((id) => getNavItem(id))
+                .filter(Boolean)
+                .filter((item) => canShowNavItem(item as NavItem, permissions));
+              if (items.length === 0) return null;
+              return (
+                <NavSection key={section.id} label={section.label}>
+                  {items.map((item) => (
+                    <SidebarNavLink
+                      key={item!.id}
+                      item={item!}
+                      active={activeItem === item!.id}
+                    />
+                  ))}
+                </NavSection>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-2 space-y-1">
+            {[
+              ...navigationItems,
+              ...(permissions.canManageFiscal
+                ? FISCAL_NAV_ITEMS.map((f) => ({
+                    id: f.id,
+                    label: f.label,
+                    icon: f.icon,
+                    href: f.href,
+                    permission: 'canManageFiscal' as const,
+                  }))
+                : []),
+            ]
+              .filter((item) => canShowNavItem(item as NavItem, permissions))
               .map((item) => (
                 <Button
                   key={item.id}
                   asChild
                   variant={activeItem === item.id ? 'default' : 'ghost'}
                   className={cn(
-                    'w-full justify-start gap-3',
+                    'w-full justify-center p-0 h-10 w-10',
                     activeItem === item.id
                       ? 'bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary'
                       : 'text-sidebar-foreground hover:bg-sidebar-accent',
@@ -450,64 +420,11 @@ export default function Sidebar() {
                 >
                   <Link href={item.href} prefetch>
                     <item.icon className="h-5 w-5 flex-shrink-0" />
-                    <span>{item.label}</span>
                   </Link>
                 </Button>
               ))}
-
-            <p className="px-2 mt-4 text-[11px] font-semibold uppercase tracking-wide text-sidebar-foreground/60">
-              Configuración
-            </p>
-            {navigationItems
-              .filter((item) =>
-                ['tasas', 'settings'].includes(item.id),
-              )
-              .filter((item) =>
-                canShowNavItem(item as NavItem, permissions),
-              )
-              .map((item) => (
-                <Button
-                  key={item.id}
-                  asChild
-                  variant={activeItem === item.id ? 'default' : 'ghost'}
-                  className={cn(
-                    'w-full justify-start gap-3',
-                    activeItem === item.id
-                      ? 'bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent',
-                  )}
-                >
-                  <Link href={item.href} prefetch>
-                    <item.icon className="h-5 w-5 flex-shrink-0" />
-                    <span>{item.label}</span>
-                  </Link>
-                </Button>
-              ))}
-          </>
+          </div>
         )}
-
-        {isCollapsed &&
-          navigationItems
-            .filter((item) =>
-              canShowNavItem(item as NavItem, permissions),
-            )
-            .map((item) => (
-              <Button
-                key={item.id}
-                asChild
-                variant={activeItem === item.id ? 'default' : 'ghost'}
-                className={cn(
-                  'w-full justify-center p-0 h-10 w-10',
-                  activeItem === item.id
-                    ? 'bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent',
-                )}
-              >
-                <Link href={item.href} prefetch>
-                  <item.icon className="h-5 w-5 flex-shrink-0" />
-                </Link>
-              </Button>
-            ))}
       </nav>
 
       {/* User Section - Fixed at bottom */}

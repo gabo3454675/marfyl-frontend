@@ -1,5 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { API_BASE_URL } from '@/lib/config/api-config';
+import { clearSessionCookie } from '@/lib/auth-session-cookie';
+import { FISCAL_PREVIEW_TOKEN, isFiscalPreviewMode, seedFiscalPreviewAuth } from '@/lib/fiscal-preview';
 
 function getApiUrl(): string {
   if (typeof window !== 'undefined' && (window as unknown as { __NEXT_PUBLIC_API_URL__?: string }).__NEXT_PUBLIC_API_URL__) {
@@ -22,7 +24,12 @@ apiClient.interceptors.request.use(
     config.baseURL = getApiUrl();
     // Solo en el cliente (browser)
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('auth_token');
+      if (isFiscalPreviewMode()) {
+        seedFiscalPreviewAuth();
+      }
+      const token =
+        localStorage.getItem('auth_token') ||
+        (isFiscalPreviewMode() ? FISCAL_PREVIEW_TOKEN : null);
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -62,7 +69,8 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (typeof window !== 'undefined') {
-      if (error.response?.status === 401) {
+      if (error.response?.status === 401 && !isFiscalPreviewMode()) {
+        clearSessionCookie();
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth-storage');
         window.location.href = '/login';

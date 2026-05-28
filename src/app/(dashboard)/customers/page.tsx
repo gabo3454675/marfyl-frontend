@@ -190,7 +190,7 @@ export default function CustomersPage() {
 
   if (!canManageCustomers) {
     return (
-      <div className="p-4 md:p-8 max-w-7xl mx-auto">
+      <div className="w-full min-w-0">
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">
@@ -203,7 +203,7 @@ export default function CustomersPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto">
+    <div className="w-full min-w-0">
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>

@@ -20,6 +20,7 @@ import { AssignTaskModal } from '@/components/assign-task-modal';
 import { apiClient, invoiceService } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePermission } from '@/hooks/usePermission';
+import { FiscalIntegrationStrip } from '@/components/fiscal/v2/fiscal-integration-strip';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 
 interface InvoiceItem {
@@ -55,7 +56,7 @@ export default function InvoicesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { selectedCompanyId, user } = useAuthStore();
-  const { canManageCustomers } = usePermission();
+  const { canManageCustomers, canManageFiscal } = usePermission();
   const { formatForDisplay } = useDisplayCurrency();
   const isSuperAdmin = !!user?.isSuperAdmin;
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -164,7 +165,7 @@ export default function InvoicesPage() {
 
   if (!canManageCustomers) {
     return (
-      <div className="p-4 md:p-8 max-w-7xl mx-auto">
+      <div className="w-full min-w-0">
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">
@@ -177,10 +178,11 @@ export default function InvoicesPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto">
+    <div className="w-full min-w-0">
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold mb-2">Facturas</h1>
+          {canManageFiscal && <FiscalIntegrationStrip variant="invoices" className="mb-3" />}
           <p className="text-muted-foreground">Historial de facturas generadas</p>
           <p className="text-sm text-muted-foreground mt-1">
             Las facturas y tickets se guardan aquí. Puede descargar o imprimir el PDF en cualquier momento con el botón &quot;PDF&quot; (en el momento o después).

@@ -240,7 +240,7 @@ export default function ServiciosCombosPage() {
 
   if (!canManageProducts) {
     return (
-      <div className="p-4 md:p-8 max-w-7xl mx-auto">
+      <div className="w-full min-w-0">
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">No tienes permisos para esta sección.</p>
@@ -251,7 +251,7 @@ export default function ServiciosCombosPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="w-full min-w-0 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold mb-2 flex items-center gap-2">

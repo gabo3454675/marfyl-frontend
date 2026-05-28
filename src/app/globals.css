@@ -4,8 +4,8 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 48 33% 98%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
@@ -24,6 +24,12 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
+    /* Chrome inferior móvil: barra + FAB (sidebar desde md / 768px) */
+    --app-bottom-nav-h: 4rem;
+    --app-safe-bottom: env(safe-area-inset-bottom, 0px);
+    --app-bottom-chrome: calc(var(--app-bottom-nav-h) + var(--app-safe-bottom));
+    --app-content-pad-bottom: calc(var(--app-bottom-chrome) + 0.25rem);
+    --app-fab-offset: calc(var(--app-bottom-chrome) + 0.5rem);
     --sidebar: 0 0% 98%;
     --sidebar-foreground: 222.2 47.4% 11.2%;
     --sidebar-primary: 221.2 83.2% 53.3%;
@@ -32,36 +38,721 @@
     --sidebar-accent-foreground: 222.2 47.4% 11.2%;
     --sidebar-border: 214.3 31.8% 91.4%;
     --sidebar-ring: 221.2 83.2% 53.3%;
+    --fiscal-accent: 48 75% 42%;
+    --fiscal-warning: 38 92% 50%;
+    --fiscal-surface: 48 35% 96%;
+    --marketing-accent: 22 100% 85%;
+    /* Paleta A — operación (modo claro: fondo cálido, acento cashmere) */
+    --dm-a-accent: 48 100% 72%;
+    --dm-a-base: 48 30% 97%;
+    --dm-a-elevated: 0 0% 100%;
+    /* Paleta B — marketing / IA (panel asistente sigue oscuro) */
+    --dm-b-accent: 22 100% 85%;
+    --dm-b-base: 0 0% 12%;
+    --dm-b-elevated: 0 0% 16%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
-    --sidebar: 222.2 84% 4.9%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217.2 91.2% 59.8%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 217.2 32.6% 17.5%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 224.3 76.3% 48%;
+    /* App operativo: Darkmoon + Cashmere */
+    --background: 0 0% 13%;
+    --foreground: 48 40% 96%;
+    --card: 0 0% 16%;
+    --card-foreground: 48 30% 96%;
+    --popover: 0 0% 15%;
+    --popover-foreground: 48 30% 96%;
+    --primary: 48 100% 78%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 48 25% 92%;
+    --muted: 0 0% 19%;
+    --muted-foreground: 0 0% 62%;
+    --accent: 48 80% 72%;
+    --accent-foreground: 0 0% 10%;
+    --destructive: 0 62.8% 45%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 24%;
+    --input: 0 0% 22%;
+    --ring: 48 100% 78%;
+    --sidebar: 0 0% 11%;
+    --sidebar-foreground: 48 30% 94%;
+    --sidebar-primary: 48 100% 78%;
+    --sidebar-primary-foreground: 0 0% 9%;
+    --sidebar-accent: 0 0% 18%;
+    --sidebar-accent-foreground: 48 100% 78%;
+    --sidebar-border: 0 0% 22%;
+    --sidebar-ring: 48 100% 78%;
+    --fiscal-accent: 48 100% 78%;
+    --fiscal-warning: 38 95% 55%;
+    --fiscal-surface: 0 0% 11%;
+    --marketing-accent: 22 100% 85%;
+    --dm-a-accent: 48 100% 78%;
+    --dm-a-base: 0 0% 13%;
+    --dm-a-elevated: 0 0% 17%;
+    --dm-b-accent: 22 100% 85%;
+    --dm-b-base: 0 0% 12%;
+    --dm-b-elevated: 0 0% 16%;
+  }
+}
+
+@keyframes shine {
+  to {
+    background-position: 200% center;
+  }
+}
+
+@keyframes border-beam {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes meteor {
+  0% {
+    transform: rotate(215deg) translateX(0);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(215deg) translateX(-500px);
+    opacity: 0;
+  }
+}
+
+@keyframes grid-fade {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@layer utilities {
+  .animate-shine {
+    animation: shine 4s linear infinite;
+  }
+  .animate-border-beam {
+    animation: border-beam 3s ease-in-out infinite;
+  }
+  .animate-meteor {
+    animation: meteor 5s linear infinite;
+  }
+  .animate-grid-fade {
+    animation: grid-fade 8s ease-in-out infinite;
+  }
+  .bg-fiscal-accent {
+    background-color: hsl(var(--fiscal-accent));
+  }
+  .text-fiscal-accent {
+    color: hsl(var(--fiscal-accent));
+  }
+  .bg-fiscal-surface {
+    background-color: hsl(var(--fiscal-surface));
+  }
+}
+
+@keyframes fiscalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer utilities {
+  .fiscal-v2-fade-in {
+    animation: fiscalFadeIn 0.45s ease-out both;
+  }
+  .fiscal-v2-title-gradient {
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--fiscal-accent)), hsl(262 70% 50%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .fiscal-page-title {
+    @apply text-2xl md:text-4xl font-bold tracking-tight text-foreground;
+  }
+  .dark .fiscal-page-title {
+    @apply text-white;
+  }
+  /* Títulos legibles: anula efectos shiny heredados en páginas fiscales */
+  .fiscal-page-title .animate-shine,
+  .fiscal-page-title [class*='bg-clip-text'] {
+    animation: none !important;
+    background: none !important;
+    -webkit-text-fill-color: inherit !important;
+    color: inherit !important;
+  }
+  .fiscal-kpi-grid {
+    @apply rounded-2xl border border-border/80 bg-card/90 p-4 sm:p-6;
+  }
+  .dark .fiscal-kpi-grid {
+    @apply border-slate-700/40 bg-slate-900/40;
+  }
+  .fiscal-page-content {
+    @apply w-full min-w-0;
+  }
+  .fiscal-v0-panel {
+    @apply rounded-xl border border-border bg-card/95 shadow-sm backdrop-blur-sm;
+  }
+  .dark .fiscal-v0-panel {
+    @apply border-slate-700/40 bg-slate-900/75 shadow-none;
+  }
+  .fiscal-v0-summary-card {
+    @apply rounded-xl border border-border bg-card p-4 sm:p-6 transition-all duration-300 hover:border-primary/35 hover:shadow-md;
+  }
+  .dark .fiscal-v0-summary-card {
+    @apply border-slate-700/35 bg-gradient-to-br from-slate-900/70 to-slate-800/40 hover:border-blue-500/40 hover:shadow-lg hover:shadow-blue-500/10;
+  }
+  .fiscal-v0-summary-card h3,
+  .fiscal-v0-panel h2,
+  .fiscal-v0-panel h3 {
+    @apply text-foreground;
+  }
+  .dark .fiscal-v0-summary-card h3,
+  .dark .fiscal-v0-panel h2,
+  .dark .fiscal-v0-panel h3 {
+    @apply text-white;
+  }
+  .fiscal-v0-muted {
+    @apply text-muted-foreground;
+  }
+  .dark .fiscal-v0-muted {
+    @apply text-slate-400;
+  }
+  .fiscal-v0-stat {
+    @apply text-foreground font-semibold;
+  }
+  .dark .fiscal-v0-stat {
+    @apply text-white;
+  }
+  .animate-fiscal-fade-in {
+    animation: fiscalFadeIn 0.5s ease-out both;
+  }
+  .fiscal-v0-hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg;
+  }
+  .dark .fiscal-v0-hover-lift {
+    @apply hover:shadow-blue-500/15;
+  }
+
+  /* ——— Dark Materials (superficies elevadas, luz de borde, ruido) ——— */
+  @keyframes dm-orb-drift-1 {
+    0%,
+    100% {
+      transform: translate(0%, 0%) scale(1);
+      opacity: 0.55;
+    }
+    33% {
+      transform: translate(12%, -8%) scale(1.12);
+      opacity: 0.7;
+    }
+    66% {
+      transform: translate(-8%, 10%) scale(0.92);
+      opacity: 0.5;
+    }
+  }
+  @keyframes dm-orb-drift-2 {
+    0%,
+    100% {
+      transform: translate(0%, 0%) scale(1);
+      opacity: 0.45;
+    }
+    40% {
+      transform: translate(-14%, 6%) scale(1.08);
+      opacity: 0.62;
+    }
+    70% {
+      transform: translate(10%, -12%) scale(0.95);
+      opacity: 0.4;
+    }
+  }
+  @keyframes dm-orb-drift-3 {
+    0%,
+    100% {
+      transform: translate(0%, 0%) scale(0.9);
+      opacity: 0.35;
+    }
+    50% {
+      transform: translate(6%, 14%) scale(1.15);
+      opacity: 0.55;
+    }
+  }
+  @keyframes dm-shimmer-sweep {
+    0% {
+      transform: translateX(-120%) rotate(12deg);
+      opacity: 0;
+    }
+    15% {
+      opacity: 0.12;
+    }
+    50% {
+      opacity: 0.08;
+    }
+    100% {
+      transform: translateX(220%) rotate(12deg);
+      opacity: 0;
+    }
+  }
+
+  .dm-ambient-layer {
+    z-index: 0;
+  }
+  .dm-ambient-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(72px);
+    will-change: transform, opacity;
+  }
+  .dm-orb-1 {
+    width: min(55vw, 420px);
+    height: min(55vw, 420px);
+    top: -12%;
+    left: -8%;
+    background: hsl(var(--dm-a-accent) / 0.35);
+    animation: dm-orb-drift-1 22s ease-in-out infinite;
+  }
+  .dm-orb-2 {
+    width: min(45vw, 360px);
+    height: min(45vw, 360px);
+    bottom: -8%;
+    right: -6%;
+    background: hsl(var(--dm-a-accent) / 0.22);
+    animation: dm-orb-drift-2 28s ease-in-out infinite;
+  }
+  .dm-orb-3 {
+    width: min(35vw, 280px);
+    height: min(35vw, 280px);
+    top: 40%;
+    left: 45%;
+    background: hsl(0 0% 100% / 0.06);
+    animation: dm-orb-drift-3 18s ease-in-out infinite reverse;
+  }
+  .dm-palette-b.dm-orb-1 {
+    background: hsl(var(--dm-b-accent) / 0.38);
+  }
+  .dm-palette-b.dm-orb-2 {
+    background: hsl(var(--dm-b-accent) / 0.24);
+  }
+  .dm-ambient-subtle .dm-ambient-orb {
+    filter: blur(88px);
+    opacity: 0.85;
+  }
+  .dm-ambient-strong .dm-ambient-orb {
+    filter: blur(56px);
+  }
+
+  .dm-app-shell {
+    @apply relative isolate bg-background text-foreground;
+  }
+  .dm-app-shell > *:not(.dm-ambient-layer) {
+    position: relative;
+    z-index: 1;
+  }
+  .dark .dm-app-shell {
+    background-color: hsl(var(--dm-a-base));
+    color: hsl(var(--foreground));
+  }
+
+  /* Sin orbes animados en app claro (evita fondo “manchado”) */
+  html:not(.dark) .dm-app-shell .dm-ambient-layer {
+    display: none;
+  }
+
+  .dm-surface-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: -40% -60%;
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      hsl(0 0% 100% / 0.14) 50%,
+      transparent 60%
+    );
+    animation: dm-shimmer-sweep 8s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .dm-zone-fiscal.dm-surface-shimmer::after {
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      hsl(var(--dm-a-accent) / 0.2) 50%,
+      transparent 60%
+    );
+  }
+  .dm-zone-assistant.dm-surface-shimmer::after {
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      hsl(var(--dm-b-accent) / 0.18) 50%,
+      transparent 60%
+    );
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dm-ambient-orb,
+    .dm-surface-shimmer::after {
+      animation: none !important;
+    }
+  }
+
+  .dm-surface {
+    @apply rounded-2xl border bg-card shadow-sm;
+    border-color: hsl(var(--border));
+  }
+  .dark .dm-surface {
+    @apply backdrop-blur-xl;
+    border-color: hsl(0 0% 100% / 0.08);
+    background: linear-gradient(
+      165deg,
+      hsl(0 0% 100% / 0.07) 0%,
+      hsl(var(--dm-a-elevated) / 0.92) 28%,
+      hsl(var(--dm-a-base) / 0.98) 100%
+    );
+    box-shadow:
+      0 1px 0 hsl(0 0% 100% / 0.06) inset,
+      0 12px 40px hsl(0 0% 0% / 0.45);
+  }
+  .dm-zone-fiscal.dm-surface {
+    border-color: hsl(var(--dm-a-accent) / 0.35);
+    background: linear-gradient(
+      165deg,
+      hsl(var(--dm-a-accent) / 0.14) 0%,
+      hsl(var(--card)) 45%,
+      hsl(var(--dm-a-base)) 100%
+    );
+    box-shadow: 0 1px 2px hsl(0 0% 0% / 0.06);
+  }
+  .dark .dm-zone-fiscal.dm-surface {
+    border-color: hsl(var(--dm-a-accent) / 0.22);
+    background: linear-gradient(
+      165deg,
+      hsl(var(--dm-a-accent) / 0.12) 0%,
+      hsl(var(--dm-a-elevated) / 0.94) 30%,
+      hsl(var(--dm-a-base) / 0.98) 100%
+    );
+    box-shadow:
+      0 1px 0 hsl(var(--dm-a-accent) / 0.15) inset,
+      0 16px 48px hsl(0 0% 0% / 0.5);
+  }
+  .dm-zone-assistant.dm-surface {
+    border-color: hsl(var(--dm-b-accent) / 0.2);
+    background: linear-gradient(
+      165deg,
+      hsl(var(--dm-b-accent) / 0.1) 0%,
+      hsl(var(--dm-b-elevated) / 0.95) 35%,
+      hsl(var(--dm-b-base)) 100%
+    );
+  }
+  .dm-elev-sm {
+    box-shadow: 0 8px 24px hsl(0 0% 0% / 0.35);
+  }
+  .dm-elev-lg {
+    box-shadow:
+      0 1px 0 hsl(0 0% 100% / 0.08) inset,
+      0 24px 64px hsl(0 0% 0% / 0.55);
+  }
+  .dm-surface-highlight {
+    @apply absolute inset-x-0 top-0 h-px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(0 0% 100% / 0.35),
+      transparent
+    );
+    opacity: 0.7;
+  }
+  .dm-zone-fiscal .dm-surface-highlight {
+    background: linear-gradient(90deg, transparent, hsl(var(--dm-a-accent) / 0.65), transparent);
+  }
+  .dm-zone-assistant .dm-surface-highlight {
+    background: linear-gradient(90deg, transparent, hsl(var(--dm-b-accent) / 0.55), transparent);
+  }
+  .dm-surface-noise {
+    @apply absolute inset-0 opacity-[0.035] pointer-events-none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* Asistente IA — Paleta B (Sunset Coral + Black Granite) */
+  .ai-panel {
+    background:
+      radial-gradient(ellipse 90% 60% at 50% -10%, hsl(var(--dm-b-accent) / 0.22), transparent 55%),
+      linear-gradient(180deg, hsl(0 0% 16%) 0%, hsl(var(--dm-b-base)) 38%, hsl(0 0% 8%) 100%);
+  }
+  .ai-sheet {
+    @apply bg-transparent p-0 sm:max-w-none border-0;
+    max-width: min(100vw, 480px) !important;
+    width: min(100vw, 480px);
+  }
+  @media (min-width: 640px) {
+    .ai-sheet {
+      max-width: min(92vw, 520px) !important;
+      width: min(92vw, 520px);
+    }
+  }
+  .ai-fab-pulse {
+    box-shadow:
+      0 0 0 0 hsl(var(--dm-b-accent) / 0.55),
+      0 12px 32px hsl(0 0% 0% / 0.5);
+    animation: ai-fab-ring 0.7s ease-out;
+  }
+  @keyframes ai-fab-ring {
+    0% {
+      box-shadow: 0 0 0 0 hsl(var(--dm-b-accent) / 0.5), 0 12px 32px hsl(0 0% 0% / 0.5);
+    }
+    100% {
+      box-shadow: 0 0 0 14px hsl(var(--dm-b-accent) / 0), 0 12px 32px hsl(0 0% 0% / 0.5);
+    }
+  }
+  .ai-metrics-inline {
+    @apply grid grid-cols-3 gap-2 rounded-2xl border border-white/10 px-3 py-2.5;
+    background: rgba(16, 24, 40, 0.65);
+  }
+  .ai-welcome {
+    @apply rounded-2xl border border-white/10 px-4 py-3;
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .ai-chips-scroll {
+    scrollbar-width: none;
+  }
+  .ai-chips-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  .ai-sheet > button.absolute {
+    @apply text-white/70 hover:text-white border border-white/10 rounded-full h-8 w-8 p-0 top-4 right-4;
+    background: rgba(0, 0, 0, 0.35);
+  }
+  .ai-fab {
+    background: linear-gradient(135deg, hsl(var(--dm-b-accent)) 0%, hsl(22 90% 72%) 100%);
+    box-shadow:
+      0 1px 0 hsl(0 0% 100% / 0.35) inset,
+      0 8px 24px hsl(0 0% 0% / 0.2);
+    color: hsl(0 0% 12%);
+  }
+  html:not(.dark) .ai-fab {
+    box-shadow:
+      0 1px 0 hsl(0 0% 100% / 0.5) inset,
+      0 6px 20px hsl(22 60% 50% / 0.25);
+  }
+  .ai-icon-btn {
+    @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10;
+    background: rgba(0, 0, 0, 0.35);
+  }
+  .ai-badge-seniat {
+    @apply rounded-full px-2.5 py-1 text-[11px] font-medium text-white/70;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .ai-summary-card {
+    @apply rounded-[26px] border p-4;
+    border-color: hsl(var(--dm-b-accent) / 0.25);
+    background: linear-gradient(
+      145deg,
+      hsl(var(--dm-b-accent) / 0.14) 0%,
+      hsl(var(--dm-b-elevated) / 0.9) 50%,
+      hsl(var(--dm-b-base) / 0.95) 100%
+    );
+    box-shadow:
+      0 1px 0 hsl(var(--dm-b-accent) / 0.2) inset,
+      0 12px 28px hsl(0 0% 0% / 0.35);
+  }
+  .ai-chip {
+    @apply rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/70 transition-colors whitespace-nowrap max-w-[9.5rem] truncate;
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .ai-chip:hover:not(:disabled) {
+    @apply text-white border-white/20;
+    background: rgba(255, 255, 255, 0.14);
+  }
+  .ai-chip:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+  .ai-bubble-user {
+    border-radius: 24px 24px 6px 24px;
+    border: 1px solid hsl(var(--dm-b-accent) / 0.35);
+    background: linear-gradient(135deg, hsl(var(--dm-b-accent) / 0.22) 0%, hsl(var(--dm-b-elevated)) 100%);
+    box-shadow: 0 8px 20px hsl(0 0% 0% / 0.3);
+    color: hsl(0 0% 12%);
+  }
+  .ai-bubble-assistant {
+    border-radius: 24px 24px 24px 6px;
+    border: 1px solid hsl(0 0% 100% / 0.1);
+    background: linear-gradient(135deg, hsl(0 0% 20%) 0%, hsl(var(--dm-b-base)) 100%);
+    box-shadow: 0 8px 20px hsl(0 0% 0% / 0.35);
+    color: hsl(var(--dm-b-accent));
+  }
+  .ai-typing-pill {
+    @apply rounded-full;
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .ai-composer {
+    @apply rounded-[30px] border border-white/10 px-3.5 py-2.5;
+    background: rgba(18, 24, 38, 0.96);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
+  }
+  .ai-send-btn {
+    @apply flex h-11 w-11 items-center justify-center rounded-full transition-transform text-[hsl(0,0%,12%)];
+    background: linear-gradient(135deg, hsl(var(--dm-b-accent)) 0%, hsl(22 85% 70%) 100%);
+    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.3) inset;
+  }
+  .ai-send-btn:disabled {
+    @apply opacity-40 scale-95;
+  }
+  .ai-chat-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  }
+  .ai-chat-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+  .ai-chat-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+  }
+  .fiscal-assistant-hint {
+    @apply rounded-2xl border border-primary/25 p-5 h-full;
+    background: linear-gradient(160deg, hsl(var(--card)) 0%, hsl(var(--primary) / 0.08) 100%);
+  }
+  .dark .fiscal-assistant-hint {
+    background: linear-gradient(
+      160deg,
+      hsl(var(--dm-b-accent) / 0.12) 0%,
+      hsl(var(--dm-b-elevated)) 45%,
+      hsl(var(--dm-b-base)) 100%
+    );
+    @apply border-[hsl(var(--dm-b-accent)/0.25)];
+  }
+
+  /* Sidebar navegación — secciones sin solapamiento */
+  .nav-sidebar-section {
+    @apply pt-3 mt-3 border-t border-sidebar-border/40;
+  }
+  .nav-sidebar-section:first-child {
+    @apply pt-0 mt-0 border-t-0;
+  }
+  .nav-fiscal-block {
+    @apply relative z-0;
+  }
+  .nav-fiscal-toggle {
+    @apply relative z-[1];
+  }
+  .sidebar-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--sidebar-border)) transparent;
+  }
+  .sidebar-scroll::-webkit-scrollbar {
+    width: 5px;
+  }
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-sidebar-border/80;
+  }
+  .app-page-shell {
+    @apply w-full max-w-[min(100%,1600px)] mx-auto px-4 sm:px-5 md:px-6 lg:px-8 py-3 sm:py-5 md:py-6 lg:py-7;
+  }
+
+  .app-main-scroll {
+    @apply flex-1 min-h-0 min-w-0 overflow-x-hidden overflow-y-auto overscroll-y-contain;
+    padding-bottom: var(--app-content-pad-bottom);
+  }
+
+  @media (min-width: 768px) {
+    :root {
+      --app-content-pad-bottom: 0px;
+      --app-fab-offset: 1.5rem;
+    }
+    .app-main-scroll {
+      padding-bottom: 0;
+    }
+  }
+
+  .app-fab-anchor {
+    position: fixed;
+    z-index: 60;
+    right: 0.75rem;
+    bottom: var(--app-fab-offset);
+  }
+
+  @media (min-width: 640px) {
+    .app-fab-anchor {
+      right: 1rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .app-fab-anchor {
+      right: 1.25rem;
+      bottom: var(--app-fab-offset);
+    }
+  }
+
+  /* Hub calendario fiscal — premium fintech */
+  .fiscal-hub-root {
+    @apply relative w-full min-w-0;
+  }
+  .fiscal-hub-mesh {
+    background:
+      radial-gradient(ellipse 85% 55% at 15% 0%, hsl(var(--dm-a-accent) / 0.14), transparent 55%),
+      radial-gradient(ellipse 65% 45% at 95% 100%, hsl(var(--primary) / 0.05), transparent 50%);
+  }
+  .dark .fiscal-hub-mesh {
+    background:
+      radial-gradient(ellipse 85% 55% at 15% 0%, hsl(var(--dm-a-accent) / 0.16), transparent 52%),
+      radial-gradient(ellipse 65% 45% at 95% 100%, hsl(var(--dm-a-accent) / 0.06), transparent 48%);
+  }
+  .fiscal-hub-card.dm-fiscal-card {
+    @apply border-border bg-card text-card-foreground shadow-sm;
+    border-color: hsl(var(--dm-a-accent) / 0.28);
+    background: linear-gradient(
+      180deg,
+      hsl(var(--dm-a-accent) / 0.1) 0%,
+      hsl(var(--card)) 28%,
+      hsl(var(--card)) 100%
+    );
+    box-shadow: 0 1px 2px hsl(0 0% 0% / 0.05);
+  }
+  .fiscal-hub-card.dm-fiscal-card:hover {
+    border-color: hsl(var(--dm-a-accent) / 0.45);
+    box-shadow: 0 4px 16px hsl(var(--dm-a-accent) / 0.12);
+  }
+  .dark .fiscal-hub-card.dm-fiscal-card {
+    border-color: hsl(var(--dm-a-accent) / 0.15);
+    background: linear-gradient(
+      165deg,
+      hsl(var(--dm-a-accent) / 0.08) 0%,
+      hsl(var(--dm-a-elevated) / 0.85) 35%,
+      hsl(var(--dm-a-base) / 0.9) 100%
+    );
+    box-shadow:
+      0 1px 0 hsl(var(--dm-a-accent) / 0.12) inset,
+      0 12px 36px hsl(0 0% 0% / 0.4);
+    @apply backdrop-blur-xl text-card-foreground;
+  }
+  .dark .fiscal-hub-card.dm-fiscal-card:hover {
+    border-color: hsl(var(--dm-a-accent) / 0.35);
+    box-shadow:
+      0 1px 0 hsl(var(--dm-a-accent) / 0.2) inset,
+      0 16px 44px hsl(0 0% 0% / 0.45);
   }
 }
 
@@ -72,6 +763,107 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Barra inferior móvil (app) — oculta desde md (768px) */
+.bottom-nav-fixed {
+  @apply fixed bottom-0 left-0 right-0 z-50 border-t border-border md:hidden;
+  height: var(--app-bottom-chrome);
+  padding-bottom: var(--app-safe-bottom);
+  background: hsl(var(--card) / 0.98);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 -4px 24px hsl(0 0% 0% / 0.06);
+}
+.dark .bottom-nav-fixed {
+  background: hsl(var(--card) / 0.96);
+  box-shadow: none;
+}
+
+.bottom-nav-fixed .bottom-nav-inner {
+  @apply flex h-16 max-w-lg mx-auto items-center justify-around px-2 sm:px-4;
+}
+
+/* Sitio marketing — Paleta B (Black Granite + Sunset Coral), siempre dark materials */
+.marketing-root {
+  @apply relative isolate flex min-h-[100dvh] max-h-[100dvh] flex-col overflow-hidden;
+  --marketing-accent: var(--dm-b-accent);
+  --background: var(--dm-b-base);
+  --foreground: 22 40% 96%;
+  --primary: 22 100% 85%;
+  --primary-foreground: 0 0% 10%;
+  --card: 0 0% 16%;
+  --card-foreground: 22 30% 96%;
+  --muted: 0 0% 18%;
+  --muted-foreground: 0 0% 68%;
+  --border: 0 0% 24%;
+  --ring: 22 100% 85%;
+  background-color: hsl(var(--dm-b-base));
+  background-image:
+    radial-gradient(ellipse 100% 70% at 50% -15%, hsl(var(--dm-b-accent) / 0.2), transparent 55%),
+    radial-gradient(ellipse 60% 50% at 100% 80%, hsl(var(--dm-b-accent) / 0.08), transparent 50%);
+  color: hsl(22 40% 96%);
+}
+
+.marketing-nav {
+  border-bottom: 1px solid hsl(var(--dm-b-accent) / 0.15);
+  background: hsl(0 0% 10% / 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.marketing-main {
+  @apply relative z-[1] flex-1 w-full min-w-0 min-h-0 overflow-x-hidden overflow-y-auto overscroll-y-contain;
+}
+
+.marketing-root .marketing-outline-btn {
+  @apply border-[hsl(var(--dm-b-accent)/0.45)] text-[hsl(var(--dm-b-accent))] bg-transparent;
+  @apply hover:bg-[hsl(var(--dm-b-accent)/0.1)];
+}
+
+.marketing-container {
+  @apply w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.marketing-section {
+  @apply py-12 sm:py-16 md:py-20;
+}
+
+.marketing-section-title {
+  @apply text-2xl md:text-3xl font-bold tracking-tight;
+}
+
+.marketing-hero-title {
+  @apply text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight leading-tight;
+}
+
+.marketing-cta {
+  @apply text-[hsl(0,0%,12%)] font-semibold;
+  background: linear-gradient(135deg, hsl(var(--dm-b-accent)) 0%, hsl(22 85% 72%) 100%);
+  box-shadow: 0 1px 0 hsl(0 0% 100% / 0.35) inset, 0 10px 28px hsl(0 0% 0% / 0.35);
+}
+.marketing-cta:hover {
+  filter: brightness(1.05);
+}
+
+.marketing-feature-card {
+  @apply rounded-2xl border p-6 transition-all duration-300;
+  border-color: hsl(var(--dm-b-accent) / 0.2);
+  background: linear-gradient(
+    165deg,
+    hsl(var(--dm-b-accent) / 0.1) 0%,
+    hsl(var(--dm-b-elevated) / 0.9) 40%,
+    hsl(var(--dm-b-base) / 0.95) 100%
+  );
+  box-shadow: 0 1px 0 hsl(var(--dm-b-accent) / 0.15) inset, 0 12px 32px hsl(0 0% 0% / 0.35);
+}
+.marketing-feature-card:hover {
+  border-color: hsl(var(--dm-b-accent) / 0.4);
+  box-shadow: 0 1px 0 hsl(var(--dm-b-accent) / 0.25) inset, 0 16px 40px hsl(0 0% 0% / 0.45);
+}
+
+.marketing-page-header {
+  @apply pt-12 pb-8 md:pt-16 text-center max-w-3xl mx-auto;
 }
 
 /* Mobile-first responsive utilities */
