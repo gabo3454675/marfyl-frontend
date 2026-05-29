@@ -22,7 +22,7 @@ export default function ExpenseCharts({ categoryBreakdown, formatCurrency }: Exp
   }));
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div className="admin-grid-charts-2">
       <Card>
         <CardHeader>
           <CardTitle>Distribución por Categoría</CardTitle>

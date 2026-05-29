@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 
 export function PricingCards({ plans }: { plans: PricingPlan[] }) {
   return (
-    <div className="grid gap-6 md:grid-cols-3">
+    <div className="marketing-features-grid">
       {plans.map((plan) => (
         <div
           key={plan.id}

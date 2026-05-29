@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
-import { Bell, CheckCircle2, AlertCircle, Clock, Loader2, ListTodo, Percent } from 'lucide-react';
+import { Bell, CheckCircle2, AlertCircle, Clock, Loader2, ListTodo, Percent, Shield, Scale } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TaskResolutionModal, type TaskForResolution } from '@/components/task-resolution-modal';
@@ -30,6 +30,10 @@ function SectionIcon({ item }: { item: NotificationFeedItem }) {
       return <CheckCircle2 className="h-5 w-5 text-green-400" />;
     case 'task':
       return <ListTodo className="h-5 w-5 text-blue-400" />;
+    case 'shield':
+      return <Shield className="h-5 w-5 text-amber-400" />;
+    case 'fiscal':
+      return <Scale className="h-5 w-5 text-[hsl(var(--fiscal-accent))]" />;
     case 'clock':
       return item.kind === 'rate' ? (
         <Percent className="h-5 w-5 text-amber-400" />

@@ -29,7 +29,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { AdminPageShell } from '@/components/admin/admin-page-shell';
+import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
 import { Plus, Loader2, UserPlus, Mail, Shield, User, Copy, Check, Link2, TrendingUp, Trash2, History } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -434,48 +436,40 @@ export default function TeamPage() {
 
   if (!canManageTeam) {
     return (
-      <div className="w-full min-w-0">
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">
-              No tienes permisos para acceder a esta sección.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <AdminPageShell eyebrow="Administración" title="Mi Equipo" subtitle="Acceso restringido">
+        <AdminCard>
+          <p className="py-8 text-center text-muted-foreground">
+            No tienes permisos para acceder a esta sección.
+          </p>
+        </AdminCard>
+      </AdminPageShell>
     );
   }
 
   return (
-    <div className="w-full min-w-0">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">Mi Equipo</h1>
-            <p className="text-muted-foreground">
-              Gestiona los miembros de tu organización
-            </p>
-          </div>
-          <Button onClick={handleOpenInviteDialog}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Agregar Miembro
-          </Button>
-        </div>
-
+    <AdminPageShell
+      eyebrow="Administración"
+      title="Mi Equipo"
+      subtitle="Gestiona los miembros de tu organización"
+      actions={
+        <Button onClick={handleOpenInviteDialog} className="cursor-pointer">
+          <UserPlus className="mr-2 h-4 w-4" />
+          Agregar Miembro
+        </Button>
+      }
+    >
         {/* Tasa de cambio - Solo Admin */}
         {canManageTeam && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <AdminCard
+            title={
+              <span className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />
                 Tasa BCV / Paralelo
-              </CardTitle>
-              <CardDescription>
-                Tasa de cambio para conversiones (ej. USD a VES). Solo usuarios con permisos de administración pueden modificarla.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-wrap items-end gap-4">
+              </span>
+            }
+            description="Tasa de cambio para conversiones (ej. USD a VES). Solo usuarios con permisos de administración pueden modificarla."
+          >
+            <div className="flex flex-wrap items-end gap-4">
               <div className="space-y-2 flex-1 min-w-[140px]">
                 <Label htmlFor="exchangeRate">Tasa actual</Label>
                 <Input
@@ -509,23 +503,19 @@ export default function TeamPage() {
                   onChange={(e) => setCurrencySymbol(e.target.value)}
                 />
               </div>
-              <Button onClick={handleSaveExchangeRate} disabled={savingRate}>
+              <Button onClick={handleSaveExchangeRate} disabled={savingRate} className="cursor-pointer">
                 {savingRate ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {savingRate ? ' Guardando...' : 'Guardar'}
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </AdminCard>
         )}
 
         {/* Members Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Miembros de la Organización</CardTitle>
-            <CardDescription>
-              Lista de todos los miembros activos en tu organización
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <AdminCard
+          title="Miembros de la Organización"
+          description="Lista de todos los miembros activos en tu organización"
+        >
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -627,7 +617,8 @@ export default function TeamPage() {
                 </div>
 
                 {/* Vista desktop: tabla */}
-                <div className="hidden md:block overflow-x-auto">
+                <div className="hidden md:block">
+                  <AdminTableWrap>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -730,25 +721,23 @@ export default function TeamPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  </AdminTableWrap>
                 </div>
               </>
             )}
-          </CardContent>
-        </Card>
+        </AdminCard>
 
         {/* Historial de Cambios (Audit Log) - Solo ADMIN / SUPER_ADMIN */}
         {canViewAuditLog && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <AdminCard
+            title={
+              <span className="flex items-center gap-2">
                 <History className="h-5 w-5" />
                 Historial de Cambios
-              </CardTitle>
-              <CardDescription>
-                Registro de acciones sensibles: cambios de tasa, desactivación de usuarios y cambios de rol. Útil para auditoría y trazabilidad.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </span>
+            }
+            description="Registro de acciones sensibles: cambios de tasa, desactivación de usuarios y cambios de rol. Útil para auditoría y trazabilidad."
+          >
               {loadingAuditLog ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -791,7 +780,8 @@ export default function TeamPage() {
                       </div>
                     ))}
                   </div>
-                  <div className="hidden md:block overflow-x-auto">
+                  <div className="hidden md:block">
+                    <AdminTableWrap>
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -826,13 +816,12 @@ export default function TeamPage() {
                         ))}
                       </TableBody>
                     </Table>
+                    </AdminTableWrap>
                   </div>
                 </>
               )}
-            </CardContent>
-          </Card>
+          </AdminCard>
         )}
-      </div>
 
       {/* Agregar Miembro (provisionamiento interno) */}
       <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
@@ -1086,6 +1075,6 @@ export default function TeamPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </AdminPageShell>
   );
 }

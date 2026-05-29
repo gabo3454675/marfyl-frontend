@@ -8,7 +8,7 @@ export function MarketingPreviewBar() {
   if (!isFiscalPreviewMode()) return null;
 
   return (
-    <div className="relative z-[45] border-b border-[hsl(var(--dm-b-accent)/0.35)] bg-[hsl(var(--dm-b-accent)/0.12)] px-4 py-2 text-center text-xs text-[hsl(var(--dm-b-accent))]">
+    <div className="relative z-[45] shrink-0 border-b border-[hsl(var(--dm-b-accent)/0.35)] bg-[hsl(var(--dm-b-accent)/0.12)] px-4 py-2 text-center text-xs text-[hsl(var(--dm-b-accent))]">
       <span className="text-muted-foreground">Vista previa · Paleta marketing (coral)</span>
       {' · '}
       <Link href="/" className="font-semibold underline hover:no-underline">

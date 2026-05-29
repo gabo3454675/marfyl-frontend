@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AdminPageShell } from '@/components/admin/admin-page-shell';
+import { AdminCard } from '@/components/admin/admin-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -511,25 +512,30 @@ export default function POSPage() {
 
   if (!canManageCustomers) {
     return (
-      <div className="w-full min-w-0">
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">
-              No tienes permisos para acceder a esta sección.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <AdminPageShell eyebrow="Ventas" title="Punto de Venta" subtitle="Acceso restringido" animate={false}>
+        <AdminCard>
+          <p className="py-8 text-center text-muted-foreground">
+            No tienes permisos para acceder a esta sección.
+          </p>
+        </AdminCard>
+      </AdminPageShell>
     );
   }
 
   return (
-    <div className="w-full min-w-0 h-full flex flex-col">
-      <div className="mb-2 md:mb-6">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 md:mb-2">Punto de Venta</h1>
-        {canManageFiscal && <FiscalIntegrationStrip variant="pos" className="mb-2 md:mb-3" />}
-        <p className="text-muted-foreground text-sm md:text-base">Procesa ventas rápidamente</p>
-      </div>
+    <AdminPageShell
+      animate={false}
+      eyebrow="Ventas"
+      title="Punto de Venta"
+      subtitle={
+        <>
+          {canManageFiscal && <FiscalIntegrationStrip variant="pos" className="mb-2 md:mb-3" />}
+          <span className="block text-sm md:text-base">Procesa ventas rápidamente</span>
+        </>
+      }
+      className="h-full flex flex-col"
+      contentClassName="flex-1 flex flex-col min-h-0 !space-y-0"
+    >
 
       {/* Barra fija móvil: Resumen + Cobrar siempre visibles (mobile-first) */}
       <div className="sticky top-0 z-20 flex items-center justify-between gap-4 py-3 px-4 -mx-4 md:-mx-6 mb-4 md:mb-0 bg-background/95 border-b border-border md:hidden backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -538,7 +544,7 @@ export default function POSPage() {
           <span className="text-xl font-bold tabular-nums">{formatCurrency(total)}</span>
         </div>
         <Button
-          className="shrink-0 h-11 px-6 text-base font-semibold"
+          className="shrink-0 h-11 px-6 text-base font-semibold cursor-pointer"
           onClick={handleCheckout}
           disabled={cart.length === 0 || processing}
         >
@@ -614,11 +620,12 @@ export default function POSPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
         {/* Panel Izquierdo - Catálogo */}
         <div className="lg:col-span-2 flex flex-col min-h-0">
-          <Card className="flex-1 flex flex-col min-h-0">
-            <CardHeader>
-              <CardTitle>Catálogo de Productos</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col min-h-0">
+          <AdminCard
+            title="Catálogo de Productos"
+            className="admin-pos-panel"
+            bodyClassName="flex flex-1 flex-col min-h-0"
+            elevation="sm"
+          >
               {/* Filtro rápido + búsqueda */}
               <div className="mb-4 space-y-3">
                 <div className="flex flex-wrap gap-2">
@@ -662,19 +669,27 @@ export default function POSPage() {
                 <div className="flex-1 overflow-y-auto">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {filteredProducts.map((product) => (
-                      <Card
+                      <div
                         key={product.id}
+                        role="button"
+                        tabIndex={sellableUnits(product) > 0 ? 0 : -1}
                         className={cn(
-                          'cursor-pointer transition-all hover:border-primary hover:shadow-md',
+                          'admin-pos-product-tile',
                           product.isBundle &&
                             'border-amber-500/45 bg-gradient-to-br from-amber-500/[0.07] to-transparent',
                           product.isService &&
                             !product.isBundle &&
                             'border-sky-500/40 bg-gradient-to-br from-sky-500/[0.07] to-transparent',
+                          sellableUnits(product) === 0 && 'opacity-60 cursor-not-allowed',
                         )}
                         onClick={() => sellableUnits(product) > 0 && addToCart(product)}
+                        onKeyDown={(e) => {
+                          if (sellableUnits(product) > 0 && (e.key === 'Enter' || e.key === ' ')) {
+                            e.preventDefault();
+                            addToCart(product);
+                          }
+                        }}
                       >
-                        <CardContent className="p-4">
                           <div className="flex items-center justify-between gap-2 mb-2 min-h-[22px]">
                             {product.isBundle ? (
                               <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
@@ -716,8 +731,7 @@ export default function POSPage() {
                           {sellableUnits(product) === 0 && (
                             <p className="text-xs text-destructive">Sin disponibilidad</p>
                           )}
-                        </CardContent>
-                      </Card>
+                      </div>
                     ))}
                   </div>
                   {filteredProducts.length === 0 && (
@@ -727,20 +741,22 @@ export default function POSPage() {
                   )}
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </AdminCard>
         </div>
 
         {/* Panel Derecho - Carrito (sticky en desktop para no perder Cobrar al hacer scroll) */}
         <div className="flex flex-col min-h-0 lg:sticky lg:top-14 lg:self-start lg:max-h-[calc(100vh-5rem)]">
-          <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <AdminCard
+            title={
+              <span className="flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5" />
                 Carrito de Venta
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col min-h-0">
+              </span>
+            }
+            className="admin-pos-panel overflow-hidden"
+            bodyClassName="flex flex-1 flex-col min-h-0"
+            elevation="sm"
+          >
               {/* Selector de Moneda: Bolívares / Dólares */}
               <div className="mb-4">
                 <Label className="block mb-2">Moneda de pago</Label>
@@ -991,7 +1007,7 @@ export default function POSPage() {
 
               {/* Botón de cobrar */}
               <Button
-                className="w-full mt-4 h-12 text-lg font-semibold"
+                className="w-full mt-4 h-12 text-lg font-semibold cursor-pointer"
                 onClick={handleCheckout}
                 disabled={cart.length === 0 || processing}
               >
@@ -1004,10 +1020,9 @@ export default function POSPage() {
                   'COBRAR'
                 )}
               </Button>
-            </CardContent>
-          </Card>
+          </AdminCard>
         </div>
       </div>
-    </div>
+    </AdminPageShell>
   );
 }

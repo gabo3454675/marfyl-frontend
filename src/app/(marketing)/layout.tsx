@@ -17,10 +17,14 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
   return (
     <div className="marketing-root">
       <DmAmbientMotion palette="b" intensity="subtle" />
-      <MarketingNavbar />
-      <MarketingPreviewBar />
-      <main className="marketing-main">{children}</main>
-      <MarketingFooter />
+      <div className="marketing-chrome">
+        <MarketingNavbar />
+        <MarketingPreviewBar />
+      </div>
+      <main className="marketing-main">
+        <div className="marketing-page-flow">{children}</div>
+        <MarketingFooter />
+      </main>
     </div>
   );
 }

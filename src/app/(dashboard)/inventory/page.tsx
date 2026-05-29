@@ -1,35 +1,41 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
+import { AdminPageShell } from '@/components/admin/admin-page-shell';
+import { AdminCard } from '@/components/admin/admin-card';
 
 export default function InventoryPage() {
   return (
-    <div className="w-full min-w-0">
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">Inventario</h1>
-            <p className="text-muted-foreground">Gestiona tus productos</p>
-          </div>
-          <Button className="w-full sm:w-auto shrink-0 self-start">
+    <AdminPageShell
+      eyebrow="Inventario"
+      title="Inventario"
+      subtitle="Gestiona productos, existencias y movimientos desde un solo lugar."
+      actions={
+        <Button className="w-full sm:w-auto shrink-0 cursor-pointer" asChild>
+          <a href="/products">
             <Plus className="mr-2 h-4 w-4" />
-            Agregar Producto
-          </Button>
-        </div>
-
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle>Productos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              No hay productos registrados
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+            Ir a productos
+          </a>
+        </Button>
+      }
+    >
+      <AdminCard
+        title="Productos"
+        description="El catálogo completo vive en la sección Productos. Usa movimientos para ajustes y autoconsumo."
+      >
+        <p className="text-sm text-muted-foreground">
+          No hay productos en esta vista legacy. Abre{' '}
+          <a href="/products" className="text-primary font-medium hover:underline cursor-pointer">
+            Productos
+          </a>{' '}
+          o{' '}
+          <a href="/inventory/movements" className="text-primary font-medium hover:underline cursor-pointer">
+            Movimientos
+          </a>
+          .
+        </p>
+      </AdminCard>
+    </AdminPageShell>
   );
 }

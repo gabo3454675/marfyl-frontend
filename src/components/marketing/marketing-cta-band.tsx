@@ -16,8 +16,8 @@ export function MarketingCtaBand({
   const secondaryExternal = secondary.href.startsWith('mailto:');
 
   return (
-    <section className="marketing-container my-12 md:my-20">
-      <div className="rounded-2xl border border-[hsl(var(--marketing-accent)/0.35)] bg-gradient-to-br from-[hsl(var(--marketing-accent)/0.12)] to-primary/5 px-6 py-12 md:px-12 text-center">
+    <section className="marketing-section marketing-container pb-4 sm:pb-6">
+      <div className="rounded-2xl border border-[hsl(var(--marketing-accent)/0.35)] bg-gradient-to-br from-[hsl(var(--marketing-accent)/0.12)] to-primary/5 px-6 py-10 sm:py-12 md:px-12 text-center">
         <h2 className="text-2xl md:text-3xl font-bold tracking-tight">{title}</h2>
         <p className="text-muted-foreground mt-3 max-w-xl mx-auto">{subtitle}</p>
         <div className="flex flex-wrap justify-center gap-3 mt-8">

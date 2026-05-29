@@ -122,7 +122,7 @@ export function FiscalDashboard() {
       ) : (
         <div className="space-y-6">
           <div className="fiscal-kpi-grid">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="admin-kpi-grid">
               <FiscalKpiCard
                 label="Ventas brutas"
                 valor={m?.grossSalesUsd ?? 0}
@@ -152,7 +152,7 @@ export function FiscalDashboard() {
             </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="admin-grid-charts">
             <div className="lg:col-span-1">
               <FiscalEstadoPeriodo
                 porcentaje={periodProgress}
@@ -182,7 +182,7 @@ export function FiscalDashboard() {
             </div>
           )}
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="admin-grid-charts-2">
             <div className="fiscal-v0-summary-card fiscal-v0-hover-lift">
               <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <span className="w-1 h-6 bg-gradient-to-b from-primary to-blue-600 rounded" />
@@ -233,7 +233,7 @@ export function FiscalDashboard() {
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="admin-grid-charts">
             <Link
               href="/fiscal/libro-ventas"
               className="fiscal-v0-summary-card fiscal-v0-hover-lift group p-4"

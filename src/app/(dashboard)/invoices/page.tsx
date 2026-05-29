@@ -12,7 +12,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import { AdminPageShell } from '@/components/admin/admin-page-shell';
+import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
 import { Download, Loader2, Search, FileText, UserPlus, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { InvoiceDetailSheet } from '@/components/invoice-detail-sheet';
@@ -165,46 +167,44 @@ export default function InvoicesPage() {
 
   if (!canManageCustomers) {
     return (
-      <div className="w-full min-w-0">
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">
-              No tienes permisos para acceder a esta sección.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <AdminPageShell eyebrow="Ventas" title="Facturas" subtitle="Acceso restringido">
+        <AdminCard>
+          <p className="py-8 text-center text-muted-foreground">
+            No tienes permisos para acceder a esta sección.
+          </p>
+        </AdminCard>
+      </AdminPageShell>
     );
   }
 
   return (
-    <div className="w-full min-w-0">
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">Facturas</h1>
+    <AdminPageShell
+      eyebrow="Ventas"
+      title="Facturas"
+      subtitle={
+        <>
           {canManageFiscal && <FiscalIntegrationStrip variant="invoices" className="mb-3" />}
-          <p className="text-muted-foreground">Historial de facturas generadas</p>
-          <p className="text-sm text-muted-foreground mt-1">
+          <span className="block">Historial de facturas generadas</span>
+          <span className="block text-sm text-muted-foreground mt-1">
             Las facturas y tickets se guardan aquí. Puede descargar o imprimir el PDF en cualquier momento con el botón &quot;PDF&quot; (en el momento o después).
-          </p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Historial de Facturas</CardTitle>
-              <div className="relative w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar facturas..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
+          </span>
+        </>
+      }
+    >
+        <AdminCard
+          title="Historial de Facturas"
+          headerActions={
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar facturas..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
             </div>
-          </CardHeader>
-          <CardContent>
+          }
+        >
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -240,17 +240,17 @@ export default function InvoicesPage() {
                       </div>
                       <p className="font-bold text-primary mb-3">{formatForDisplay(Number(invoice.totalAmount))}</p>
                       <div className="flex flex-wrap gap-2">
-                        <Button variant="outline" size="sm" onClick={() => { setDetailInvoiceId(invoice.id); setDetailSheetOpen(true); }}>
+                        <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => { setDetailInvoiceId(invoice.id); setDetailSheetOpen(true); }}>
                           <FileText className="mr-1 h-4 w-4" /> Ver
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => { setAssignModalInvoiceId(invoice.id); setAssignModalOpen(true); }}>
+                        <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => { setAssignModalInvoiceId(invoice.id); setAssignModalOpen(true); }}>
                           <UserPlus className="mr-1 h-4 w-4" /> Asignar
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleDownloadPDF(invoice.id)}>
+                        <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => handleDownloadPDF(invoice.id)}>
                           <Download className="mr-1 h-4 w-4" /> PDF
                         </Button>
                         {isSuperAdmin && (
-                          <Button variant="outline" size="sm" className="text-destructive" onClick={() => handleDeleteInvoice(invoice.id)}>
+                          <Button variant="outline" size="sm" className="text-destructive cursor-pointer" onClick={() => handleDeleteInvoice(invoice.id)}>
                             <Trash2 className="mr-1 h-4 w-4" /> Eliminar
                           </Button>
                         )}
@@ -259,7 +259,8 @@ export default function InvoicesPage() {
                   ))}
                 </div>
                 {/* Vista tabla con scroll horizontal en pantallas pequeñas */}
-                <div className="hidden md:block overflow-x-auto -mx-4 sm:mx-0 rounded-md border border-border">
+                <div className="hidden md:block">
+                  <AdminTableWrap>
                   <Table className="min-w-[700px]">
                     <TableHeader>
                       <TableRow>
@@ -302,6 +303,7 @@ export default function InvoicesPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className="cursor-pointer"
                                 onClick={() => {
                                   setDetailInvoiceId(invoice.id);
                                   setDetailSheetOpen(true);
@@ -313,6 +315,7 @@ export default function InvoicesPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className="cursor-pointer"
                                 onClick={() => {
                                   setAssignModalInvoiceId(invoice.id);
                                   setAssignModalOpen(true);
@@ -324,6 +327,7 @@ export default function InvoicesPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className="cursor-pointer"
                                 onClick={() => handleDownloadPDF(invoice.id)}
                               >
                                 <Download className="mr-2 h-4 w-4" />
@@ -333,7 +337,7 @@ export default function InvoicesPage() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="text-destructive hover:text-destructive"
+                                  className="text-destructive hover:text-destructive cursor-pointer"
                                   onClick={() => handleDeleteInvoice(invoice.id)}
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" />
@@ -346,12 +350,11 @@ export default function InvoicesPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  </AdminTableWrap>
                 </div>
               </>
             )}
-          </CardContent>
-        </Card>
-      </div>
+        </AdminCard>
 
       <InvoiceDetailSheet
         invoiceId={detailInvoiceId}
@@ -371,6 +374,6 @@ export default function InvoicesPage() {
           onSuccess={fetchInvoices}
         />
       )}
-    </div>
+    </AdminPageShell>
   );
 }

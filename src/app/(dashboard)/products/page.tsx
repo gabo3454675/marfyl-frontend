@@ -20,7 +20,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import { AdminPageShell } from '@/components/admin/admin-page-shell';
+import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
 import { Progress } from '@/components/ui/progress';
 import { Plus, Edit, Trash2, Search, Loader2, Upload, FileSpreadsheet, CheckCircle2, XCircle, Package } from 'lucide-react';
 import apiClient from '@/lib/api';
@@ -307,32 +309,28 @@ export default function ProductsPage() {
 
   if (!canManageProducts) {
     return (
-      <div className="w-full min-w-0">
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">
-              No tienes permisos para acceder a esta sección.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <AdminPageShell eyebrow="Inventario" title="Productos" subtitle="Acceso restringido">
+        <AdminCard>
+          <p className="py-8 text-center text-muted-foreground">
+            No tienes permisos para acceder a esta sección.
+          </p>
+        </AdminCard>
+      </AdminPageShell>
     );
   }
 
   return (
-    <div className="w-full min-w-0">
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">Productos</h1>
-            <p className="text-muted-foreground">Gestiona tu catálogo de productos</p>
-          </div>
-          <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:justify-end">
+    <AdminPageShell
+      eyebrow="Inventario"
+      title="Productos"
+      subtitle="Gestiona tu catálogo de productos"
+      actions={
+        <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:justify-end w-full sm:w-auto">
             <Button
               variant="outline"
               onClick={handleDownloadInventoryTemplate}
               disabled={importing}
-              className="w-full sm:w-auto shrink-0"
+              className="w-full sm:w-auto shrink-0 cursor-pointer"
             >
               <Upload className="mr-2 h-4 w-4" />
               Descargar Plantilla
@@ -341,7 +339,7 @@ export default function ProductsPage() {
               variant="outline"
               onClick={() => document.getElementById('file-input')?.click()}
               disabled={importing}
-              className="w-full sm:w-auto shrink-0"
+              className="w-full sm:w-auto shrink-0 cursor-pointer"
             >
               {importing ? (
                 <>
@@ -426,31 +424,29 @@ export default function ProductsPage() {
               <Button
                 onClick={() => handleOpenDialog()}
                 disabled={importing}
-                className="w-full sm:w-auto shrink-0"
+                className="w-full sm:w-auto shrink-0 cursor-pointer"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Nuevo Producto
               </Button>
             )}
-          </div>
         </div>
-
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <CardTitle className="shrink-0">Lista de Productos</CardTitle>
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar productos..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
+      }
+    >
+        <AdminCard
+          title="Lista de Productos"
+          headerActions={
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar productos..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
             </div>
-          </CardHeader>
-          <CardContent>
+          }
+        >
             {/* Resumen de importación */}
             {importProgress && !importProgress.uploading && (
               <div className={`mb-4 p-4 rounded-lg border ${
@@ -555,7 +551,7 @@ export default function ProductsPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8"
+                                className="h-8 w-8 cursor-pointer"
                                 onClick={() => {
                                   setStockSheetProduct(product);
                                   setStockSheetOpen(true);
@@ -567,7 +563,7 @@ export default function ProductsPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8"
+                                className="h-8 w-8 cursor-pointer"
                                 onClick={() => handleOpenDialog(product)}
                               >
                                 <Edit className="h-4 w-4" />
@@ -578,7 +574,7 @@ export default function ProductsPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8"
+                              className="h-8 w-8 cursor-pointer"
                               onClick={() => handleDelete(product.id)}
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
@@ -590,7 +586,8 @@ export default function ProductsPage() {
                   ))}
                 </div>
                 {/* Vista tabla: scroll horizontal en tablets, normal en desktop */}
-                <div className="hidden md:block overflow-x-auto -mx-4 sm:mx-0 rounded-md border border-border">
+                <div className="hidden md:block">
+                  <AdminTableWrap>
                   <Table className="min-w-[600px]">
                     <TableHeader>
                       <TableRow>
@@ -630,6 +627,7 @@ export default function ProductsPage() {
                                   <Button
                                     variant="ghost"
                                     size="icon"
+                                    className="cursor-pointer"
                                     onClick={() => {
                                       setStockSheetProduct(product);
                                       setStockSheetOpen(true);
@@ -641,6 +639,7 @@ export default function ProductsPage() {
                                   <Button
                                     variant="ghost"
                                     size="icon"
+                                    className="cursor-pointer"
                                     onClick={() => handleOpenDialog(product)}
                                   >
                                     <Edit className="h-4 w-4" />
@@ -651,6 +650,7 @@ export default function ProductsPage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
+                                  className="cursor-pointer"
                                   onClick={() => handleDelete(product.id)}
                                 >
                                   <Trash2 className="h-4 w-4 text-destructive" />
@@ -662,11 +662,11 @@ export default function ProductsPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  </AdminTableWrap>
                 </div>
               </>
             )}
-          </CardContent>
-        </Card>
+        </AdminCard>
 
         {/* Dialog para crear/editar */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -853,12 +853,13 @@ export default function ProductsPage() {
                 <Button
                   type="button"
                   variant="outline"
+                  className="cursor-pointer"
                   onClick={handleCloseDialog}
                   disabled={submitting}
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={submitting}>
+                <Button type="submit" className="cursor-pointer" disabled={submitting}>
                   {submitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -879,7 +880,6 @@ export default function ProductsPage() {
           onOpenChange={setStockSheetOpen}
           onSaved={fetchProducts}
         />
-      </div>
-    </div>
+    </AdminPageShell>
   );
 }

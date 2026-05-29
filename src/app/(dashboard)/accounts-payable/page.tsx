@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { AdminPageShell } from '@/components/admin/admin-page-shell';
+import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -100,37 +101,31 @@ export default function AccountsPayablePage() {
 
   if (!canManageExpenses) {
     return (
-      <div className="p-8">
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
+      <AdminPageShell eyebrow="Finanzas" title="Cuentas por pagar" subtitle="Acceso restringido">
+        <AdminCard>
+          <p className="py-8 text-center text-muted-foreground">
             No tienes permisos para ver esta sección.
-          </CardContent>
-        </Card>
-      </div>
+          </p>
+        </AdminCard>
+      </AdminPageShell>
     );
   }
 
   return (
-    <div className="w-full min-w-0 space-y-6">
-      <div>
-        <h1 className="text-3xl md:text-4xl font-bold mb-2 flex items-center gap-2">
-          <Landmark className="h-8 w-8" />
+    <AdminPageShell
+      eyebrow="Finanzas"
+      title={
+        <span className="flex items-center gap-2">
+          <Landmark className="h-8 w-8 shrink-0" />
           Cuentas por pagar
-        </h1>
-        <p className="text-muted-foreground">
-          Facturas de proveedor con saldo pendiente. Registre abonos sin salir del flujo de gastos.
-        </p>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Pendientes con proveedor</CardTitle>
-          <CardDescription>
-            Los abonos también se pueden registrar al crear o editar un gasto (campo abono inicial o desde el
-            historial en Gastos).
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        </span>
+      }
+      subtitle="Facturas de proveedor con saldo pendiente. Registre abonos sin salir del flujo de gastos."
+    >
+      <AdminCard
+        title="Pendientes con proveedor"
+        description="Los abonos también se pueden registrar al crear o editar un gasto (campo abono inicial o desde el historial en Gastos)."
+      >
           {loading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -138,7 +133,7 @@ export default function AccountsPayablePage() {
           ) : rows.length === 0 ? (
             <p className="text-center py-8 text-muted-foreground">No hay obligaciones pendientes.</p>
           ) : (
-            <div className="overflow-x-auto">
+            <AdminTableWrap>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -165,7 +160,7 @@ export default function AccountsPayablePage() {
                         {formatForDisplay(r.balanceDue ?? 0)}
                       </TableCell>
                       <TableCell>
-                        <Button size="sm" variant="outline" onClick={() => openPay(r)}>
+                        <Button size="sm" variant="outline" className="cursor-pointer" onClick={() => openPay(r)}>
                           Abonar
                         </Button>
                       </TableCell>
@@ -173,10 +168,9 @@ export default function AccountsPayablePage() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
+            </AdminTableWrap>
           )}
-        </CardContent>
-      </Card>
+      </AdminCard>
 
       <Dialog open={payOpen} onOpenChange={setPayOpen}>
         <DialogContent>
@@ -204,15 +198,15 @@ export default function AccountsPayablePage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPayOpen(false)}>
+            <Button variant="outline" className="cursor-pointer" onClick={() => setPayOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={submitPay} disabled={submitting}>
+            <Button className="cursor-pointer" onClick={submitPay} disabled={submitting}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Registrar abono'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </AdminPageShell>
   );
 }

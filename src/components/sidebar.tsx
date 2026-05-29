@@ -28,11 +28,34 @@ import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 const navigationItems = APP_NAV_ITEMS;
+const SIDEBAR_COLLAPSED_KEY = 'marfyl-sidebar-collapsed';
 
 export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+      if (stored === '1') setIsCollapsed(true);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, isCollapsed ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+    document.documentElement.dataset.sidebarCollapsed = isCollapsed ? 'true' : 'false';
+    document.documentElement.style.setProperty(
+      '--admin-sidebar-width',
+      isCollapsed ? '4.75rem' : '17rem',
+    );
+  }, [isCollapsed]);
   const [fiscalOpen, setFiscalOpen] = useState(() => isFiscalRoute(pathname ?? ''));
 
   useEffect(() => {
@@ -154,13 +177,21 @@ export default function Sidebar() {
 
   return (
     <aside
+      data-collapsed={isCollapsed ? 'true' : 'false'}
       className={cn(
-        'hidden md:flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 h-full min-h-0 shrink-0 overflow-hidden',
-        isCollapsed ? 'w-20' : 'w-64'
+        'admin-sidebar hidden md:flex flex-col transition-[width] duration-300 ease-out h-full min-h-0 shrink-0 overflow-hidden',
+        isCollapsed ? 'w-[var(--admin-sidebar-width-collapsed)]' : 'w-[var(--admin-sidebar-width-expanded)]',
       )}
     >
       {/* Header */}
-      <div className={cn('flex items-center border-b border-sidebar-border gap-2', isCollapsed ? 'justify-center h-16 px-2' : 'justify-between h-16 px-4')}>
+      <div
+        className={cn(
+          'admin-sidebar-brand flex border-b border-sidebar-border',
+          isCollapsed
+            ? 'flex-col items-center gap-2 py-3 px-2'
+            : 'h-16 items-center justify-between gap-2 px-4',
+        )}
+      >
         {!isCollapsed ? (
           <div className="flex flex-col min-w-0 flex-1 gap-0.5">
             <div className="flex items-center gap-2">
@@ -182,13 +213,18 @@ export default function Sidebar() {
         ) : (
           <Image
             src="/logo.png"
-            alt="Logo"
-            width={36}
-            height={36}
-            className="h-9 w-9 flex-shrink-0 rounded-md object-contain"
+            alt="Logo MARFYL"
+            width={32}
+            height={32}
+            className="h-8 w-8 flex-shrink-0 rounded-md object-contain"
           />
         )}
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div
+          className={cn(
+            'flex items-center gap-1 flex-shrink-0',
+            isCollapsed && 'flex-col w-full',
+          )}
+        >
           {!isCollapsed && isInstallable && (
             <Button
               variant="outline"
@@ -204,7 +240,12 @@ export default function Sidebar() {
             variant="ghost"
             size="icon"
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="text-sidebar-foreground hover:bg-sidebar-accent"
+            className={cn(
+              'text-sidebar-foreground hover:bg-sidebar-accent',
+              isCollapsed && 'h-8 w-8',
+            )}
+            title={isCollapsed ? 'Expandir menú' : 'Contraer menú'}
+            aria-label={isCollapsed ? 'Expandir menú' : 'Contraer menú'}
           >
             <ChevronLeft
               className={cn('h-5 w-5 transition-transform', isCollapsed && 'rotate-180')}
@@ -215,13 +256,13 @@ export default function Sidebar() {
 
       {/* Organization Switcher - Solo mostrar si hay múltiples organizaciones */}
       {!isCollapsed && (
-        <div className="p-4 border-b border-sidebar-border">
+        <div className="p-3 sm:p-4 border-b border-sidebar-border">
           {hasMultipleOrganizations ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="w-full justify-between text-sidebar-foreground border-sidebar-border hover:bg-sidebar-accent min-h-[44px] py-3"
+                  className="admin-org-switcher w-full justify-between text-sidebar-foreground min-h-[44px] py-3 cursor-pointer"
                 >
                   <span className="text-sm truncate">{organizationName}</span>
                   <ChevronDown className="h-4 w-4 flex-shrink-0" />
@@ -266,7 +307,7 @@ export default function Sidebar() {
             </DropdownMenu>
           ) : (
             // Si solo tiene una organización, mostrar como div estático (no clickeable)
-            <div className="w-full px-3 py-2 rounded-lg bg-sidebar-accent/50 border border-sidebar-border">
+            <div className="admin-org-switcher w-full px-3 py-2">
               <div className="flex items-center gap-2">
                 <div className="h-8 w-8 rounded-lg bg-sidebar-primary/10 flex items-center justify-center text-xs font-semibold text-sidebar-foreground">
                   {organizationInitials}
@@ -291,7 +332,10 @@ export default function Sidebar() {
           {hasMultipleOrganizations ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="h-8 w-8 rounded-lg bg-sidebar-primary/10 flex items-center justify-center text-xs font-semibold text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
+                <button
+                  type="button"
+                  className="h-9 w-9 rounded-xl admin-org-switcher flex items-center justify-center text-xs font-semibold text-sidebar-foreground cursor-pointer"
+                >
                   {organizationInitials}
                 </button>
               </DropdownMenuTrigger>
@@ -410,13 +454,9 @@ export default function Sidebar() {
                 <Button
                   key={item.id}
                   asChild
-                  variant={activeItem === item.id ? 'default' : 'ghost'}
-                  className={cn(
-                    'w-full justify-center p-0 h-10 w-10',
-                    activeItem === item.id
-                      ? 'bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent',
-                  )}
+                  variant="ghost"
+                  data-active={activeItem === item.id ? 'true' : 'false'}
+                  className="admin-nav-link-compact justify-center p-0"
                 >
                   <Link href={item.href} prefetch>
                     <item.icon className="h-5 w-5 flex-shrink-0" />

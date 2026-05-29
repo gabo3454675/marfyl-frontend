@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AdminPageShell } from '@/components/admin/admin-page-shell';
+import { AdminCard } from '@/components/admin/admin-card';
 import {
   Select,
   SelectContent,
@@ -101,24 +102,23 @@ export default function InventoryMovementsPage() {
 
   if (!canManageInventory) {
     return (
-      <div className="w-full min-w-0 max-w-4xl">
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">No tienes permisos para acceder a Movimientos de inventario.</p>
-          </CardContent>
-        </Card>
-      </div>
+      <AdminPageShell eyebrow="Inventario" title="Movimientos de inventario" subtitle="Acceso restringido" maxWidth="medium">
+        <AdminCard>
+          <p className="py-8 text-center text-muted-foreground">
+            No tienes permisos para acceder a Movimientos de inventario.
+          </p>
+        </AdminCard>
+      </AdminPageShell>
     );
   }
 
   return (
-    <div className="w-full min-w-0 max-w-4xl space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Movimientos de inventario</h1>
-        <p className="text-muted-foreground">
-          Registra salidas por autoconsumo o mermas (vencido/dañado). El stock se descuenta al guardar.
-        </p>
-      </div>
+    <AdminPageShell
+      eyebrow="Inventario"
+      title="Movimientos de inventario"
+      subtitle="Registra salidas por autoconsumo o mermas (vencido/dañado). El stock se descuenta al guardar."
+      maxWidth="medium"
+    >
 
       {message && (
         <div
@@ -133,14 +133,14 @@ export default function InventoryMovementsPage() {
         </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <AdminCard
+        title={
+          <span className="flex items-center gap-2">
             <Package className="h-5 w-5" />
             Nueva salida
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </span>
+        }
+      >
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-2">
               <Label>Tipo</Label>
@@ -196,19 +196,14 @@ export default function InventoryMovementsPage() {
                 onChange={(e) => setForm((prev) => ({ ...prev, reason: e.target.value }))}
               />
             </div>
-            <Button type="submit" disabled={submitting}>
+            <Button type="submit" className="cursor-pointer" disabled={submitting}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Registrar salida
             </Button>
           </form>
-        </CardContent>
-      </Card>
+      </AdminCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Últimos movimientos</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <AdminCard title="Últimos movimientos">
           {loadingMovements ? (
             <p className="text-sm text-muted-foreground">Cargando...</p>
           ) : movements.length === 0 ? (
@@ -228,8 +223,7 @@ export default function InventoryMovementsPage() {
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
-    </div>
+      </AdminCard>
+    </AdminPageShell>
   );
 }

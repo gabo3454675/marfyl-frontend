@@ -50,17 +50,13 @@ export function SidebarNavLink({
   return (
     <Button
       asChild
-      variant={active ? 'default' : 'ghost'}
+      variant="ghost"
       size={compact ? 'sm' : 'default'}
-      className={cn(
-        'w-full justify-start gap-3 h-10 font-normal',
-        active
-          ? 'bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary'
-          : 'text-sidebar-foreground hover:bg-sidebar-accent',
-      )}
+      data-active={active ? 'true' : 'false'}
+      className={cn('admin-nav-link', compact && 'h-9 gap-2')}
     >
       <Link href={item.href} prefetch>
-        <item.icon className={cn('shrink-0', compact ? 'h-4 w-4' : 'h-5 w-5')} />
+        <item.icon className={cn('shrink-0', compact ? 'h-4 w-4' : 'h-[1.125rem] w-[1.125rem]')} />
         <span className="truncate text-sm">{item.label}</span>
       </Link>
     </Button>
@@ -115,14 +111,10 @@ export function FiscalNavCollapsible({
                 <Button
                   key={item.id}
                   asChild
-                  variant={fiscalItemActive ? 'default' : 'ghost'}
+                  variant="ghost"
                   size="sm"
-                  className={cn(
-                    'w-full justify-start gap-2.5 h-9 font-normal',
-                    fiscalItemActive
-                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent',
-                  )}
+                  data-active={fiscalItemActive ? 'true' : 'false'}
+                  className="admin-nav-link h-9 gap-2.5"
                 >
                   <Link href={item.href} prefetch>
                     <item.icon className="h-4 w-4 shrink-0" />

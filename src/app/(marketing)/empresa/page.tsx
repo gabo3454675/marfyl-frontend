@@ -10,13 +10,13 @@ export default function EmpresaPage() {
 
   return (
     <>
-      <section className="marketing-container pt-12 pb-16 md:pt-20 md:pb-24">
+      <section className="marketing-hero marketing-container">
         <div className="max-w-3xl">
           <p className="text-sm font-semibold uppercase tracking-wider text-[hsl(var(--marketing-accent))]">
             {hero.eyebrow}
           </p>
           <h1 className="marketing-hero-title mt-4">{hero.title}</h1>
-          <p className="text-lg text-muted-foreground mt-6 leading-relaxed">{hero.subtitle}</p>
+          <p className="text-lg text-muted-foreground mt-6 leading-relaxed max-w-2xl">{hero.subtitle}</p>
           <div className="flex flex-wrap gap-3 mt-8">
             <Button size="lg" className="marketing-cta" asChild>
               <Link href={hero.primaryCta.href}>
@@ -31,24 +31,26 @@ export default function EmpresaPage() {
         </div>
       </section>
 
-      <section className="marketing-section border-y border-[hsl(var(--dm-b-accent)/0.12)] bg-[hsl(0_0%_8%/_0.5)]">
-        <div className="marketing-container grid gap-6 md:grid-cols-3">
-          {features.map((f) => (
-            <div key={f.title} className="marketing-feature-card">
-              <h2 className="font-semibold text-lg">{f.title}</h2>
-              <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{f.description}</p>
-            </div>
-          ))}
+      <section className="marketing-section marketing-section--band">
+        <div className="marketing-container">
+          <div className="marketing-features-grid">
+            {features.map((f) => (
+              <div key={f.title} className="marketing-feature-card">
+                <h2 className="font-semibold text-lg">{f.title}</h2>
+                <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{f.description}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      <section className="marketing-container py-16">
-        <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
+      <section className="marketing-section marketing-container">
+        <div className="grid gap-10 lg:gap-14 lg:grid-cols-2 lg:items-start">
           <div>
             <h2 className="marketing-section-title">Hecho para la operación diaria</h2>
-            <ul className="mt-6 space-y-3">
+            <ul className="mt-6 space-y-3.5">
               {highlights.map((h) => (
-                <li key={h} className="flex gap-3 text-sm">
+                <li key={h} className="flex gap-3 text-sm leading-relaxed">
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-[hsl(var(--marketing-accent))]" />
                   {h}
                 </li>
@@ -58,17 +60,20 @@ export default function EmpresaPage() {
               <Link href="/caracteristicas">Ver todas las características</Link>
             </Button>
           </div>
-          <div className="grid gap-4">
+          <div className="marketing-trust-grid">
             {trust.map((t) => (
-              <div key={t.label} className="flex gap-4 rounded-xl border border-border/80 p-5 bg-card">
+              <div
+                key={t.label}
+                className="flex gap-4 rounded-xl border border-border/80 p-5 sm:p-6 bg-card/80"
+              >
                 {t.label.includes('Venezuela') ? (
-                  <Shield className="h-8 w-8 text-[hsl(var(--marketing-accent))]" />
+                  <Shield className="h-8 w-8 shrink-0 text-[hsl(var(--marketing-accent))]" />
                 ) : (
-                  <Zap className="h-8 w-8 text-[hsl(var(--marketing-accent))]" />
+                  <Zap className="h-8 w-8 shrink-0 text-[hsl(var(--marketing-accent))]" />
                 )}
-                <div>
+                <div className="min-w-0">
                   <p className="font-semibold">{t.label}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{t.detail}</p>
+                  <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{t.detail}</p>
                 </div>
               </div>
             ))}
@@ -77,7 +82,12 @@ export default function EmpresaPage() {
       </section>
 
       <MarketingFaq items={MARKETING_FAQ_HOME} />
-      <MarketingCtaBand title={cta.title} subtitle={cta.subtitle} primary={cta.primary} secondary={cta.secondary} />
+      <MarketingCtaBand
+        title={cta.title}
+        subtitle={cta.subtitle}
+        primary={cta.primary}
+        secondary={cta.secondary}
+      />
     </>
   );
 }

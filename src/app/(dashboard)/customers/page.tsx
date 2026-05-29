@@ -20,7 +20,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AdminPageShell } from '@/components/admin/admin-page-shell';
+import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
 import { Plus, Edit, Trash2, Search, Loader2, AlertCircle } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -190,50 +191,46 @@ export default function CustomersPage() {
 
   if (!canManageCustomers) {
     return (
-      <div className="w-full min-w-0">
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">
-              No tienes permisos para acceder a esta sección.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <AdminPageShell eyebrow="Ventas" title="Clientes" subtitle="Acceso restringido">
+        <AdminCard>
+          <p className="py-8 text-center text-muted-foreground">
+            No tienes permisos para acceder a esta sección.
+          </p>
+        </AdminCard>
+      </AdminPageShell>
     );
   }
 
   return (
-    <div className="w-full min-w-0">
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">Clientes</h1>
-            <p className="text-muted-foreground">Gestiona tu base de clientes</p>
-          </div>
-          {canManageCustomers && (
-            <Button onClick={() => handleOpenDialog()}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nuevo Cliente
-            </Button>
-          )}
-        </div>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Lista de Clientes</CardTitle>
-              <div className="relative w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar clientes..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
+    <AdminPageShell
+      eyebrow="Ventas"
+      title="Clientes"
+      subtitle="Gestiona tu base de clientes, contactos y documentos fiscales."
+      loading={loading && customers.length === 0}
+      actions={
+        canManageCustomers ? (
+          <Button onClick={() => handleOpenDialog()} className="cursor-pointer">
+            <Plus className="mr-2 h-4 w-4" />
+            Nuevo Cliente
+          </Button>
+        ) : undefined
+      }
+    >
+        <AdminCard
+          title="Lista de clientes"
+          headerActions={
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar clientes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
             </div>
-          </CardHeader>
-          <CardContent>
+          }
+          bodyClassName="pt-0 sm:pt-0"
+        >
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -243,6 +240,7 @@ export default function CustomersPage() {
                 {searchQuery ? 'No se encontraron clientes' : 'No hay clientes registrados'}
               </p>
             ) : (
+              <AdminTableWrap>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -299,9 +297,8 @@ export default function CustomersPage() {
                   ))}
                 </TableBody>
               </Table>
+              </AdminTableWrap>
             )}
-          </CardContent>
-        </Card>
 
         {/* Dialog para crear/editar */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -387,7 +384,7 @@ export default function CustomersPage() {
             </form>
           </DialogContent>
         </Dialog>
-      </div>
-    </div>
+        </AdminCard>
+    </AdminPageShell>
   );
 }

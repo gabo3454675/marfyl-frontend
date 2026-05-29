@@ -13,7 +13,7 @@ export function MarketingNavbar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="marketing-nav sticky top-0 z-50">
+    <header className="marketing-nav sticky top-0 z-50 shrink-0">
       <div className="marketing-container flex h-16 items-center justify-between gap-4">
         <Link href="/empresa" className="font-bold text-lg tracking-tight">
           <span className="text-[hsl(var(--dm-b-accent))]">{MARFYL_BRAND.name}</span>

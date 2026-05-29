@@ -152,36 +152,31 @@ export default function BottomNav() {
     <nav className="bottom-nav-fixed" aria-label="Navegación principal">
       <div className="bottom-nav-inner">
         {visibleMainNav.map((item) => (
-            <Button
+          <button
             key={item.id}
-            variant="ghost"
-            size="icon"
-            className={cn(
-              'min-h-[44px] min-w-[44px] h-12 w-12 rounded-lg',
-              activeItem === item.id
-                ? 'bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary'
-                : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-            )}
+            type="button"
+            data-active={activeItem === item.id ? 'true' : 'false'}
+            className="admin-bottom-nav-item"
             onClick={() => router.push(item.href)}
-            title={item.label}
+            aria-label={item.label}
+            aria-current={activeItem === item.id ? 'page' : undefined}
           >
-            <item.icon className="h-5 w-5" />
-          </Button>
+            <item.icon aria-hidden />
+            <span className="truncate w-full text-center leading-tight">{item.label}</span>
+          </button>
         ))}
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
           <SheetTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                'min-h-[44px] min-w-[44px] h-12 w-12 rounded-lg',
-                isSheetOpen
-                  ? 'bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-              )}
+            <button
+              type="button"
+              data-active={isSheetOpen ? 'true' : 'false'}
+              className={cn('admin-bottom-nav-item admin-bottom-nav-more')}
+              aria-label="Más opciones"
+              aria-expanded={isSheetOpen}
             >
-              <MoreVertical className="h-5 w-5" />
-            </Button>
+              <MoreVertical aria-hidden />
+              <span className="truncate w-full text-center leading-tight">Más</span>
+            </button>
           </SheetTrigger>
           <SheetContent
             side="bottom"

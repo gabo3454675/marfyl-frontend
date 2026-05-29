@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AdminPageShell } from '@/components/admin/admin-page-shell';
+import { AdminCard } from '@/components/admin/admin-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -116,15 +117,13 @@ export default function CreditsPage() {
 
   if (!canManageCustomers) {
     return (
-      <div className="w-full min-w-0">
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">
-              No tienes permisos para acceder a esta sección.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <AdminPageShell eyebrow="Finanzas" title="Cuentas por Cobrar" subtitle="Acceso restringido" maxWidth="medium">
+        <AdminCard>
+          <p className="py-8 text-center text-muted-foreground">
+            No tienes permisos para acceder a esta sección.
+          </p>
+        </AdminCard>
+      </AdminPageShell>
     );
   }
 
@@ -197,21 +196,23 @@ export default function CreditsPage() {
     new Date(s).toLocaleDateString('es-VE', { dateStyle: 'short', timeStyle: 'short' });
 
   return (
-    <div className="w-full min-w-0 max-w-4xl">
-      <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">Cuentas por Cobrar</h1>
-        <p className="text-muted-foreground">Créditos a clientes y registro de abonos</p>
-      </div>
-
+    <AdminPageShell
+      eyebrow="Finanzas"
+      title="Cuentas por Cobrar"
+      subtitle="Créditos a clientes y registro de abonos"
+      maxWidth="medium"
+    >
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+        <AdminCard
+          title={
+            <span className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
               Clientes con crédito
-            </CardTitle>
-            <CardDescription>Busque y seleccione un cliente para ver saldo y registrar abonos</CardDescription>
-            <div className="relative pt-2">
+            </span>
+          }
+          description="Busque y seleccione un cliente para ver saldo y registrar abonos"
+          headerActions={
+            <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por nombre..."
@@ -220,8 +221,8 @@ export default function CreditsPage() {
                 className="pl-9"
               />
             </div>
-          </CardHeader>
-          <CardContent>
+          }
+        >
             {loading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -260,22 +261,22 @@ export default function CreditsPage() {
                 ))}
               </ul>
             )}
-          </CardContent>
-        </Card>
+        </AdminCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Detalle y abonos</CardTitle>
-            <CardDescription>
-              {selectedCredit
-                ? `${selectedCredit.customer.name} · Saldo: ${formatForDisplay(Number(selectedCredit.currentBalance))}`
-                : 'Seleccione un cliente'}
-            </CardDescription>
-            <div className="mt-3 flex gap-2">
+        <AdminCard
+          title="Detalle y abonos"
+          description={
+            selectedCredit
+              ? `${selectedCredit.customer.name} · Saldo: ${formatForDisplay(Number(selectedCredit.currentBalance))}`
+              : 'Seleccione un cliente'
+          }
+          headerActions={
+            <div className="flex gap-2">
               <Button
                 type="button"
                 size="sm"
                 variant={detailTab === 'resumen' ? 'default' : 'outline'}
+                className="cursor-pointer"
                 onClick={() => setDetailTab('resumen')}
               >
                 Resumen
@@ -284,13 +285,15 @@ export default function CreditsPage() {
                 type="button"
                 size="sm"
                 variant={detailTab === 'movimientos' ? 'default' : 'outline'}
+                className="cursor-pointer"
                 onClick={() => setDetailTab('movimientos')}
               >
                 Movimientos
               </Button>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
+          }
+          bodyClassName="space-y-4"
+        >
             {!selectedCredit ? (
               <p className="text-muted-foreground text-center py-8">
                 Elija un cliente de la lista para ver movimientos y registrar abonos.
@@ -331,13 +334,14 @@ export default function CreditsPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      <Button onClick={handleOpenPayment} disabled={Number(selectedCredit.currentBalance) <= 0}>
+                      <Button className="cursor-pointer" onClick={handleOpenPayment} disabled={Number(selectedCredit.currentBalance) <= 0}>
                         <DollarSign className="mr-2 h-4 w-4" />
                         Registrar abono
                       </Button>
                       {canEditCreditLimit && (
                         <Button
                           variant="outline"
+                          className="cursor-pointer"
                           onClick={() => {
                             setNewLimit(String(selectedCredit.limitAmount));
                             setLimitDialogOpen(true);
@@ -379,7 +383,7 @@ export default function CreditsPage() {
                                 <Button
                                   variant="link"
                                   size="sm"
-                                  className="h-auto p-0 text-xs"
+                                  className="h-auto p-0 text-xs cursor-pointer"
                                   onClick={async () => {
                                     try {
                                       const r = await apiClient.get(`/credits/transactions/${tx.id}/receipt-pdf`, { responseType: 'blob' });
@@ -404,8 +408,7 @@ export default function CreditsPage() {
                 )}
               </>
             )}
-          </CardContent>
-        </Card>
+        </AdminCard>
       </div>
 
       <Dialog open={limitDialogOpen} onOpenChange={setLimitDialogOpen}>
@@ -431,8 +434,9 @@ export default function CreditsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLimitDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" className="cursor-pointer" onClick={() => setLimitDialogOpen(false)}>Cancelar</Button>
             <Button
+              className="cursor-pointer"
               disabled={savingLimit || !newLimit || parseFloat(newLimit) < Number(selectedCredit?.currentBalance ?? 0)}
               onClick={async () => {
                 if (!selectedCredit) return;
@@ -502,15 +506,15 @@ export default function CreditsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>
+            <Button variant="outline" className="cursor-pointer" onClick={() => setPaymentDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleRegisterPayment} disabled={submitting}>
+            <Button className="cursor-pointer" onClick={handleRegisterPayment} disabled={submitting}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Registrar y descargar recibo'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </AdminPageShell>
   );
 }

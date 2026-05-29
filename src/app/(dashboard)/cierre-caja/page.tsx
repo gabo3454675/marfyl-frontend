@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { AdminPageShell } from '@/components/admin/admin-page-shell';
+import { AdminCard } from '@/components/admin/admin-card';
 import {
   Loader2,
   Wallet,
@@ -177,20 +179,21 @@ export default function CierreCajaPage() {
 
   if (loading && abierto === undefined) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center p-4">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <AdminPageShell
+        eyebrow="Ventas"
+        title="Cierre de caja"
+        subtitle="Abre o cierra tu turno de caja."
+        loading
+      />
     );
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Cierre de caja</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Abre o cierra tu turno. El mismo turno abierto en la app se puede ver y cerrar aquí.
-        </p>
-      </div>
+    <AdminPageShell
+      eyebrow="Ventas"
+      title="Cierre de caja"
+      subtitle="Abre o cierra tu turno. El mismo turno abierto en la app se puede ver y cerrar aquí."
+    >
 
       {error && (
         <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -200,47 +203,49 @@ export default function CierreCajaPage() {
       )}
 
       {successClose && (
-        <Card className="border-green-500/30 bg-green-500/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
+        <AdminCard
+          className="border-green-500/30"
+          title={
+            <span className="flex items-center gap-2 text-green-700 dark:text-green-400">
               <DoorClosed className="h-5 w-5" />
               Turno cerrado correctamente
-            </CardTitle>
-            <CardDescription>
-              Diferencia USD: {formatForDisplay(successClose.diferenciaUsd ?? successClose.diferencia ?? 0)} · 
-              Diferencia Bs: {formatForDisplay(successClose.diferenciaVes ?? 0)}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleImprimir(successClose.id)}
-            >
+            </span>
+          }
+          description={
+            <>
+              Diferencia USD: {formatForDisplay(successClose.diferenciaUsd ?? successClose.diferencia ?? 0)} · Diferencia Bs:{' '}
+              {formatForDisplay(successClose.diferenciaVes ?? 0)}
+            </>
+          }
+        >
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => handleImprimir(successClose.id)} className="cursor-pointer">
               <Printer className="mr-2 h-4 w-4" />
               Imprimir ticket
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSuccessClose(null)}>
+            <Button variant="ghost" size="sm" onClick={() => setSuccessClose(null)} className="cursor-pointer">
               Cerrar aviso
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </AdminCard>
       )}
 
-      {/* Turno abierto: X-Report y formulario de cierre */}
       {abierto && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2">
+        <AdminCard
+          title={
+            <span className="flex items-center gap-2">
               <Wallet className="h-5 w-5" />
               Turno abierto (X-Report)
-            </CardTitle>
-            <CardDescription>
-              Cajero: {abierto.user?.fullName || abierto.user?.email || '—'} · 
-              Apertura: {new Date(abierto.fechaApertura).toLocaleString('es')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </span>
+          }
+          description={
+            <>
+              Cajero: {abierto.user?.fullName || abierto.user?.email || '—'} · Apertura:{' '}
+              {new Date(abierto.fechaApertura).toLocaleString('es')}
+            </>
+          }
+          bodyClassName="space-y-4"
+        >
             <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
               <div className="rounded-md border bg-muted/30 p-3">
                 <span className="text-muted-foreground">Monto inicial</span>
@@ -317,23 +322,19 @@ export default function CierreCajaPage() {
                 Cerrar turno
               </Button>
             </form>
-          </CardContent>
-        </Card>
+        </AdminCard>
       )}
 
-      {/* Sin turno abierto: formulario de apertura */}
       {!abierto && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2">
+        <AdminCard
+          title={
+            <span className="flex items-center gap-2">
               <DoorOpen className="h-5 w-5" />
               Abrir turno
-            </CardTitle>
-            <CardDescription>
-              Indica el monto inicial en caja (USD) para iniciar tu turno. Puedes abrirlo desde la app o desde aquí.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </span>
+          }
+          description="Indica el monto inicial en caja (USD) para iniciar tu turno. Puedes abrirlo desde la app o desde aquí."
+        >
             <form onSubmit={handleApertura} className="flex flex-wrap items-end gap-4">
               <div className="min-w-[180px] space-y-2">
                 <Label htmlFor="montoInicial">Monto inicial (USD)</Label>
@@ -346,27 +347,23 @@ export default function CierreCajaPage() {
                   onChange={(e) => setMontoInicial(e.target.value)}
                 />
               </div>
-              <Button type="submit" disabled={sending}>
+              <Button type="submit" disabled={sending} className="cursor-pointer">
                 {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DoorOpen className="mr-2 h-4 w-4" />}
                 Abrir caja
               </Button>
             </form>
-          </CardContent>
-        </Card>
+        </AdminCard>
       )}
 
-      {/* Historial de cierres */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2">
+      <AdminCard
+        title={
+          <span className="flex items-center gap-2">
             <History className="h-5 w-5" />
             Últimos cierres
-          </CardTitle>
-          <CardDescription>
-            Listado de turnos ya cerrados. Puedes imprimir el ticket desde aquí.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </span>
+        }
+        description="Listado de turnos ya cerrados. Puedes imprimir el ticket desde aquí."
+      >
           {historial.length === 0 ? (
             <p className="text-sm text-muted-foreground">No hay cierres recientes.</p>
           ) : (
@@ -388,6 +385,7 @@ export default function CierreCajaPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleImprimir(c.id)}
+                    className="cursor-pointer"
                   >
                     <Printer className="mr-1 h-4 w-4" />
                     Ticket
@@ -396,8 +394,7 @@ export default function CierreCajaPage() {
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
-    </div>
+      </AdminCard>
+    </AdminPageShell>
   );
 }

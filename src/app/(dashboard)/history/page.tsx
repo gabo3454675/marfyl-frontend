@@ -10,7 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import { AdminPageShell } from '@/components/admin/admin-page-shell';
+import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
 import {
   Select,
   SelectContent,
@@ -157,24 +159,22 @@ export default function HistoryPage() {
 
   if (!canManageCustomers) {
     return (
-      <div className="w-full min-w-0">
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">No tienes permisos para acceder a esta sección.</p>
-          </CardContent>
-        </Card>
-      </div>
+      <AdminPageShell eyebrow="Ventas" title="Historial de Ventas" subtitle="Acceso restringido">
+        <AdminCard>
+          <p className="py-8 text-center text-muted-foreground">
+            No tienes permisos para acceder a esta sección.
+          </p>
+        </AdminCard>
+      </AdminPageShell>
     );
   }
 
   return (
-    <div className="w-full min-w-0">
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">Historial de Ventas</h1>
-          <p className="text-muted-foreground">Consulta ventas por rango de fechas y por empresa</p>
-        </div>
-
+    <AdminPageShell
+      eyebrow="Ventas"
+      title="Historial de Ventas"
+      subtitle="Consulta ventas por rango de fechas y por empresa"
+    >
         {/* Filtros: rango de fechas y empresa */}
         <div className="space-y-3">
           <div className="flex items-center justify-between md:justify-start md:gap-4">
@@ -186,7 +186,7 @@ export default function HistoryPage() {
               type="button"
               variant="outline"
               size="sm"
-              className="md:hidden"
+              className="md:hidden cursor-pointer"
               onClick={() => setFiltersOpen((prev) => !prev)}
             >
               <Calendar className="h-4 w-4 mr-2" />
@@ -194,14 +194,15 @@ export default function HistoryPage() {
             </Button>
           </div>
           {(filtersOpen || typeof window === 'undefined' || window.innerWidth >= 768) && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <AdminCard
+              title={
+                <span className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
                   Filtros
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col sm:flex-row flex-wrap gap-4">
+                </span>
+              }
+            >
+              <div className="flex flex-col sm:flex-row flex-wrap gap-4">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="startDate">Desde</Label>
                   <Input
@@ -256,48 +257,42 @@ export default function HistoryPage() {
                   </div>
                 )}
                 <div className="flex items-end">
-                  <Button onClick={fetchHistory} disabled={loading}>
+                  <Button onClick={fetchHistory} disabled={loading} className="cursor-pointer">
                     {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                     Buscar
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </AdminCard>
           )}
         </div>
 
         {/* Tarjetas de resumen del periodo (solo cobro real, sin IVA/IGTF) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          <AdminCard
+            title={
+              <span className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <DollarSign className="h-4 w-4" />
                 Ventas Totales del Periodo
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{formatForDisplay(totalSalesPeriod)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              </span>
+            }
+          >
+            <p className="text-2xl font-bold">{formatForDisplay(totalSalesPeriod)}</p>
+          </AdminCard>
+          <AdminCard
+            title={
+              <span className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Receipt className="h-4 w-4" />
                 Facturas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{invoicesCount}</p>
-            </CardContent>
-          </Card>
+              </span>
+            }
+          >
+            <p className="text-2xl font-bold">{invoicesCount}</p>
+          </AdminCard>
         </div>
 
         {/* Tabla de ventas */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Ventas del periodo</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <AdminCard title="Ventas del periodo">
             {loading ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -334,7 +329,7 @@ export default function HistoryPage() {
                       <p className="text-xs text-muted-foreground mb-2">{getPaymentMethodDisplay(invoice)}</p>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" className="cursor-pointer">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -352,7 +347,8 @@ export default function HistoryPage() {
                     </Card>
                   ))}
                 </div>
-                <div className="hidden md:block overflow-x-auto rounded-md border border-border">
+                <div className="hidden md:block">
+                  <AdminTableWrap>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -389,7 +385,7 @@ export default function HistoryPage() {
                           <TableCell>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
                                   <MoreVertical className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -409,12 +405,11 @@ export default function HistoryPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  </AdminTableWrap>
                 </div>
               </>
             )}
-          </CardContent>
-        </Card>
-      </div>
+        </AdminCard>
 
       <InvoiceDetailSheet
         invoiceId={detailInvoiceId}
@@ -422,6 +417,6 @@ export default function HistoryPage() {
         onOpenChange={setDetailSheetOpen}
         onRefresh={fetchHistory}
       />
-    </div>
+    </AdminPageShell>
   );
 }

@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { AdminPageShell } from '@/components/admin/admin-page-shell';
+import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
 import {
   Table,
   TableBody,
@@ -99,28 +100,20 @@ export default function TasasPage() {
   }, [fetchTasas]);
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-          Tasas BCV y diferencial cambiario
-        </h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Historial de tasas registradas y reporte de ganancia/pérdida por diferencial cambiario por período.
-        </p>
-      </div>
-
-      {/* Historial de tasas */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2">
+    <AdminPageShell
+      eyebrow="Finanzas"
+      title="Tasas BCV y diferencial cambiario"
+      subtitle="Historial de tasas registradas y reporte de ganancia/pérdida por diferencial cambiario por período."
+    >
+      <AdminCard
+        title={
+          <span className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
             Historial de tasas
-          </CardTitle>
-          <CardDescription>
-            Últimas tasas BCV usadas en facturas y cierres de caja (auditoría).
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </span>
+        }
+        description="Últimas tasas BCV usadas en facturas y cierres de caja (auditoría)."
+      >
           {loadingTasas ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -128,7 +121,7 @@ export default function TasasPage() {
           ) : tasas.length === 0 ? (
             <p className="text-sm text-muted-foreground">No hay registros de tasas aún.</p>
           ) : (
-            <div className="overflow-x-auto">
+            <AdminTableWrap>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -156,29 +149,26 @@ export default function TasasPage() {
                   Mostrando las últimas 50 de {tasas.length} registros.
                 </p>
               )}
-            </div>
+            </AdminTableWrap>
           )}
           <div className="mt-4">
-            <Button variant="outline" size="sm" onClick={fetchTasas} disabled={loadingTasas}>
+            <Button variant="outline" size="sm" onClick={fetchTasas} disabled={loadingTasas} className="cursor-pointer">
               <RefreshCw className="mr-2 h-4 w-4" />
               Actualizar
             </Button>
           </div>
-        </CardContent>
-      </Card>
+      </AdminCard>
 
-      {/* Reporte diferencial cambiario */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2">
+      <AdminCard
+        title={
+          <span className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
             Reporte ganancia/pérdida por diferencial cambiario
-          </CardTitle>
-          <CardDescription>
-            Resumen por día: tasa utilizada y totales facturados en USD y Bs.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </span>
+        }
+        description="Resumen por día: tasa utilizada y totales facturados en USD y Bs."
+        bodyClassName="space-y-4"
+      >
           <div className="flex flex-wrap items-end gap-4">
             <div className="space-y-2">
               <Label htmlFor="desde">Desde</Label>
@@ -198,7 +188,7 @@ export default function TasasPage() {
                 onChange={(e) => setHasta(e.target.value)}
               />
             </div>
-            <Button onClick={fetchReporte} disabled={loadingReporte || !desde || !hasta}>
+            <Button onClick={fetchReporte} disabled={loadingReporte || !desde || !hasta} className="cursor-pointer">
               {loadingReporte ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
@@ -219,7 +209,7 @@ export default function TasasPage() {
               <p className="text-sm text-muted-foreground">
                 Período: {reporte.desde} a {reporte.hasta} · {reporte.totalFacturas} facturas · {reporte.tasasEnRango} tasas en rango.
               </p>
-              <div className="overflow-x-auto">
+              <AdminTableWrap>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -254,11 +244,10 @@ export default function TasasPage() {
                     )}
                   </TableBody>
                 </Table>
-              </div>
+              </AdminTableWrap>
             </div>
           )}
-        </CardContent>
-      </Card>
-    </div>
+      </AdminCard>
+    </AdminPageShell>
   );
 }

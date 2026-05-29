@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import { FISCAL_MODULE_LABEL, FISCAL_NAV_ITEMS, resolveFiscalNavId } from '@/config/fiscal-nav';
 import { usePermission } from '@/hooks/usePermission';
 import { ChevronRight } from 'lucide-react';
+import { AdminPageHeader } from '@/components/admin/admin-page-header';
+import { AdminMotionFade } from '@/components/admin/admin-motion';
 
 export function FiscalShell({
   title,
@@ -47,23 +49,16 @@ export function FiscalShell({
           )}
         </nav>
 
-        <div>
-          <header className="mb-5 sm:mb-6 flex flex-col gap-3 sm:gap-4 border-b border-border/60 pb-4 sm:pb-5 sm:flex-row sm:items-end sm:justify-between">
-            <div className="min-w-0 flex-1 space-y-1">
-              <h1 className="fiscal-page-title break-words">{title}</h1>
-              {subtitle && (
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">{subtitle}</p>
-              )}
-            </div>
-            {actions && (
-              <div className="flex flex-wrap items-center gap-2 shrink-0 sm:justify-end">
-                {actions}
-              </div>
-            )}
-          </header>
-
-          <div className="fiscal-page-content w-full space-y-5 sm:space-y-6">{children}</div>
-        </div>
+        <AdminMotionFade>
+          <AdminPageHeader
+            eyebrow={FISCAL_MODULE_LABEL}
+            title={<span className="fiscal-page-title break-words">{title}</span>}
+            subtitle={subtitle}
+            actions={actions}
+            className="mb-5 sm:mb-6 border-b border-border/60 pb-4 sm:pb-5"
+          />
+          <div className="fiscal-page-content admin-page-body w-full">{children}</div>
+        </AdminMotionFade>
     </div>
   );
 }

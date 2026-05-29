@@ -4,18 +4,23 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { MoreVertical, TrendingUp, Users, FileText, AlertCircle, Loader2, ListTodo, ExternalLink, Receipt, Percent, Banknote } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/useAuthStore';
 import { isFiscalPreviewMode } from '@/lib/fiscal-preview';
+import { getApiErrorMessage, isNetworkFailure, PREVIEW_OFFLINE_HINT } from '@/lib/api/get-error-message';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 import MetricCard from '@/components/metric-card';
 import NotificationsSection from '@/components/notifications-section';
+import { AdminPageHeader, AdminSection } from '@/components/admin/admin-page-header';
+import { AdminCard, AdminChartCard } from '@/components/admin/admin-card';
+import { AdminPanel } from '@/components/admin/admin-panel';
+import { AdminMotionStagger, AdminMotionItem } from '@/components/admin/admin-motion';
 import { RateConfigModal } from '@/components/rate-config-modal';
 import apiClient from '@/lib/api';
 import { usePermission } from '@/hooks/usePermission';
+import { cn } from '@/lib/utils';
 
 // Cargar componentes pesados de Recharts solo en el cliente
 const ResponsiveContainer = dynamic<any>(
@@ -302,10 +307,14 @@ export default function DashboardPage() {
       if (selectedIdRef.current === idAtStart) {
         setSummary(response.data);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (selectedIdRef.current === idAtStart) {
         console.error('Error fetching dashboard summary:', err);
-        const errorMessage = err.response?.data?.message || err.message || 'Error al cargar los datos del dashboard';
+        const offline = isNetworkFailure(err);
+        const errorMessage =
+          offline && isFiscalPreviewMode()
+            ? PREVIEW_OFFLINE_HINT
+            : getApiErrorMessage(err, 'Error al cargar los datos del dashboard');
         setError(errorMessage);
         setSummary(DEFAULT_SUMMARY);
       }
@@ -498,13 +507,12 @@ export default function DashboardPage() {
 
   return (
     <div className="w-full min-w-0">
-      {/* Header - Siempre visible */}
-      <div className="mb-5 md:mb-8">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1.5 md:mb-2 truncate">
-          {greeting()}, {userName}.
-        </h1>
-        <p className="text-sm sm:text-base text-muted-foreground">Esto es lo que está pasando con tu negocio hoy.</p>
-      </div>
+      <AdminPageHeader
+        eyebrow="Panel de control"
+        title={`${greeting()}, ${userName}.`}
+        subtitle="Resumen operativo, tareas y salud financiera de tu negocio hoy."
+        className="mb-6 md:mb-8"
+      />
 
       {/* Estado de carga */}
       {loading && (
@@ -514,26 +522,45 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Mensaje de error */}
-      {error && !loading && (
-        <Card className="mb-8 bg-destructive/10 border-destructive">
-          <CardHeader>
-            <CardTitle className="text-destructive">Error</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-destructive mb-4">{error}</p>
-            <Button onClick={() => fetchDashboardSummary()} variant="outline">
-              Reintentar
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      {/* Aviso si el API no responde (vista previa puede seguir mostrando la UI) */}
+      {error && !loading && (() => {
+        const previewOffline =
+          isFiscalPreviewMode() &&
+          (error.includes('Vista previa') || error.includes('puerto 3001') || error.includes('conexión'));
+        return (
+        <AdminCard
+          className={cn(
+            'mb-8',
+            previewOffline
+              ? 'border-amber-500/40 bg-amber-500/10'
+              : 'border-destructive bg-destructive/10',
+          )}
+          title={
+            <span className={previewOffline ? 'text-amber-200' : 'text-destructive'}>
+              {previewOffline ? 'Datos no disponibles (vista previa)' : 'Error'}
+            </span>
+          }
+        >
+          <p
+            className={cn(
+              'mb-4 text-sm leading-relaxed',
+              previewOffline ? 'text-amber-100/90' : 'text-destructive',
+            )}
+          >
+            {error}
+          </p>
+          <Button onClick={() => fetchDashboardSummary()} variant="outline" className="cursor-pointer">
+            Reintentar conexión
+          </Button>
+        </AdminCard>
+        );
+      })()}
 
       {/* Contenido del dashboard - key por organización para evitar estado viejo al cambiar de empresa */}
       {!loading && (
-        <div key={selectedId ?? 'none'}>
-          {/* Metric Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 md:mb-8">
+        <AdminMotionStagger key={selectedId ?? 'none'} className="admin-page-body">
+          <AdminMotionItem>
+          <div className="admin-kpi-grid">
             <MetricCard
               title="Ventas de Hoy"
               value={formatForDisplay(summary.totalSalesToday)}
@@ -567,16 +594,18 @@ export default function DashboardPage() {
               sparklineData={generateSparklineData(summary.recentTransactions.length)}
             />
           </div>
+          </AdminMotionItem>
 
-          {/* Mis Tareas Pendientes */}
-          <Card className="mb-6 md:mb-8 bg-card border-border">
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+          <AdminMotionItem>
+          <AdminPanel className="mb-2 md:mb-4">
+            <div className="p-4 sm:p-6">
+            <div className="mb-4 sm:mb-5">
+              <h2 className="flex items-center gap-2 text-base sm:text-lg font-semibold text-foreground">
                 <ListTodo className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
                 <span className="min-w-0">Mis Tareas Pendientes</span>
-              </CardTitle>
-              <CardDescription className="text-xs sm:text-sm">Tareas asignadas a ti (pendientes o en progreso)</CardDescription>
-              <div className="flex flex-wrap gap-2 pt-2">
+              </h2>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">Tareas asignadas a ti (pendientes o en progreso)</p>
+              <div className="flex flex-wrap gap-2 pt-3">
                 <Button
                   variant={taskCategoryFilter === '' ? 'default' : 'outline'}
                   size="sm"
@@ -592,8 +621,8 @@ export default function DashboardPage() {
                   Cobranza
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            </div>
+            <div>
               {loadingTasks ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -662,20 +691,21 @@ export default function DashboardPage() {
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+            </div>
+          </AdminPanel>
+          </AdminMotionItem>
 
-          {/* Tareas que asigné - Solo SUPER_ADMIN, ADMIN, MANAGER (ven estado actualizado por el asignado) */}
           {canSeeCreatedByMe && (
-            <Card className="mb-6 md:mb-8 bg-card border-border">
-              <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <AdminMotionItem>
+            <AdminPanel className="mb-2 md:mb-4">
+              <div className="p-4 sm:p-6">
+                <h2 className="flex items-center gap-2 text-base sm:text-lg font-semibold">
                   <ListTodo className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
                   Tareas que asigné
-                </CardTitle>
-                <CardDescription className="text-xs sm:text-sm">Estado actualizado por el equipo (En progreso / Completada)</CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 sm:p-6 pt-0">
+                </h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 mb-4">Estado actualizado por el equipo (En progreso / Completada)</p>
+                <div>
                 {loadingCreatedByMe ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -711,22 +741,21 @@ export default function DashboardPage() {
                     ))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+                </div>
+              </div>
+            </AdminPanel>
+            </AdminMotionItem>
           )}
 
-          {/* Dashboard de Salud General - Solo para SUPER_ADMIN/ADMIN/MANAGER */}
           {canViewFinancialCharts && (
-            <div className="space-y-5 md:space-y-8 mb-6 md:mb-8">
-              <div>
-                <h2 className="text-lg sm:text-xl font-semibold mb-2 md:mb-4">Salud General</h2>
-                <p className="text-muted-foreground text-xs sm:text-sm mb-4 md:mb-6">
-                  Visión rápida de ventas, márgenes e impuestos del último mes.
-                </p>
-              </div>
+            <AdminMotionItem>
+            <AdminSection
+              title="Salud General"
+              description="Visión rápida de ventas, márgenes e impuestos del último mes."
+            >
 
               {/* KPI Cards: Venta promedio, Crecimiento mensual, Ventas del mes (cobro real) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              <div className="admin-kpi-grid-3">
                 <MetricCard
                   title="Venta promedio por factura"
                   value={loadingHealth ? '—' : formatForDisplay(health.ticketPromedio)}
@@ -753,14 +782,13 @@ export default function DashboardPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 md:gap-8">
+              <div className="admin-grid-charts">
                 {/* Gráfico de áreas: Ventas $ vs Ventas Bs (último mes) */}
-                <Card className="lg:col-span-2 bg-card border-border overflow-hidden">
-                  <CardHeader className="p-4 sm:p-6">
-                    <CardTitle className="text-base sm:text-lg">Ventas: USD esperadas vs Bs reales</CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">Último mes por día</CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-4 sm:p-6 pt-0">
+                <AdminChartCard
+                  className="lg:col-span-2"
+                  title="Ventas: USD esperadas vs Bs reales"
+                  description="Último mes por día"
+                >
                     {loadingHealth ? (
                       <div className="flex items-center justify-center h-[240px] sm:h-[280px] md:h-[300px] min-h-[200px]">
                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -812,16 +840,12 @@ export default function DashboardPage() {
                       </ResponsiveContainer>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                </AdminChartCard>
 
-                {/* Top 5 productos por margen */}
-                <Card className="bg-card border-border overflow-hidden">
-                  <CardHeader className="p-4 sm:p-6">
-                    <CardTitle className="text-base sm:text-lg">Top 5 por margen</CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">Productos que más ganancia neta generan</CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-4 sm:p-6 pt-0">
+                <AdminChartCard
+                  title="Top 5 por margen"
+                  description="Productos que más ganancia neta generan"
+                >
                     {loadingHealth ? (
                       <div className="flex items-center justify-center h-[240px] sm:h-[280px] md:h-[300px] min-h-[200px]">
                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -856,31 +880,22 @@ export default function DashboardPage() {
                       </ResponsiveContainer>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                </AdminChartCard>
               </div>
 
               <NotificationsSection />
 
-              {/* Diagnóstico: Erosión de margen + Antigüedad de deuda */}
-              <div className="pt-6 md:pt-8 border-t border-border">
-                <div className="mb-4 md:mb-6">
-                  <h2 className="text-lg sm:text-xl font-semibold mb-2">Diagnóstico</h2>
-                  <p className="text-muted-foreground text-xs sm:text-sm">
-                    Detecta dónde se erosiona el margen y qué clientes priorizar para cobro.
-                  </p>
-                </div>
+              <AdminSection
+                title="Diagnóstico"
+                description="Detecta dónde se erosiona el margen y qué clientes priorizar para cobro."
+              >
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-8 mb-6 md:mb-8">
+                <div className="admin-grid-charts-2">
                   {/* Erosión de margen: líneas costo vs precio, puntos rojos si margen &lt; 15% */}
-                  <Card className="bg-card border-border overflow-hidden">
-                    <CardHeader className="p-4 sm:p-6">
-                      <CardTitle className="text-base sm:text-lg">Erosión de margen</CardTitle>
-                      <CardDescription className="text-xs sm:text-sm">
-                        Costo de reposición vs precio de venta. Puntos en rojo = margen &lt; 15% (riesgo por tasa BCV).
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-6 pt-0">
+                  <AdminChartCard
+                    title="Erosión de margen"
+                    description="Costo de reposición vs precio de venta. Puntos en rojo = margen < 15% (riesgo por tasa BCV)."
+                  >
                       {loadingDiagnosis ? (
                         <div className="flex items-center justify-center h-[240px] sm:h-[280px] md:h-[300px] min-h-[200px]">
                           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -942,18 +957,12 @@ export default function DashboardPage() {
                         </ResponsiveContainer>
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
+                  </AdminChartCard>
 
-                  {/* Antigüedad de deuda: barras apiladas por cliente */}
-                  <Card className="bg-card border-border overflow-hidden">
-                    <CardHeader className="p-4 sm:p-6">
-                      <CardTitle className="text-base sm:text-lg">Antigüedad de deuda</CardTitle>
-                      <CardDescription className="text-xs sm:text-sm">
-                        Cuentas por cobrar: A tiempo, vencidas 1-15 días y críticas +30. Identifica a quién llamar hoy.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-6 pt-0">
+                  <AdminChartCard
+                    title="Antigüedad de deuda"
+                    description="Cuentas por cobrar: A tiempo, vencidas 1-15 días y críticas +30. Identifica a quién llamar hoy."
+                  >
                       {loadingDiagnosis ? (
                         <div className="flex items-center justify-center h-[240px] sm:h-[280px] md:h-[300px] min-h-[200px]">
                           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -997,30 +1006,22 @@ export default function DashboardPage() {
                         </ResponsiveContainer>
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
+                  </AdminChartCard>
                 </div>
-              </div>
+              </AdminSection>
 
-              {/* Estrategia: Pareto 80/20 + Embudo fricción + Insights */}
-              <div className="pt-6 md:pt-8 border-t border-border">
-                <div className="mb-4 md:mb-6">
-                  <h2 className="text-lg sm:text-xl font-semibold mb-2">Estrategia</h2>
-                  <p className="text-muted-foreground text-xs sm:text-sm">
-                    Consultoría automática: Pareto de clientes, fricción operativa e insights en lenguaje natural.
-                  </p>
-                </div>
+              <AdminSection
+                title="Estrategia"
+                description="Consultoría automática: Pareto de clientes, fricción operativa e insights en lenguaje natural."
+              >
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 md:gap-8 mb-6 md:mb-8">
+                <div className="admin-grid-charts">
                   {/* Pareto 80/20: dispersión volumen vs frecuencia, etiquetas Leales / En Riesgo / Transaccionales */}
-                  <Card className="lg:col-span-2 bg-card border-border overflow-hidden">
-                    <CardHeader className="p-4 sm:p-6">
-                      <CardTitle className="text-base sm:text-lg">Pareto 80/20 — Clientes</CardTitle>
-                      <CardDescription className="text-xs sm:text-sm hidden sm:block">
-                        Volumen de compra vs frecuencia. Leales (alto volumen y frecuencia), Transaccionales (mucha frecuencia, poco volumen), En Riesgo (bajo engagement).
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-6 pt-0">
+                  <AdminChartCard
+                    className="lg:col-span-2"
+                    title="Pareto 80/20 — Clientes"
+                    description="Volumen de compra vs frecuencia. Leales, transaccionales y en riesgo."
+                  >
                       {loadingStrategy ? (
                         <div className="flex items-center justify-center h-[240px] sm:h-[280px] md:h-[300px] min-h-[200px]">
                           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -1066,18 +1067,13 @@ export default function DashboardPage() {
                         </ResponsiveContainer>
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
+                  </AdminChartCard>
 
-                  {/* Embudo de fricción operativa */}
-                  <Card className="bg-card border-border">
-                    <CardHeader className="p-4 sm:p-6">
-                      <CardTitle className="text-base sm:text-lg">Embudo de fricción</CardTitle>
-                      <CardDescription className="text-xs sm:text-sm">
-                        Tiempo desde creación de la factura hasta que se marca como Pagada.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
+                  <AdminChartCard
+                    title="Embudo de fricción"
+                    description="Tiempo desde creación de la factura hasta que se marca como Pagada."
+                    bodyClassName="space-y-4"
+                  >
                       {loadingStrategy ? (
                         <div className="flex items-center justify-center h-[180px] sm:h-[200px] min-h-[160px]">
                           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -1108,19 +1104,13 @@ export default function DashboardPage() {
                           )}
                         </>
                       )}
-                    </CardContent>
-                  </Card>
+                  </AdminChartCard>
                 </div>
 
-                {/* Insights en lenguaje natural */}
-                <Card className="bg-card border-border">
-                  <CardHeader className="p-4 sm:p-6">
-                    <CardTitle className="text-base sm:text-lg">Insights para tu negocio</CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">
-                      Recomendaciones automáticas según ventas, márgenes y cobranza.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-4 sm:p-6 pt-0">
+                <AdminChartCard
+                  title="Insights para tu negocio"
+                  description="Recomendaciones automáticas según ventas, márgenes y cobranza."
+                >
                     {loadingStrategy ? (
                       <div className="flex items-center justify-center py-6 sm:py-8 min-h-[120px]">
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -1159,24 +1149,25 @@ export default function DashboardPage() {
                         ))}
                       </ul>
                     )}
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
+                </AdminChartCard>
+              </AdminSection>
+            </AdminSection>
+            </AdminMotionItem>
           )}
 
-          {/* Recent Transactions */}
-          <Card className="bg-card border-border overflow-hidden mb-6 md:mb-8">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 sm:p-6">
+          <AdminMotionItem>
+          <AdminPanel className="overflow-hidden mb-2">
+            <div className="p-4 sm:p-6">
+            <div className="flex flex-row items-center justify-between gap-3 mb-4">
               <div className="min-w-0">
-                <CardTitle className="text-base sm:text-lg">Transacciones Recientes</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">Últimas facturas y pagos</CardDescription>
+                <h2 className="text-base sm:text-lg font-semibold">Transacciones Recientes</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground">Últimas facturas y pagos</p>
               </div>
-              <Button variant="ghost" size="icon" className="hover:bg-secondary shrink-0 h-9 w-9">
+              <Button variant="ghost" size="icon" className="hover:bg-secondary shrink-0 h-9 w-9 cursor-pointer">
                 <MoreVertical className="h-4 w-4" />
               </Button>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0">
+            </div>
+            <div>
               <div className="space-y-3 sm:space-y-4">
                 {summary.recentTransactions.length > 0 ? (
                   summary.recentTransactions.map((transaction) => {
@@ -1224,9 +1215,11 @@ export default function DashboardPage() {
                   </p>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+            </div>
+          </AdminPanel>
+          </AdminMotionItem>
+        </AdminMotionStagger>
       )}
 
       <RateConfigModal open={rateConfigModalOpen} onOpenChange={setRateConfigModalOpen} />

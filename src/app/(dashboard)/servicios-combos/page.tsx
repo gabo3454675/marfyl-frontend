@@ -20,7 +20,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { AdminPageShell } from '@/components/admin/admin-page-shell';
+import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
 import { Plus, Edit, Trash2, Search, Loader2, Wine } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -240,55 +241,52 @@ export default function ServiciosCombosPage() {
 
   if (!canManageProducts) {
     return (
-      <div className="w-full min-w-0">
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">No tienes permisos para esta sección.</p>
-          </CardContent>
-        </Card>
-      </div>
+      <AdminPageShell eyebrow="Inventario" title="Servicios y combos" subtitle="Acceso restringido">
+        <AdminCard>
+          <p className="py-8 text-center text-muted-foreground">No tienes permisos para esta sección.</p>
+        </AdminCard>
+      </AdminPageShell>
     );
   }
 
   return (
-    <div className="w-full min-w-0 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold mb-2 flex items-center gap-2">
-            <Wine className="h-8 w-8 text-amber-700 dark:text-amber-500" />
-            Servicios y combos
-          </h1>
-          <p className="text-muted-foreground max-w-2xl">
-            <strong>Combo:</strong> un precio de venta y varios productos de inventario que se descuentan al cobrar.{' '}
-            <strong>Servicio:</strong> cobro sin stock propio (descorche, cubierto…); puedes vincular insumos
-            opcionales para descontar hielo, mezclas, etc.
-          </p>
-        </div>
-        <Button onClick={() => handleOpenDialog()} className="shrink-0">
+    <AdminPageShell
+      eyebrow="Inventario"
+      title={
+        <span className="flex items-center gap-2">
+          <Wine className="h-8 w-8 text-amber-700 dark:text-amber-500 shrink-0" />
+          Servicios y combos
+        </span>
+      }
+      subtitle={
+        <>
+          <strong>Combo:</strong> un precio de venta y varios productos de inventario que se descuentan al cobrar.{' '}
+          <strong>Servicio:</strong> cobro sin stock propio (descorche, cubierto…); puedes vincular insumos
+          opcionales para descontar hielo, mezclas, etc.
+        </>
+      }
+      actions={
+        <Button onClick={() => handleOpenDialog()} className="shrink-0 cursor-pointer">
           <Plus className="mr-2 h-4 w-4" />
           Nuevo servicio o combo
         </Button>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Catálogo</CardTitle>
-          <CardDescription>
-            Solo se listan ítems marcados como servicio o combo. El resto del inventario sigue en «Inventario».
-          </CardDescription>
-          <div className="pt-2">
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                placeholder="Buscar por nombre, SKU o código..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+      }
+    >
+      <AdminCard
+        title="Catálogo"
+        description="Solo se listan ítems marcados como servicio o combo. El resto del inventario sigue en «Inventario»."
+        headerActions={
+          <div className="relative w-full sm:max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              placeholder="Buscar por nombre, SKU o código..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-        </CardHeader>
-        <CardContent>
+        }
+      >
           {loading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -298,7 +296,7 @@ export default function ServiciosCombosPage() {
               No hay servicios ni combos aún. Cree uno o marque productos en Inventario como combo/servicio.
             </p>
           ) : (
-            <div className="overflow-x-auto">
+            <AdminTableWrap>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -331,11 +329,11 @@ export default function ServiciosCombosPage() {
                       <TableCell>{formatUsd(Number(p.salePrice))}</TableCell>
                       <TableCell className="text-muted-foreground">{p.sku || '—'}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(p)}>
+                        <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => handleOpenDialog(p)}>
                           <Edit className="h-4 w-4" />
                         </Button>
                         {canDelete && (
-                          <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)}>
+                          <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => handleDelete(p.id)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         )}
@@ -344,10 +342,9 @@ export default function ServiciosCombosPage() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
+            </AdminTableWrap>
           )}
-        </CardContent>
-      </Card>
+      </AdminCard>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-[560px] max-h-[92vh] overflow-y-auto">
@@ -463,16 +460,16 @@ export default function ServiciosCombosPage() {
             )}
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleCloseDialog}>
+              <Button type="button" variant="outline" className="cursor-pointer" onClick={handleCloseDialog}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={submitting}>
+              <Button type="submit" className="cursor-pointer" disabled={submitting}>
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar'}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </AdminPageShell>
   );
 }

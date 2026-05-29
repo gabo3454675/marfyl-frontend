@@ -10,38 +10,19 @@ import {
   type ReactNode,
 } from 'react';
 import apiClient from '@/lib/api';
+import { getApiErrorMessage } from '@/lib/api/get-error-message';
 import { useAuthStore } from '@/store/useAuthStore';
+import { usePermission } from '@/hooks/usePermission';
 import type { TaskForResolution } from '@/components/task-resolution-modal';
+import type { ComplianceHubApiResponse } from '@/types/fiscal-calendar-hub';
+import {
+  buildNotificationFeedItems,
+  countActionableFeedItems,
+  type FiscalFeedSnapshot,
+  type NotificationFeedItem,
+} from '@/lib/notifications/feed-builder';
 
-type Invoice = {
-  id: number;
-  status: string;
-  createdAt?: string;
-  customerName?: string;
-  totalAmount?: number;
-};
-
-type LowStockProduct = {
-  id: number;
-  sku?: string | null;
-  name: string;
-  stock: number;
-  minStock?: number | null;
-  updatedAt?: string;
-};
-
-const timeAgo = (dateString?: string) => {
-  if (!dateString) return '—';
-  const date = new Date(dateString);
-  const diffMs = Date.now() - date.getTime();
-  const min = Math.floor(diffMs / 60000);
-  if (min < 1) return 'recién';
-  if (min < 60) return `hace ${min} min`;
-  const h = Math.floor(min / 60);
-  if (h < 24) return `hace ${h} h`;
-  const d = Math.floor(h / 24);
-  return `hace ${d} d`;
-};
+export type { FeedItemKind, NotificationFeedItem } from '@/lib/notifications/feed-builder';
 
 function isRateStaleForToday(rateUpdatedAt: string | null | undefined): boolean {
   if (rateUpdatedAt == null || rateUpdatedAt === '') return true;
@@ -55,107 +36,6 @@ function isRateStaleForToday(rateUpdatedAt: string | null | undefined): boolean 
   );
 }
 
-export type FeedItemKind = 'task' | 'invoice' | 'stock' | 'rate' | 'empty';
-
-export interface NotificationFeedItem {
-  id: string;
-  kind: FeedItemKind;
-  title: string;
-  description: string;
-  timeLabel: string;
-  status: 'pending' | 'urgent' | 'completed';
-  icon: 'clock' | 'alert' | 'check' | 'task';
-  task?: TaskForResolution;
-  invoiceId?: number;
-  productId?: number;
-  href?: string;
-  openRateModal?: boolean;
-}
-
-function buildFeedItems(
-  myTasks: TaskForResolution[],
-  pendingInvoices: Invoice[],
-  lowStockProducts: LowStockProduct[],
-  showRateReminder: boolean,
-): NotificationFeedItem[] {
-  const items: NotificationFeedItem[] = [];
-
-  for (const task of myTasks) {
-    items.push({
-      id: `task-${task.id}`,
-      kind: 'task',
-      title: task.title,
-      description: task.description || (task.invoiceId ? `Factura #${task.invoiceId}` : 'Tarea asignada'),
-      status: task.priority === 'HIGH' ? 'urgent' : 'pending',
-      timeLabel: '—',
-      icon: 'task',
-      task,
-    });
-  }
-
-  const sortedPending = [...pendingInvoices].sort((a, b) => {
-    const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-    const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-    return db - da;
-  });
-  for (const inv of sortedPending.slice(0, 5)) {
-    const customerName = inv.customerName || 'Cliente';
-    items.push({
-      id: `inv-${inv.id}`,
-      kind: 'invoice',
-      title: 'Factura pendiente de cobro',
-      description: `#${inv.id} · ${customerName}`,
-      status: 'pending',
-      timeLabel: timeAgo(inv.createdAt),
-      icon: 'clock',
-      invoiceId: inv.id,
-      href: `/invoices?detalle=${inv.id}`,
-    });
-  }
-
-  for (const p of lowStockProducts.slice(0, 5)) {
-    const skuLabel = p.sku ? `SKU ${p.sku}` : `ID ${p.id}`;
-    items.push({
-      id: `stock-${p.id}`,
-      kind: 'stock',
-      title: 'Stock bajo',
-      description: `${p.name} · ${skuLabel} (stock ${p.stock})`,
-      status: 'urgent',
-      timeLabel: 'Revisar inventario',
-      icon: 'alert',
-      productId: p.id,
-      href: '/alertas-stock',
-    });
-  }
-
-  if (showRateReminder) {
-    items.push({
-      id: 'rate-daily',
-      kind: 'rate',
-      title: 'Actualizar tasa del día',
-      description: 'Confirma o registra la tasa BCV para cobrar bien en bolívares.',
-      status: 'pending',
-      timeLabel: 'Hoy',
-      icon: 'clock',
-      openRateModal: true,
-    });
-  }
-
-  if (items.length === 0) {
-    items.push({
-      id: 'empty',
-      kind: 'empty',
-      title: 'Todo al día',
-      description: 'No hay alertas ni recordatorios pendientes.',
-      status: 'completed',
-      timeLabel: '—',
-      icon: 'check',
-    });
-  }
-
-  return items;
-}
-
 type NotificationFeedContextValue = {
   feedItems: NotificationFeedItem[];
   badgeCount: number;
@@ -166,11 +46,14 @@ type NotificationFeedContextValue = {
 
 const NotificationFeedContext = createContext<NotificationFeedContextValue | null>(null);
 
+const POLL_MS = 5 * 60 * 1000;
+
 export function NotificationFeedProvider({ children }: { children: ReactNode }) {
   const selectedOrganizationId = useAuthStore((s) => s.selectedOrganizationId);
   const selectedCompanyId = useAuthStore((s) => s.selectedCompanyId);
   const user = useAuthStore((s) => s.user);
   const superAdminOrganizations = useAuthStore((s) => s.superAdminOrganizations);
+  const { canManageFiscal } = usePermission();
 
   const selectedId = selectedOrganizationId ?? selectedCompanyId;
 
@@ -194,58 +77,143 @@ export function NotificationFeedProvider({ children }: { children: ReactNode }) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [myTasks, setMyTasks] = useState<TaskForResolution[]>([]);
-  const [pendingInvoices, setPendingInvoices] = useState<Invoice[]>([]);
-  const [lowStockProducts, setLowStockProducts] = useState<LowStockProduct[]>([]);
+  const [pendingInvoices, setPendingInvoices] = useState<
+    { id: number; status: string; createdAt?: string; customerName?: string }[]
+  >([]);
+  const [lowStockProducts, setLowStockProducts] = useState<
+    { id: number; sku?: string | null; name: string; stock: number }[]
+  >([]);
+  const [fiscal, setFiscal] = useState<FiscalFeedSnapshot | null>(null);
+  const [fiscalLoadError, setFiscalLoadError] = useState<string | null>(null);
+  const [operationalErrors, setOperationalErrors] = useState<string[]>([]);
 
   const loadData = useCallback(async () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const opErrors: string[] = [];
+
     try {
       setLoading(true);
       setError(null);
-      const [tasksRes, invoicesRes, productsRes] = await Promise.all([
+      setFiscalLoadError(null);
+      setOperationalErrors([]);
+
+      const [tasksRes, invoicesRes, productsRes] = await Promise.allSettled([
         apiClient.get<TaskForResolution[]>('/tasks/my-pending'),
-        apiClient.get<Invoice[]>('/dashboard/pending-invoices'),
-        apiClient.get<LowStockProduct[]>('/dashboard/low-stock'),
+        apiClient.get<typeof pendingInvoices>('/dashboard/pending-invoices'),
+        apiClient.get<typeof lowStockProducts>('/dashboard/low-stock'),
       ]);
-      setMyTasks(Array.isArray(tasksRes.data) ? tasksRes.data : []);
-      setPendingInvoices(Array.isArray(invoicesRes.data) ? invoicesRes.data : []);
-      setLowStockProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
+
+      if (tasksRes.status === 'fulfilled') {
+        setMyTasks(Array.isArray(tasksRes.value.data) ? tasksRes.value.data : []);
+      } else {
+        setMyTasks([]);
+        opErrors.push(getApiErrorMessage(tasksRes.reason, 'No se pudieron cargar tus tareas pendientes.'));
+      }
+
+      if (invoicesRes.status === 'fulfilled') {
+        setPendingInvoices(Array.isArray(invoicesRes.value.data) ? invoicesRes.value.data : []);
+      } else {
+        setPendingInvoices([]);
+        opErrors.push(
+          getApiErrorMessage(invoicesRes.reason, 'No se pudieron cargar facturas pendientes de cobro.'),
+        );
+      }
+
+      if (productsRes.status === 'fulfilled') {
+        setLowStockProducts(Array.isArray(productsRes.value.data) ? productsRes.value.data : []);
+      } else {
+        setLowStockProducts([]);
+        opErrors.push(getApiErrorMessage(productsRes.reason, 'No se pudieron cargar alertas de inventario.'));
+      }
+
+      if (canManageFiscal) {
+        try {
+          const hubRes = await apiClient.get<ComplianceHubApiResponse>('/fiscal/compliance/hub', {
+            params: { year, month },
+          });
+          const hub = hubRes.data;
+          setFiscal({
+            mode: hub.mode,
+            modeReasons: hub.modeReasons ?? [],
+            alerts: hub.alerts ?? [],
+            overdue: hub.health?.overdue ?? 0,
+            upcoming: hub.health?.upcoming ?? 0,
+            criticalAlerts: hub.health?.criticalAlerts ?? 0,
+            missingConfig: hub.health?.missingConfig ?? 0,
+            backendOnline: true,
+            profileConfigured: hub.identity?.configured ?? false,
+          });
+        } catch (e: unknown) {
+          setFiscal(null);
+          const err = e as { response?: { data?: { message?: string } }; message?: string };
+          setFiscalLoadError(getApiErrorMessage(e, 'Verifique conexión y perfil fiscal.'));
+        }
+      } else {
+        setFiscal(null);
+        setFiscalLoadError(null);
+      }
+
+      setOperationalErrors(opErrors);
+      setError(null);
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } }; message?: string };
-      setError(err?.response?.data?.message || err?.message || 'Error al cargar alertas');
+      setError(getApiErrorMessage(e, 'Error al cargar alertas'));
       setMyTasks([]);
       setPendingInvoices([]);
       setLowStockProducts([]);
+      setFiscal(null);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [canManageFiscal]);
 
   useEffect(() => {
     loadData();
+  }, [loadData, selectedId]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => loadData(), POLL_MS);
+    return () => window.clearInterval(id);
   }, [loadData]);
 
   useEffect(() => {
     const onTasksUpdated = () => loadData();
-    window.addEventListener('tasks-updated', onTasksUpdated);
-    return () => window.removeEventListener('tasks-updated', onTasksUpdated);
-  }, [loadData]);
-
-  /** Al actualizar la tasa en modal, el store se actualiza: refrescar feed para quitar recordatorio. */
-  useEffect(() => {
     const onRateUpdated = () => loadData();
+    const onOrgChanged = () => loadData();
+    window.addEventListener('tasks-updated', onTasksUpdated);
     window.addEventListener('organization-rate-updated', onRateUpdated);
-    return () => window.removeEventListener('organization-rate-updated', onRateUpdated);
+    window.addEventListener('organization-changed', onOrgChanged);
+    return () => {
+      window.removeEventListener('tasks-updated', onTasksUpdated);
+      window.removeEventListener('organization-rate-updated', onRateUpdated);
+      window.removeEventListener('organization-changed', onOrgChanged);
+    };
   }, [loadData]);
 
   const feedItems = useMemo(
-    () => buildFeedItems(myTasks, pendingInvoices, lowStockProducts, showRateReminder),
-    [myTasks, pendingInvoices, lowStockProducts, showRateReminder],
+    () =>
+      buildNotificationFeedItems({
+        myTasks,
+        pendingInvoices,
+        lowStockProducts,
+        showRateReminder,
+        fiscal,
+        fiscalLoadError,
+        operationalErrors,
+      }),
+    [
+      myTasks,
+      pendingInvoices,
+      lowStockProducts,
+      showRateReminder,
+      fiscal,
+      fiscalLoadError,
+      operationalErrors,
+    ],
   );
 
-  const badgeCount = useMemo(
-    () => feedItems.filter((i) => i.kind !== 'empty').length,
-    [feedItems],
-  );
+  const badgeCount = useMemo(() => countActionableFeedItems(feedItems), [feedItems]);
 
   const value = useMemo(
     () => ({ feedItems, badgeCount, loading, error, refetch: loadData }),

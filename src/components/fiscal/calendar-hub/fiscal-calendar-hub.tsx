@@ -45,7 +45,7 @@ export function FiscalCalendarHub({
   };
 
   return (
-    <div className="fiscal-hub-root fiscal-hub-mesh space-y-5 sm:space-y-6 rounded-2xl w-full min-w-0">
+    <div className="fiscal-hub-root fiscal-hub-mesh admin-page-body rounded-2xl w-full min-w-0">
       {error && (
         <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
           {error}
@@ -64,16 +64,16 @@ export function FiscalCalendarHub({
       {loading ? (
         <FiscalCalendarSkeleton />
       ) : data ? (
-        <div className="space-y-6">
+        <div className="admin-page-body">
           <FiscalDiagnosticBanner mode={data.mode} reasons={data.modeReasons} />
           <FiscalHealthSummary data={data} />
 
-          <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-            <div className="space-y-6 lg:col-span-1 xl:col-span-2">
+          <div className="grid gap-6 sm:gap-8 lg:grid-cols-2 xl:grid-cols-3 lg:gap-8">
+            <div className="admin-page-body lg:col-span-1 xl:col-span-2">
               <UpcomingObligations data={data} onSync={handleSync} syncing={syncing} />
               <FiscalAlerts data={data} />
             </div>
-            <div className="space-y-6">
+            <div className="admin-page-body">
               <FiscalProfileCard data={data} />
               <SyncStatusCard data={data} onSync={handleSync} syncing={syncing} />
               <FiscalComplianceHistory data={data} />

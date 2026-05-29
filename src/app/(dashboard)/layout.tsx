@@ -8,9 +8,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { apiClient } from '@/lib/api';
 import Sidebar from '@/components/sidebar';
 import BottomNav from '@/components/bottom-nav';
-import { ExchangeRateIndicator } from '@/components/exchange-rate-indicator';
-import { DisplayCurrencyToggle } from '@/components/display-currency-toggle';
-import { TasksNotificationBell } from '@/components/tasks-notification-bell';
+import { AdminTopbar } from '@/components/admin/admin-topbar';
 import { NotificationFeedProvider } from '@/hooks/useNotificationFeed';
 import { RateConfigModal } from '@/components/rate-config-modal';
 import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
@@ -172,11 +170,9 @@ export default function DashboardLayout({
   // Mientras se carga o hidrata, mostrar un estado de carga
   if (!mounted || !hasHydrated) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
-          <p className="text-muted-foreground">Cargando...</p>
-        </div>
+      <div className="admin-loading-shell dm-app-shell min-h-screen bg-background">
+        <div className="admin-loading-ring" aria-hidden />
+        <p className="text-sm text-muted-foreground">Cargando MARFYL…</p>
       </div>
     );
   }
@@ -223,18 +219,15 @@ export default function DashboardLayout({
   return (
     <NotificationFeedProvider>
       <AssistantProvider>
-      <div className="dm-app-shell flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden md:flex-row">
+      <>
+      <div className="dm-app-shell flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden md:flex-row md:gap-0">
         <DmAmbientMotion palette="a" intensity="subtle" />
         {/* Desktop Sidebar */}
         <Sidebar />
 
         {/* Main Content */}
-        <main className="flex flex-1 flex-col min-h-0 min-w-0">
-          <header className="sticky top-0 z-10 flex shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-3 border-b border-border bg-background/95 px-3 py-2 sm:px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-            <TasksNotificationBell />
-            <DisplayCurrencyToggle className="shrink-0" short />
-            <ExchangeRateIndicator onOpenConfig={() => setRateConfigModalOpen(true)} className="shrink-0" />
-          </header>
+        <main className="admin-main-pane flex flex-1 flex-col min-h-0 min-w-0 w-full bg-background">
+          <AdminTopbar onOpenRateConfig={() => setRateConfigModalOpen(true)} />
           {devPreview && <DevAppSwitcher />}
           <div
             className={
@@ -257,10 +250,11 @@ export default function DashboardLayout({
 
         {/* PWA Install Prompt */}
         <PWAInstallPrompt />
-
-        {!isAssistantRoute && <MarfylAssistant />}
-
       </div>
+
+      {/* Fuera del flex shell: evita recorte por overflow-hidden en desktop */}
+      {!isAssistantRoute && <MarfylAssistant />}
+      </>
       </AssistantProvider>
     </NotificationFeedProvider>
   );

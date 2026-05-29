@@ -16,8 +16,9 @@ import {
   Cell,
   Legend,
 } from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, PackageMinus, TrendingDown } from 'lucide-react';
+import { AdminPageShell } from '@/components/admin/admin-page-shell';
+import { AdminCard } from '@/components/admin/admin-card';
 import apiClient from '@/lib/api';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 
@@ -67,24 +68,26 @@ export default function AutoconsumoPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <AdminPageShell
+        eyebrow="Inventario"
+        title="Autoconsumo e inventario"
+        subtitle="Impacto económico y distribución por motivo."
+        loading
+      />
     );
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <PackageMinus className="h-7 w-7" />
-            Autoconsumo e inventario
-          </h1>
-          <p className="text-muted-foreground">
-            Impacto económico, productos más consumidos y distribución por motivo
-          </p>
-        </div>
+    <AdminPageShell
+      eyebrow="Inventario"
+      title={
+        <span className="flex items-center gap-2">
+          <PackageMinus className="h-7 w-7 shrink-0" />
+          Autoconsumo e inventario
+        </span>
+      }
+      subtitle="Impacto económico, productos más consumidos y distribución por motivo."
+      actions={
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="date"
@@ -102,20 +105,17 @@ export default function AutoconsumoPage() {
             aria-label="Hasta"
           />
         </div>
-      </div>
-
-      {/* Impacto económico por día - Gráfico de área */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      }
+    >
+      <AdminCard
+        title={
+          <span className="flex items-center gap-2">
             <TrendingDown className="h-5 w-5 text-amber-500" />
             Impacto económico diario
-          </CardTitle>
-          <CardDescription>
-            Valor monetario (costo) del consumo interno por día
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </span>
+        }
+        description="Valor monetario (costo) del consumo interno por día"
+      >
           {kpis?.economicImpactByDay.length ? (
             <ResponsiveContainer width="100%" height={280}>
               <AreaChart
@@ -158,17 +158,10 @@ export default function AutoconsumoPage() {
               No hay datos de autoconsumo en el rango seleccionado.
             </p>
           )}
-        </CardContent>
-      </Card>
+      </AdminCard>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Productos más consumidos - Barras horizontales */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Productos más consumidos</CardTitle>
-            <CardDescription>Por valor total (costo)</CardDescription>
-          </CardHeader>
-          <CardContent>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
+        <AdminCard title="Productos más consumidos" description="Por valor total (costo)">
             {kpis?.topProducts.length ? (
               <ResponsiveContainer width="100%" height={320}>
                 <BarChart
@@ -201,16 +194,9 @@ export default function AutoconsumoPage() {
                 No hay datos de productos.
               </p>
             )}
-          </CardContent>
-        </Card>
+        </AdminCard>
 
-        {/* Distribución por motivo - Dona */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Distribución por motivo</CardTitle>
-            <CardDescription>Merma, muestras o uso operativo</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <AdminCard title="Distribución por motivo" description="Merma, muestras o uso operativo">
             {pieData.length ? (
               <ResponsiveContainer width="100%" height={320}>
                 <PieChart>
@@ -253,9 +239,8 @@ export default function AutoconsumoPage() {
                 No hay datos por motivo.
               </p>
             )}
-          </CardContent>
-        </Card>
+        </AdminCard>
       </div>
-    </div>
+    </AdminPageShell>
   );
 }

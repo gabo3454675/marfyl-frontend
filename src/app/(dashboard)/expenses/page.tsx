@@ -27,7 +27,9 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { AdminPageShell } from '@/components/admin/admin-page-shell';
+import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
+import { AdminStatCard } from '@/components/admin/admin-stat-card';
 import { Plus, Edit, Trash2, Search, Loader2, DollarSign, TrendingDown, Package, Briefcase, FileSpreadsheet, Upload, Download } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import apiClient from '@/lib/api';
@@ -290,15 +292,13 @@ export default function ExpensesPage() {
   // Si no tiene permisos para gestionar gastos, mostrar mensaje después de todos los hooks
   if (!canManageExpenses) {
     return (
-      <div className="w-full min-w-0">
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">
-              No tienes permisos para acceder a esta sección.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <AdminPageShell eyebrow="Finanzas" title="Gestión de Gastos" subtitle="Acceso restringido">
+        <AdminCard>
+          <p className="py-8 text-center text-muted-foreground">
+            No tienes permisos para acceder a esta sección.
+          </p>
+        </AdminCard>
+      </AdminPageShell>
     );
   }
 
@@ -542,59 +542,36 @@ export default function ExpensesPage() {
   })) || [];
 
   return (
-    <div className="w-full min-w-0">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">Gestión de Gastos</h1>
-            <p className="text-muted-foreground">Registra y monitorea los egresos de tu empresa</p>
-          </div>
-          {canManageExpenses && (
-            <Button onClick={() => handleOpenExpenseDialog()}>
-              <Plus className="mr-2 h-4 w-4" />
-              Registrar Gasto
-            </Button>
-          )}
-        </div>
+    <AdminPageShell
+      eyebrow="Finanzas"
+      title="Gestión de Gastos"
+      subtitle="Registra y monitorea los egresos de tu empresa"
+      actions={
+        canManageExpenses ? (
+          <Button onClick={() => handleOpenExpenseDialog()} className="cursor-pointer">
+            <Plus className="mr-2 h-4 w-4" />
+            Registrar Gasto
+          </Button>
+        ) : undefined
+      }
+    >
 
-        {/* Métricas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Gastos del Mes</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats ? formatForDisplay(stats.totalMonth) : formatForDisplay(0)}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Facturas de Proveedores</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats ? formatForDisplay(stats.inventoryTotal) : formatForDisplay(0)}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Gastos Operativos</CardTitle>
-              <Briefcase className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats ? formatForDisplay(stats.operationalTotal) : formatForDisplay(0)}
-              </div>
-            </CardContent>
-          </Card>
+        <div className="admin-kpi-grid-3">
+          <AdminStatCard
+            title="Gastos del Mes"
+            icon={DollarSign}
+            value={stats ? formatForDisplay(stats.totalMonth) : formatForDisplay(0)}
+          />
+          <AdminStatCard
+            title="Facturas de Proveedores"
+            icon={Package}
+            value={stats ? formatForDisplay(stats.inventoryTotal) : formatForDisplay(0)}
+          />
+          <AdminStatCard
+            title="Gastos Operativos"
+            icon={Briefcase}
+            value={stats ? formatForDisplay(stats.operationalTotal) : formatForDisplay(0)}
+          />
         </div>
 
         {/* Gráficos (Lazy Loaded) */}
@@ -611,22 +588,20 @@ export default function ExpensesPage() {
           </TabsList>
 
           <TabsContent value="expenses" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <CardTitle>Historial de Gastos</CardTitle>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar gastos..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9 w-full sm:w-64"
-                    />
-                  </div>
+            <AdminCard
+              title="Historial de Gastos"
+              headerActions={
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar gastos..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
                 </div>
-              </CardHeader>
-              <CardContent>
+              }
+            >
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -636,7 +611,7 @@ export default function ExpensesPage() {
                     No hay gastos registrados
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <AdminTableWrap>
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -686,6 +661,7 @@ export default function ExpensesPage() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
+                                    className="cursor-pointer"
                                     onClick={() => handleOpenExpenseDialog(expense)}
                                   >
                                     <Edit className="h-4 w-4" />
@@ -695,6 +671,7 @@ export default function ExpensesPage() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
+                                    className="cursor-pointer"
                                     onClick={() => handleDeleteExpense(expense.id)}
                                   >
                                     <Trash2 className="h-4 w-4 text-destructive" />
@@ -706,28 +683,30 @@ export default function ExpensesPage() {
                         ))}
                       </TableBody>
                     </Table>
-                  </div>
+                  </AdminTableWrap>
                 )}
-              </CardContent>
-            </Card>
+            </AdminCard>
           </TabsContent>
 
           <TabsContent value="import" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <AdminCard
+              title={
+                <span className="flex items-center gap-2">
                   <FileSpreadsheet className="h-5 w-5" />
                   Importar factura de compra
-                </CardTitle>
-                <CardDescription>
+                </span>
+              }
+              description={
+                <>
                   Sube un Excel con columnas de código (SKU o código de barras), cantidad y costo unitario USD, o un
                   PDF con una línea por ítem: <code className="text-xs bg-muted px-1 rounded">CODIGO CANTIDAD COSTO</code>.
                   Se creará un gasto en categoría Inventario, movimientos de compra y se actualizará el stock.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
+                </>
+              }
+            >
+              <div className="space-y-6">
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={handleDownloadPurchaseTemplate}>
+                  <Button type="button" variant="outline" size="sm" className="cursor-pointer" onClick={handleDownloadPurchaseTemplate}>
                     <Download className="mr-2 h-4 w-4" />
                     Descargar plantilla Excel
                   </Button>
@@ -797,6 +776,7 @@ export default function ExpensesPage() {
                   <Button
                     type="button"
                     variant="secondary"
+                    className="cursor-pointer"
                     onClick={runPurchaseImportPreview}
                     disabled={importSubmitting || !importFile}
                   >
@@ -809,6 +789,7 @@ export default function ExpensesPage() {
                   </Button>
                   <Button
                     type="button"
+                    className="cursor-pointer"
                     onClick={confirmPurchaseImport}
                     disabled={importSubmitting || !importPreview?.canConfirm}
                   >
@@ -829,7 +810,7 @@ export default function ExpensesPage() {
                       )}
                     </div>
                     {importPreview.lines.length > 0 && (
-                      <div className="overflow-x-auto">
+                      <AdminTableWrap>
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -852,7 +833,7 @@ export default function ExpensesPage() {
                             ))}
                           </TableBody>
                         </Table>
-                      </div>
+                      </AdminTableWrap>
                     )}
                     {importPreview.errors.length > 0 && (
                       <div>
@@ -886,30 +867,28 @@ export default function ExpensesPage() {
                     )}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </AdminCard>
           </TabsContent>
 
           <TabsContent value="suppliers" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <CardTitle>Proveedores</CardTitle>
-                  {canManageExpenses && (
-                    <Button onClick={() => handleOpenSupplierDialog()}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Nuevo Proveedor
-                    </Button>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
+            <AdminCard
+              title="Proveedores"
+              headerActions={
+                canManageExpenses ? (
+                  <Button onClick={() => handleOpenSupplierDialog()} className="cursor-pointer">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nuevo Proveedor
+                  </Button>
+                ) : undefined
+              }
+            >
                 {suppliers.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     No hay proveedores registrados
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <AdminTableWrap>
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -932,6 +911,7 @@ export default function ExpensesPage() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
+                                  className="cursor-pointer"
                                   onClick={() => handleOpenSupplierDialog(supplier)}
                                 >
                                   <Edit className="h-4 w-4" />
@@ -939,6 +919,7 @@ export default function ExpensesPage() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
+                                  className="cursor-pointer"
                                   onClick={() => handleDeleteSupplier(supplier.id)}
                                 >
                                   <Trash2 className="h-4 w-4 text-destructive" />
@@ -949,10 +930,9 @@ export default function ExpensesPage() {
                         ))}
                       </TableBody>
                     </Table>
-                  </div>
+                  </AdminTableWrap>
                 )}
-              </CardContent>
-            </Card>
+            </AdminCard>
           </TabsContent>
         </Tabs>
 
@@ -1134,6 +1114,7 @@ export default function ExpensesPage() {
                       type="button"
                       variant="outline"
                       size="sm"
+                      className="cursor-pointer"
                       onClick={() =>
                         setPurchaseLines((prev) => [
                           ...prev,
@@ -1166,10 +1147,10 @@ export default function ExpensesPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={handleCloseExpenseDialog}>
+              <Button variant="outline" className="cursor-pointer" onClick={handleCloseExpenseDialog}>
                 Cancelar
               </Button>
-              <Button onClick={handleSaveExpense} disabled={submitting}>
+              <Button className="cursor-pointer" onClick={handleSaveExpense} disabled={submitting}>
                 {submitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1250,10 +1231,10 @@ export default function ExpensesPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={handleCloseSupplierDialog}>
+              <Button variant="outline" className="cursor-pointer" onClick={handleCloseSupplierDialog}>
                 Cancelar
               </Button>
-              <Button onClick={handleSaveSupplier} disabled={submitting}>
+              <Button className="cursor-pointer" onClick={handleSaveSupplier} disabled={submitting}>
                 {submitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1266,7 +1247,6 @@ export default function ExpensesPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
-    </div>
+    </AdminPageShell>
   );
 }

@@ -14,9 +14,9 @@ export function MarketingFaq({
   const [openId, setOpenId] = useState<string | null>(items[0]?.id ?? null);
 
   return (
-    <section className="marketing-section">
-      <h2 className="marketing-section-title text-center mb-8">{title}</h2>
-      <div className="max-w-2xl mx-auto space-y-2">
+    <section className="marketing-section marketing-container">
+      <h2 className="marketing-section-title text-center mb-8 sm:mb-10">{title}</h2>
+      <div className="max-w-2xl mx-auto space-y-3">
         {items.map((item) => {
           const open = openId === item.id;
           return (
