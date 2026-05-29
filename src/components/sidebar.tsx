@@ -7,6 +7,8 @@ import Image from 'next/image';
 import { ChevronLeft, ChevronDown, LogOut, Check, Download } from 'lucide-react';
 import { FISCAL_NAV_ITEMS, isFiscalRoute, resolveFiscalNavId } from '@/config/fiscal-nav';
 import { APP_NAV_ITEMS, APP_NAV_SECTIONS, getNavItem, resolveAppNavId } from '@/config/app-nav';
+import { CONCERT_NAV_ITEMS, resolveConcertNavId } from '@/config/concert-nav';
+import { isConcertFeatureEnabled } from '@/lib/concert/feature';
 import { FiscalNavCollapsible, NavSection, SidebarNavLink } from '@/components/layout/sidebar-nav-parts';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -107,10 +109,16 @@ export default function Sidebar() {
   const { isInstallable, install } = usePWAInstall();
   
   const getActiveItem = () => {
+    const cid = resolveConcertNavId(pathname ?? '');
+    if (cid) return cid;
     const fid = resolveFiscalNavId(pathname ?? '');
     if (fid) return fid;
     return resolveAppNavId(pathname ?? '');
   };
+
+  const concertNavItems = isConcertFeatureEnabled()
+    ? CONCERT_NAV_ITEMS.filter((item) => canShowNavItem(item as NavItem, permissions))
+    : [];
 
   const activeItem = getActiveItem();
 
@@ -416,6 +424,18 @@ export default function Sidebar() {
               />
             )}
 
+            {concertNavItems.length > 0 && (
+              <NavSection label="Evento (temporal)">
+                {concertNavItems.map((item) => (
+                  <SidebarNavLink
+                    key={item.id}
+                    item={item}
+                    active={activeItem === item.id}
+                  />
+                ))}
+              </NavSection>
+            )}
+
             {APP_NAV_SECTIONS.filter((s) => s.id === 'config').map((section) => {
               const items = section.itemIds
                 .map((id) => getNavItem(id))
@@ -439,6 +459,7 @@ export default function Sidebar() {
           <div className="p-2 space-y-1">
             {[
               ...navigationItems,
+              ...concertNavItems,
               ...(permissions.canManageFiscal
                 ? FISCAL_NAV_ITEMS.map((f) => ({
                     id: f.id,

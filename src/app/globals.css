@@ -953,6 +953,27 @@
     }
   }
 
+  .admin-stat-grid {
+    display: grid;
+    width: 100%;
+    gap: 1.25rem;
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 640px) {
+    .admin-stat-grid {
+      gap: 1.5rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .admin-stat-grid {
+      gap: 1.75rem;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
   .admin-pos-panel {
     @apply flex flex-1 flex-col min-h-0 overflow-hidden;
   }
@@ -1320,4 +1341,380 @@ html {
 
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-gray-400 dark:bg-gray-500;
+}
+
+/* —— Módulo temporal: boletería / concierto —— */
+.concert-root {
+  min-height: 100dvh;
+  background: linear-gradient(
+    180deg,
+    hsl(0 0% 6%) 0%,
+    hsl(var(--dm-a-base, 0 0% 13%)) 45%,
+    hsl(0 0% 8%) 100%
+  );
+  color: hsl(0 0% 96%);
+}
+
+.concert-shell {
+  @apply mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10;
+}
+
+.concert-hero {
+  @apply mb-8 text-center sm:mb-10;
+}
+
+.concert-hero-eyebrow {
+  @apply text-xs font-semibold uppercase tracking-[0.2em] text-[hsl(var(--dm-a-accent)/0.85)];
+}
+
+.concert-hero-title {
+  @apply mt-2 text-3xl font-bold tracking-tight sm:text-4xl;
+}
+
+.concert-hero-sub {
+  @apply mt-2 text-sm text-white/70 sm:text-base;
+}
+
+.concert-legend {
+  @apply mb-6 flex flex-wrap justify-center gap-4 text-xs text-white/70;
+}
+
+.concert-legend-item {
+  @apply inline-flex items-center gap-2;
+}
+
+.concert-legend-dot {
+  @apply h-3 w-3 rounded-sm;
+}
+
+.concert-section-map {
+  @apply rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-6;
+  box-shadow: 0 1px 0 hsl(var(--dm-a-accent) / 0.08) inset;
+}
+
+.concert-section-map-header {
+  @apply mb-4 flex flex-wrap items-end justify-between gap-2;
+}
+
+.concert-section-title {
+  @apply text-lg font-semibold;
+}
+
+.concert-section-meta {
+  @apply text-sm text-white/60;
+}
+
+.concert-mesa-block {
+  @apply rounded-xl border border-white/10 bg-white/[0.02] p-3;
+}
+
+.concert-mesa-header {
+  @apply flex flex-wrap items-center gap-2 text-sm;
+}
+
+.concert-stage {
+  @apply mx-auto mb-6 max-w-xs rounded-lg border border-dashed border-white/20 py-2 text-center text-xs uppercase tracking-widest text-white/40;
+}
+
+.concert-rows {
+  @apply flex flex-col gap-2 overflow-x-auto pb-2;
+}
+
+.concert-row {
+  @apply flex items-center gap-2;
+}
+
+.concert-row-label {
+  @apply w-8 shrink-0 text-center text-xs font-medium text-white/50;
+}
+
+.concert-row-seats {
+  @apply flex flex-wrap gap-1.5;
+}
+
+.concert-seat {
+  @apply flex h-9 w-9 items-center justify-center rounded-md border text-xs font-medium transition-all duration-200;
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--dm-a-accent))];
+}
+
+.concert-seat--available {
+  @apply border-white/20 bg-white/5 text-white/90 hover:border-[hsl(var(--dm-a-accent)/0.6)] hover:bg-[hsl(var(--dm-a-accent)/0.15)];
+}
+
+.concert-seat--selected {
+  @apply border-[hsl(var(--dm-a-accent))] bg-[hsl(var(--dm-a-accent)/0.35)] text-[hsl(0_0%_12%)];
+}
+
+.concert-seat--held {
+  @apply cursor-not-allowed border-amber-500/40 bg-amber-500/10 text-amber-200/60;
+}
+
+.concert-seat--sold {
+  @apply cursor-not-allowed border-white/5 bg-white/[0.02] text-white/25;
+}
+
+.concert-seat-num {
+  @apply pointer-events-none;
+}
+
+.concert-checkout-panel {
+  @apply sticky bottom-0 z-20 mt-8 rounded-2xl border border-[hsl(var(--dm-a-accent)/0.25)] bg-[hsl(0_0%_10%/0.95)] p-4 backdrop-blur-md sm:p-6;
+  box-shadow: 0 -8px 32px hsl(0 0% 0% / 0.45);
+}
+
+.concert-form-grid {
+  @apply grid gap-4 sm:grid-cols-2;
+}
+
+.concert-proof-upload {
+  @apply flex flex-col gap-3 rounded-xl border border-dashed border-white/20 bg-white/[0.03] p-4;
+}
+
+.concert-proof-upload-label {
+  @apply flex cursor-pointer flex-col items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-6 text-center transition-colors hover:border-[hsl(var(--dm-a-accent)/0.45)] hover:bg-white/[0.06];
+}
+
+.concert-proof-preview {
+  @apply mx-auto max-h-48 max-w-full rounded-lg border border-white/15 object-contain;
+}
+
+.concert-ticket-card {
+  @apply rounded-2xl border border-[hsl(var(--dm-a-accent)/0.3)] bg-gradient-to-b from-white/[0.06] to-transparent p-6;
+}
+
+.concert-ticket-card-header {
+  @apply text-center;
+}
+
+.concert-ticket-eyebrow {
+  @apply text-xs uppercase tracking-widest text-[hsl(var(--dm-a-accent))];
+}
+
+.concert-ticket-title {
+  @apply mt-1 text-xl font-bold;
+}
+
+.concert-ticket-venue {
+  @apply text-sm text-white/70;
+}
+
+.concert-ticket-date {
+  @apply mt-1 text-sm text-white/60;
+}
+
+.concert-ticket-qr-wrap {
+  @apply my-6 flex justify-center rounded-xl bg-white p-4;
+}
+
+.concert-ticket-meta {
+  @apply grid gap-3 text-sm;
+}
+
+.concert-ticket-meta dt {
+  @apply text-white/50;
+}
+
+.concert-ticket-meta dd {
+  @apply font-medium;
+}
+
+.concert-ticket-code {
+  @apply break-all font-mono text-xs text-white/80;
+}
+
+.concert-ticket-used {
+  @apply mt-4 text-center text-sm text-amber-400;
+}
+
+.concert-scanner-result {
+  @apply mt-4 rounded-xl border p-4 text-center;
+}
+
+.concert-scanner-result--ok {
+  @apply border-emerald-500/40 bg-emerald-500/10;
+}
+
+.concert-scanner-result--warn {
+  @apply border-amber-500/40 bg-amber-500/10;
+}
+
+/* Plano interactivo (flyer Monddy) */
+.venue-map-wrap {
+  @apply mx-auto max-w-4xl;
+}
+
+.venue-legend {
+  @apply mb-5 flex flex-wrap justify-center gap-3 text-[10px] sm:text-xs text-white/65;
+}
+
+.venue-map {
+  @apply rounded-2xl border border-white/15 bg-black/30 p-5 sm:p-7;
+}
+
+.venue-stage {
+  @apply mb-5 rounded-lg py-3 text-center text-xs font-bold uppercase tracking-[0.25em];
+  background: linear-gradient(180deg, #6b4423 0%, #4a2f18 100%);
+  border: 1px solid #8b5a2b;
+}
+
+.venue-row {
+  @apply flex flex-wrap items-stretch justify-center gap-3 mb-5;
+}
+
+.venue-row--top {
+  @apply gap-2.5 sm:gap-3;
+}
+
+.venue-row--vip {
+  @apply justify-center gap-3 py-2;
+}
+
+.venue-row--media {
+  @apply flex flex-wrap justify-center gap-2.5 sm:gap-3;
+}
+
+.venue-row--general {
+  @apply flex flex-wrap justify-center gap-2.5 sm:gap-3 max-w-2xl mx-auto;
+}
+
+.venue-row--back {
+  @apply items-center gap-3 mt-1;
+}
+
+.venue-gap {
+  @apply w-3 sm:w-8;
+}
+
+.venue-service {
+  @apply flex-1 min-w-[4rem] max-w-[8rem] rounded-lg border border-dashed border-teal-500/30 py-2 text-center text-[10px] uppercase text-teal-300/60;
+}
+
+.venue-zone {
+  @apply relative flex min-h-[5.5rem] min-w-[5rem] sm:min-w-[5.5rem] flex-col items-center justify-center gap-0.5 rounded-lg border-2 px-2 py-2.5 text-center transition-all duration-200;
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--dm-a-accent))];
+}
+
+.venue-zone--vip {
+  background: linear-gradient(165deg, #2563eb 0%, #1d4ed8 100%);
+  border-color: #93c5fd;
+  color: #fff;
+}
+
+.venue-zone--preferencial {
+  background: linear-gradient(165deg, #166534 0%, #14532d 100%);
+  border-color: #4ade80;
+  color: #fff;
+}
+
+.venue-zone--media {
+  background: linear-gradient(165deg, #b45309 0%, #92400e 100%);
+  border-color: #fbbf24;
+  color: #fff;
+}
+
+.venue-zone--general {
+  background: linear-gradient(165deg, #0f766e 0%, #115e59 100%);
+  border-color: #2dd4bf;
+  color: #fff;
+}
+
+.venue-zone--sold-out {
+  filter: grayscale(0.85) brightness(0.55);
+  opacity: 0.75;
+}
+
+.venue-zone--sold-out::after {
+  content: '';
+  @apply absolute inset-0 rounded-md;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 4px,
+    rgba(0, 0, 0, 0.25) 4px,
+    rgba(0, 0, 0, 0.25) 8px
+  );
+  pointer-events: none;
+}
+
+.venue-zone--active {
+  @apply z-10 scale-[1.04];
+  box-shadow:
+    0 0 0 3px hsl(var(--dm-a-accent)),
+    0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.venue-zone-tier {
+  @apply text-[9px] font-bold uppercase tracking-wider opacity-90;
+}
+
+.venue-zone-num {
+  @apply text-sm font-bold leading-tight sm:text-base;
+}
+
+.venue-zone-price {
+  @apply text-[9px] font-medium opacity-95 sm:text-[10px];
+}
+
+.venue-zone-seats {
+  @apply text-[8px] opacity-75 sm:text-[9px];
+}
+
+.venue-zone-badge {
+  @apply inline-block rounded px-1.5 py-0.5 text-[9px] font-bold uppercase;
+}
+
+.venue-zone-badge--ok {
+  @apply bg-black/25 text-emerald-200;
+}
+
+.venue-zone-badge--partial {
+  @apply bg-black/30 text-amber-200;
+}
+
+.venue-zone-badge--full {
+  @apply bg-black/40 text-red-200;
+}
+
+.venue-row-label {
+  @apply mb-2.5 mt-6 w-full text-center text-[10px] font-semibold uppercase tracking-widest text-white/45;
+}
+
+.venue-map-hint {
+  @apply mb-4 text-center text-xs text-white/55;
+}
+
+.venue-legend--rich {
+  @apply grid gap-3 sm:grid-cols-2 sm:gap-4;
+}
+
+.venue-legend-swatch {
+  @apply rounded-lg border-2 px-3 py-2 text-left text-[10px] sm:text-xs;
+}
+
+.venue-legend-swatch strong {
+  @apply block text-xs sm:text-sm;
+}
+
+.venue-legend-swatch span {
+  @apply opacity-90;
+}
+
+.venue-mesa-panel-header {
+  @apply -mx-1 -mt-1 rounded-lg border-2 px-4 py-3;
+}
+
+.venue-mesa-panel-tier {
+  @apply text-xs font-bold uppercase tracking-wider;
+}
+
+.venue-mesa-panel {
+  @apply mt-6 rounded-xl border border-[hsl(var(--dm-a-accent)/0.25)] bg-white/[0.04] p-4;
+}
+
+.venue-mesa-panel-header {
+  @apply mb-3;
+}
+
+.venue-flow-banner {
+  @apply mb-6 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-100/90;
 }

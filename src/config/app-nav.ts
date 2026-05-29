@@ -104,6 +104,10 @@ export function resolveAppNavId(pathname: string): string {
   if (pathname.startsWith('/accounts-payable')) return 'accounts-payable';
   if (pathname.startsWith('/tasas')) return 'tasas';
   if (pathname.startsWith('/settings')) return 'settings';
+  if (pathname.startsWith('/concierto/escaner')) return 'concierto-escaner';
+  if (pathname.startsWith('/concierto/mapa')) return 'concierto-mapa';
+  if (pathname.startsWith('/concierto/ordenes')) return 'concierto-ordenes';
+  if (pathname.startsWith('/concierto')) return 'concierto';
   return 'dashboard';
 }
 
