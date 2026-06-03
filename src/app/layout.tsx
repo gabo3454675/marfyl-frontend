@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/theme-provider';
+import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
 import { API_BASE_URL } from '@/lib/config/api-config';
+import { THEME_INIT_SCRIPT } from '@/lib/theme-storage';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -13,31 +15,29 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: 'MARFYL',
   },
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon.png', type: 'image/png' },
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
       { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
       { url: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
       { url: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-      { url: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
-    ],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+    shortcut: ['/favicon.png'],
   },
   other: {
     'mobile-web-app-capable': 'yes',
     'application-name': 'MARFYL',
     'apple-mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-status-bar-style': 'default',
+    'apple-mobile-web-app-status-bar-style': 'black-translucent',
     'apple-mobile-web-app-title': 'MARFYL',
     'format-detection': 'telephone=no',
-    'msapplication-TileColor': '#3b82f6',
+    'msapplication-TileColor': '#38BDF8',
+    'msapplication-TileImage': '/android-chrome-192x192.png',
     'msapplication-tap-highlight': 'no',
   },
 };
@@ -47,7 +47,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: '#3b82f6',
+  themeColor: '#38BDF8',
   viewportFit: 'cover',
 };
 
@@ -66,13 +66,14 @@ export default function RootLayout({
         />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var k='marfyl-theme';try{var v=localStorage.getItem(k)||localStorage.getItem('disis-theme');if(v){var s=JSON.parse(v);if(s&&s.state&&s.state.theme==='light')document.documentElement.classList.remove('dark');else document.documentElement.classList.add('dark');}else document.documentElement.classList.add('dark');}catch(e){document.documentElement.classList.add('dark');}})();`,
+            __html: THEME_INIT_SCRIPT,
           }}
         />
       </head>
       <body className={inter.className}>
         <ThemeProvider>
           {children}
+          <PWAInstallPrompt />
           <Toaster richColors position="top-center" closeButton />
         </ThemeProvider>
       </body>

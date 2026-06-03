@@ -48,6 +48,7 @@ export default function ConcertEventPage() {
   const [paymentReference, setPaymentReference] = useState('');
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
   const [paymentProofPreview, setPaymentProofPreview] = useState<string | null>(null);
+  const [checkoutSuccess, setCheckoutSuccess] = useState(false);
 
   const loadEvent = useCallback(async () => {
     if (!slug) return;
@@ -153,6 +154,10 @@ export default function ConcertEventPage() {
 
   const handleCheckout = async () => {
     if (!hold) return;
+    if (!buyerEmail.trim()) {
+      setError('El correo electrónico es obligatorio para recibir sus entradas');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -161,12 +166,13 @@ export default function ConcertEventPage() {
       form.append('buyerName', buyerName.trim());
       form.append('buyerIdDocument', buyerIdDocument.trim());
       form.append('buyerPhone', buyerPhone.trim());
-      if (buyerEmail.trim()) form.append('buyerEmail', buyerEmail.trim());
+      form.append('buyerEmail', buyerEmail.trim());
       form.append('paymentMethod', paymentMethod);
       if (paymentReference.trim()) form.append('paymentReference', paymentReference.trim());
       if (paymentProofFile) form.append('paymentProof', paymentProofFile);
 
       const data = await concertService.checkout(slug, form);
+      setCheckoutSuccess(true);
       router.push(`/evento/${slug}/entrada/${data.orderPublicToken}`);
     } catch (err) {
       if (CONCERT_MOCK_ENABLED && isNetworkFailure(err)) {
@@ -323,14 +329,18 @@ export default function ConcertEventPage() {
               />
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="buyerEmail">Correo (opcional)</Label>
+              <Label htmlFor="buyerEmail">Correo electrónico *</Label>
               <Input
                 id="buyerEmail"
                 type="email"
                 value={buyerEmail}
                 onChange={(e) => setBuyerEmail(e.target.value)}
                 className="bg-white/5 border-white/15"
+                required
               />
+              <p className="text-xs text-white/50">
+                Recibirás tus entradas en este correo cuando confirmemos tu pago
+              </p>
             </div>
           </div>
 
@@ -436,7 +446,7 @@ export default function ConcertEventPage() {
             <Button
               type="button"
               className="flex-1 bg-[hsl(var(--dm-a-accent))] text-[hsl(0_0%_12%)] hover:brightness-105"
-              disabled={submitting || !buyerName || !buyerIdDocument || !buyerPhone}
+              disabled={submitting || !buyerName || !buyerIdDocument || !buyerPhone || !buyerEmail}
               onClick={handleCheckout}
             >
               {submitting ? (
@@ -450,6 +460,12 @@ export default function ConcertEventPage() {
       )}
 
       {error && <p className="mt-4 text-center text-sm text-red-400">{error}</p>}
+
+      {checkoutSuccess && (
+        <p className="mt-4 text-center text-sm text-green-400">
+          Tu orden está pendiente. Recibirás un email cuando el organizador confirme tu pago.
+        </p>
+      )}
 
       {step === 'seats' && (
         <div className="concert-checkout-panel">

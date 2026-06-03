@@ -24,10 +24,10 @@ export default function MetricCard({
   sparklineData,
 }: MetricCardProps) {
   const changeData = sparklineData.map((val) => ({ value: val }));
-  const strokeColor = changeType === 'positive' ? 'hsl(142 71% 45%)' : 'hsl(0 72% 51%)';
+  const strokeColor = 'hsl(210, 100%, 50%)';
 
   return (
-    <AdminPanel className="admin-metric-card group h-full" elevation="sm">
+    <AdminPanel className="admin-metric-card group h-full hover-lift" elevation="sm">
       <div className="p-4 sm:p-5 lg:p-6">
         <div className="flex items-start justify-between gap-3 mb-3 sm:mb-4">
           <div className="min-w-0 flex-1 pr-1">

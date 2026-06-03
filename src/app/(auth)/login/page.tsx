@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Link from 'next/link';
 import { authService } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
-import { Mail, Lock, Loader2, Sparkles, ArrowRight } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
 import { isFiscalPreviewMode, isExplicitLogout } from '@/lib/fiscal-preview';
 import { LOGIN_COPY, PRICING_TEASER } from '@/lib/content/marketing-copy';
 
@@ -59,24 +59,10 @@ function LoginForm() {
 
   return (
     <div className="relative w-full">
-      {/* Decoración de fondo animada */}
-      <div className="absolute -inset-4 opacity-20 blur-3xl">
-        <div className="absolute top-0 left-0 w-64 h-64 bg-primary rounded-full animate-pulse"></div>
-        <div className="absolute bottom-0 right-0 w-64 h-64 bg-indigo-500 rounded-full animate-pulse delay-1000"></div>
-      </div>
-
-      <Card className="relative w-full backdrop-blur-sm bg-card/95 border-2 shadow-2xl">
+      <Card className="relative w-full card-elevated">
         <CardHeader className="space-y-4 pb-6">
-          <div className="flex items-center justify-center mb-2">
-            <div className="relative">
-              <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full"></div>
-              <div className="relative bg-gradient-to-br from-primary to-indigo-600 p-4 rounded-2xl shadow-lg">
-                <Sparkles className="h-8 w-8 text-white" />
-              </div>
-            </div>
-          </div>
           <div className="text-center space-y-2">
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-indigo-600 bg-clip-text text-transparent">
+            <CardTitle className="text-3xl font-bold text-foreground">
               {LOGIN_COPY.title}
             </CardTitle>
             <CardDescription className="text-base">{LOGIN_COPY.subtitle}</CardDescription>
@@ -150,7 +136,7 @@ function LoginForm() {
             
             <Button 
               type="submit" 
-              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 shadow-lg hover:shadow-xl transition-all duration-200 group"
+              className="w-full h-12 text-base font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 group"
               disabled={loading}
             >
               {loading ? (
@@ -180,7 +166,7 @@ function LoginForm() {
               <div>
                 <Link 
                   href="/recover-password" 
-                  className="text-sm text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors inline-flex items-center gap-1"
+                  className="text-sm text-muted-foreground hover:text-blue-600 transition-colors inline-flex items-center gap-1"
                 >
                   ¿Olvidaste tu contraseña? Recupérala aquí
                 </Link>
@@ -191,7 +177,7 @@ function LoginForm() {
               <div>
                 <Link 
                   href="/reset-password" 
-                  className="text-sm text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 transition-colors inline-flex items-center gap-1"
+                  className="text-sm text-muted-foreground hover:text-blue-600 transition-colors inline-flex items-center gap-1"
                 >
                   ¿Tienes contraseña temporal? Cámbiala aquí
                 </Link>
@@ -200,14 +186,14 @@ function LoginForm() {
                 <p className="text-xs text-muted-foreground">{LOGIN_COPY.demoHint}</p>
                 <Link
                   href={LOGIN_COPY.learnMoreHref}
-                  className="text-sm text-[hsl(var(--marketing-accent))] font-medium hover:underline inline-flex items-center gap-1"
+                  className="text-sm text-blue-600 font-medium hover:underline inline-flex items-center gap-1"
                 >
                   {LOGIN_COPY.learnMoreLabel}
                   <ArrowRight className="h-3 w-3" />
                 </Link>
                 <a
                   href={PRICING_TEASER.mailto}
-                  className="text-sm text-primary font-medium hover:underline inline-flex items-center gap-1 block"
+                  className="text-sm text-primary font-medium hover:underline inline-flex items-center gap-1"
                 >
                   {PRICING_TEASER.contactLabel}
                   <ArrowRight className="h-3 w-3 inline" />

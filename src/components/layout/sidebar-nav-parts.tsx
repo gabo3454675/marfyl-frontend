@@ -12,7 +12,7 @@ export function NavSectionLabel({ children, className }: { children: React.React
   return (
     <p
       className={cn(
-        'px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/55 select-none',
+        'px-2 py-1.5 text-xs font-semibold uppercase tracking-widest text-sidebar-foreground/55 select-none opacity-70',
         className,
       )}
     >

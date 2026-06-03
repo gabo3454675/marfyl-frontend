@@ -39,7 +39,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <Card className="w-full">
+    <Card className="w-full card-elevated">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold text-center">Crear Cuenta</CardTitle>
         <CardDescription className="text-center">
@@ -95,7 +95,7 @@ export default function RegisterPage() {
               disabled={loading}
             />
           </div>
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={loading}>
             {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
           </Button>
           <div className="text-center text-sm">

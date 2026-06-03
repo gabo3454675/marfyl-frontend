@@ -11,7 +11,6 @@ import BottomNav from '@/components/bottom-nav';
 import { AdminTopbar } from '@/components/admin/admin-topbar';
 import { NotificationFeedProvider } from '@/hooks/useNotificationFeed';
 import { RateConfigModal } from '@/components/rate-config-modal';
-import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
 import { AssistantProvider } from '@/components/assistant/assistant-provider';
 import { MarfylAssistant } from '@/components/assistant/marfyl-assistant';
 import { DmAmbientMotion } from '@/components/ui/dm-ambient-motion';
@@ -165,7 +164,7 @@ export default function DashboardLayout({
         }
       }
     }
-  }, [mounted, hasHydrated, isAuthenticated, selectedId, hasOrganizations, user, router, devPreview]);
+  }, [mounted, hasHydrated, isAuthenticated, selectedId, hasOrganizations, user, router, pathname, devPreview]);
 
   // Mientras se carga o hidrata, mostrar un estado de carga
   if (!mounted || !hasHydrated) {
@@ -247,9 +246,6 @@ export default function DashboardLayout({
 
         {/* Mobile Bottom Navigation */}
         <BottomNav />
-
-        {/* PWA Install Prompt */}
-        <PWAInstallPrompt />
       </div>
 
       {/* Fuera del flex shell: evita recorte por overflow-hidden en desktop */}

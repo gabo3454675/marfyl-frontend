@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle, ExternalLink, ImageIcon, Loader2, RefreshCw } from 'lucide-react';
+import { CheckCircle, ExternalLink, ImageIcon, Loader2, Mail, RefreshCw, X } from 'lucide-react';
 import { concertService } from '@/lib/api';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
@@ -44,12 +44,15 @@ export default function ConciertoOrdenesPage() {
   const [orders, setOrders] = useState<ConcertAdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [filter, setFilter] = useState<'all' | 'PENDING_PAYMENT' | 'PAID'>('all');
   const [error, setError] = useState<string | null>(null);
   const [proofPreview, setProofPreview] = useState<{
     url: string;
     buyerName: string;
   } | null>(null);
+  const [cancelConfirmId, setCancelConfirmId] = useState<number | null>(null);
+  const [resendingId, setResendingId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     if (!isConcertFeatureEnabled()) return;
@@ -95,6 +98,47 @@ export default function ConciertoOrdenesPage() {
       }
     } finally {
       setConfirmingId(null);
+    }
+  };
+
+  const cancel = async (id: number) => {
+    setCancellingId(id);
+    setError(null);
+    try {
+      await concertService.cancelOrder(id);
+      await load();
+    } catch (err) {
+      if (CONCERT_MOCK_ENABLED && isNetworkFailure(err)) {
+        setOrders((prev) =>
+          prev.map((o) => (o.id === id ? { ...o, status: 'CANCELLED' as const } : o)),
+        );
+      } else {
+        setError(getApiErrorMessage(err, 'No se pudo cancelar la orden'));
+      }
+    } finally {
+      setCancellingId(null);
+      setCancelConfirmId(null);
+    }
+  };
+
+  const resendEmail = async (id: number) => {
+    setResendingId(id);
+    setError(null);
+    try {
+      await concertService.resendEmail(id);
+      await load();
+    } catch (err) {
+      if (CONCERT_MOCK_ENABLED && isNetworkFailure(err)) {
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === id ? { ...o, emailSentAt: new Date().toISOString() } : o,
+          ),
+        );
+      } else {
+        setError(getApiErrorMessage(err, 'No se pudo reenviar el email'));
+      }
+    } finally {
+      setResendingId(null);
     }
   };
 
@@ -189,37 +233,82 @@ export default function ConciertoOrdenesPage() {
                         </Button>
                       )}
                     </TableCell>
-                    <TableCell>{STATUS_LABEL[o.status] ?? o.status}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <span>{STATUS_LABEL[o.status] ?? o.status}</span>
+                        {o.emailSentAt ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-green-500/20 px-2 py-0.5 text-xs font-medium text-green-400">
+                            Email enviado
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-400">
+                            Email no enviado
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-xs">
                       {o.tickets.map((t) => t.seatLabel).join(', ') || '—'}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         {o.status === 'PENDING_PAYMENT' && (
-                          <Button
-                            size="sm"
-                            className="gap-1"
-                            disabled={confirmingId === o.id}
-                            onClick={() => confirm(o.id)}
-                          >
-                            {confirmingId === o.id ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <CheckCircle className="h-3 w-3" />
-                            )}
-                            Confirmar
-                          </Button>
+                          <>
+                            <Button
+                              size="sm"
+                              className="gap-1"
+                              disabled={confirmingId === o.id}
+                              onClick={() => confirm(o.id)}
+                            >
+                              {confirmingId === o.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <CheckCircle className="h-3 w-3" />
+                              )}
+                              Confirmar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1"
+                              disabled={cancellingId === o.id}
+                              onClick={() => setCancelConfirmId(o.id)}
+                            >
+                              {cancellingId === o.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <X className="h-3 w-3" />
+                              )}
+                              Cancelar
+                            </Button>
+                          </>
                         )}
                         {o.status === 'PAID' && (
-                          <Button asChild size="sm" variant="outline" className="gap-1">
-                            <Link
-                              href={`/evento/${CONCERT_DEFAULT_SLUG}/entrada/${o.publicToken}`}
-                              target="_blank"
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1"
+                              disabled={resendingId === o.id}
+                              onClick={() => resendEmail(o.id)}
                             >
-                              <ExternalLink className="h-3 w-3" />
-                              Entrada
-                            </Link>
-                          </Button>
+                              {resendingId === o.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Mail className="h-3 w-3" />
+                              )}
+                              Reenviar email
+                            </Button>
+                            <Button asChild size="sm" variant="outline" className="gap-1">
+                              <Link
+                                href={`/evento/${CONCERT_DEFAULT_SLUG}/entrada/${o.publicToken}`}
+                                target="_blank"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                Entrada
+                              </Link>
+                            </Button>
+                          </>
                         )}
                       </div>
                     </TableCell>
@@ -230,6 +319,33 @@ export default function ConciertoOrdenesPage() {
           </Table>
         </AdminTableWrap>
       </AdminCard>
+
+      <Dialog open={!!cancelConfirmId} onOpenChange={(open) => !open && setCancelConfirmId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Cancelar orden</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            ¿Está seguro que desea cancelar esta orden? Los asientos quedarán disponibles nuevamente.
+          </p>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setCancelConfirmId(null)}>
+              Volver
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={cancellingId !== null}
+              onClick={() => cancelConfirmId && cancel(cancelConfirmId)}
+            >
+              {cancellingId !== null ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : null}
+              Confirmar cancelación
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!proofPreview} onOpenChange={(open) => !open && setProofPreview(null)}>
         <DialogContent className="max-w-lg">

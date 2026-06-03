@@ -79,8 +79,10 @@ export interface ConcertTicketPublic {
 }
 
 export interface ConcertOrderPublicView {
+  id: number;
   status: ConcertOrderStatus;
   paid: boolean;
+  emailSentAt?: string | null;
   buyerName?: string;
   amountUsd?: number;
   amountBs?: number;
@@ -127,6 +129,7 @@ export interface ConcertAdminOrder {
   publicToken: string;
   createdAt: string;
   paidAt?: string | null;
+  emailSentAt?: string | null;
   tickets: {
     id: number;
     seatLabel: string;

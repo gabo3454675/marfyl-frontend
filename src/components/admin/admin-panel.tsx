@@ -27,8 +27,8 @@ export function AdminPanel({
       zone={zone === 'fiscal' ? 'fiscal' : 'app'}
       elevation={elevation}
       className={cn(
-        'admin-panel',
-        interactive && 'admin-panel-interactive cursor-pointer',
+        'admin-panel card-elevated',
+        interactive && 'admin-panel-interactive hover-lift cursor-pointer',
         className,
       )}
     >

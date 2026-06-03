@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import Image from 'next/image';
 import { ChevronLeft, ChevronDown, LogOut, Check, Download } from 'lucide-react';
 import { FISCAL_NAV_ITEMS, isFiscalRoute, resolveFiscalNavId } from '@/config/fiscal-nav';
 import { APP_NAV_ITEMS, APP_NAV_SECTIONS, getNavItem, resolveAppNavId } from '@/config/app-nav';
 import { CONCERT_NAV_ITEMS, resolveConcertNavId } from '@/config/concert-nav';
 import { isConcertFeatureEnabled } from '@/lib/concert/feature';
 import { FiscalNavCollapsible, NavSection, SidebarNavLink } from '@/components/layout/sidebar-nav-parts';
+import { MarfylLogo } from '@/components/brand/marfyl-logo';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -203,16 +203,7 @@ export default function Sidebar() {
       >
         {!isCollapsed ? (
           <div className="flex flex-col min-w-0 flex-1 gap-0.5">
-            <div className="flex items-center gap-2">
-              <Image
-                src="/logo.png"
-                alt="Logo"
-                width={36}
-                height={36}
-                className="h-9 w-9 flex-shrink-0 rounded-md object-contain"
-              />
-              <h1 className="text-xl font-bold text-sidebar-foreground truncate">MARFYL</h1>
-            </div>
+            <MarfylLogo href="/" priority className="min-w-0" />
             {displayRate !== 1 && (
               <span className="text-xs text-muted-foreground font-medium tabular-nums">
                 Tasa: {displayRate.toFixed(2)}
@@ -220,13 +211,7 @@ export default function Sidebar() {
             )}
           </div>
         ) : (
-          <Image
-            src="/logo.png"
-            alt="Logo MARFYL"
-            width={32}
-            height={32}
-            className="h-8 w-8 flex-shrink-0 rounded-md object-contain"
-          />
+          <MarfylLogo variant="icon" href="/" />
         )}
         <div
           className={cn(

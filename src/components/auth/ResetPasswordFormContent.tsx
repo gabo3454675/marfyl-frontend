@@ -88,23 +88,18 @@ export function ResetPasswordFormContent({
 
   return (
     <div className="relative w-full">
-      <div className="absolute -inset-4 opacity-20 blur-3xl">
-        <div className="absolute top-0 left-0 w-64 h-64 bg-amber-500 rounded-full animate-pulse"></div>
-        <div className="absolute bottom-0 right-0 w-64 h-64 bg-orange-500 rounded-full animate-pulse delay-1000"></div>
-      </div>
-
-      <Card className="relative w-full backdrop-blur-sm bg-card/95 border-2 shadow-2xl">
+      <Card className="relative w-full card-elevated">
         <CardHeader className="space-y-4 pb-6">
           <div className="flex items-center justify-center mb-2">
             <div className="relative">
-              <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full"></div>
-              <div className="relative bg-gradient-to-br from-amber-500 to-orange-600 p-4 rounded-2xl shadow-lg">
+              <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full"></div>
+              <div className="relative bg-blue-600 p-4 rounded-2xl shadow-lg">
                 <KeyRound className="h-8 w-8 text-white" />
               </div>
             </div>
           </div>
           <div className="text-center space-y-2">
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+            <CardTitle className="text-3xl font-bold text-slate-900">
               {fromProfile ? 'Cambiar contraseña' : 'Cambio de contraseña obligatorio'}
             </CardTitle>
             <CardDescription className="text-base">
@@ -209,7 +204,7 @@ export function ResetPasswordFormContent({
 
             <Button
               type="submit"
-              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 shadow-lg hover:shadow-xl transition-all duration-200 group"
+              className="w-full h-12 text-base font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 group"
               disabled={loading}
             >
               {loading ? (

@@ -199,7 +199,7 @@ export function FiscalDashboard() {
               </h3>
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li className="flex gap-2">
-                  <span className="text-amber-400 font-bold">1</span>
+                  <span className="text-blue-400 font-bold">1</span>
                   Revisar calendario SENIAT y vencimientos del mes
                 </li>
                 <li className="flex gap-2">
@@ -207,7 +207,7 @@ export function FiscalDashboard() {
                   Conciliar libro de compras con gastos del período
                 </li>
                 <li className="flex gap-2">
-                  <span className="text-emerald-400 font-bold">3</span>
+                  <span className="text-blue-400 font-bold">3</span>
                   Exportar libros antes del cierre fiscal
                 </li>
               </ul>
@@ -235,7 +235,7 @@ export function FiscalDashboard() {
               href="/expenses"
               className="fiscal-v0-summary-card fiscal-v0-hover-lift group p-4"
             >
-              <Upload className="h-8 w-8 text-amber-600 dark:text-amber-400 mb-2 group-hover:scale-110 transition-transform" />
+              <Upload className="h-8 w-8 text-blue-600 dark:text-blue-400 mb-2 group-hover:scale-110 transition-transform" />
               <p className="font-semibold">Cargar compra</p>
               <p className="text-xs fiscal-v0-muted mt-1">Alimenta crédito fiscal</p>
             </Link>

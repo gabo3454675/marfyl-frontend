@@ -72,16 +72,16 @@ export default function AcceptInvitationPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100/50 p-4">
+      <Card className="w-full max-w-md shadow-xl border-slate-200">
+        <CardHeader className="text-center pb-2">
           {success ? (
             <>
-              <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
-                <CheckCircle className="h-8 w-8 text-green-600" />
+              <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center">
+                <CheckCircle className="h-8 w-8 text-emerald-600" />
               </div>
-              <CardTitle className="text-2xl">¡Invitación Aceptada!</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-2xl text-slate-900">¡Invitación Aceptada!</CardTitle>
+              <CardDescription className="text-slate-600">
                 Has sido agregado exitosamente a la organización.
                 Redirigiendo al dashboard...
               </CardDescription>
@@ -91,7 +91,7 @@ export default function AcceptInvitationPage() {
               <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
                 <XCircle className="h-8 w-8 text-red-600" />
               </div>
-              <CardTitle className="text-2xl">Error</CardTitle>
+              <CardTitle className="text-2xl text-slate-900">Error</CardTitle>
               <CardDescription className="text-red-600">{error}</CardDescription>
             </>
           ) : (
@@ -99,8 +99,8 @@ export default function AcceptInvitationPage() {
               <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center">
                 <UserPlus className="h-8 w-8 text-blue-600" />
               </div>
-              <CardTitle className="text-2xl">Invitación a Organización</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-2xl text-slate-900">Invitación a Organización</CardTitle>
+              <CardDescription className="text-slate-600">
                 Te han invitado a unirte a una organización
               </CardDescription>
             </>

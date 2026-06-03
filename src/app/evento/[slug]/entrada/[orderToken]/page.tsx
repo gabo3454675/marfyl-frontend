@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, Mail, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { ConcertTicketCard } from '@/components/concert/concert-ticket-card';
 import { isConcertFeatureEnabled } from '@/lib/concert/feature';
 import type { ConcertOrderPublicView } from '@/lib/concert/types';
@@ -20,6 +21,7 @@ export default function ConcertTicketPage() {
   const [order, setOrder] = useState<ConcertOrderPublicView | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
 
   const load = useCallback(async () => {
     if (!slug || !orderToken) return;
@@ -54,6 +56,19 @@ export default function ConcertTicketPage() {
     const t = setInterval(load, 15000);
     return () => clearInterval(t);
   }, [load, order?.paid]);
+
+  const handleResendEmail = async () => {
+    if (!order) return;
+    setResending(true);
+    setError(null);
+    try {
+      await concertService.resendEmail(order.id);
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'No se pudo reenviar el email'));
+    } finally {
+      setResending(false);
+    }
+  };
 
   if (loading && !order) {
     return (
@@ -106,8 +121,38 @@ export default function ConcertTicketPage() {
     );
   }
 
-  return (
+return (
     <div className="concert-shell space-y-8">
+      {order.emailSentAt ? (
+        <div className="mx-auto max-w-md rounded-xl border border-green-500/30 bg-green-500/10 p-4 text-center">
+          <Mail className="mx-auto mb-2 h-6 w-6 text-green-400" />
+          <p className="font-medium text-green-300">Revisa tu correo — te enviamos tus entradas</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-3 gap-2 border-white/20"
+            disabled={resending}
+            onClick={handleResendEmail}
+          >
+            {resending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <Mail className="h-4 w-4" />
+                Reenviar a mi correo
+              </>
+            )}
+          </Button>
+        </div>
+      ) : (
+        <div className="mx-auto max-w-md rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-center">
+          <p className="text-sm text-amber-200/80">
+            Tus entradas aún no han sido enviadas. El organizador confirmará tu pago pronto.
+          </p>
+        </div>
+      )}
+
       <header className="text-center">
         <h1 className="text-2xl font-bold">Sus entradas</h1>
         <p className="mt-2 text-sm text-white/60">

@@ -34,7 +34,7 @@ export function PreviewToggle() {
         onClick={toggle}
         className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium shadow-lg transition-all ${
           enabled
-            ? 'bg-amber-500 text-white hover:bg-amber-600'
+            ? 'bg-blue-600 text-white hover:bg-blue-700'
             : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
         }`}
         title={enabled ? 'Preview activado — click para desactivar y usar login real' : 'Preview desactivado — click para activar vista previa sin login'}

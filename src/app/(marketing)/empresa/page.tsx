@@ -12,13 +12,13 @@ export default function EmpresaPage() {
     <>
       <section className="marketing-hero marketing-container">
         <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-wider text-[hsl(var(--marketing-accent))]">
+          <p className="text-sm font-semibold uppercase tracking-wider bg-primary/10 text-primary border border-primary/25 inline-flex items-center gap-2 px-4 py-1.5 rounded-full">
             {hero.eyebrow}
           </p>
-          <h1 className="marketing-hero-title mt-4">{hero.title}</h1>
+          <h1 className="marketing-hero-title mt-4 text-foreground">{hero.title}</h1>
           <p className="text-lg text-muted-foreground mt-6 leading-relaxed max-w-2xl">{hero.subtitle}</p>
           <div className="flex flex-wrap gap-3 mt-8">
-            <Button size="lg" className="marketing-cta" asChild>
+            <Button size="lg" className="marketing-cta border-0" asChild>
               <Link href={hero.primaryCta.href}>
                 {hero.primaryCta.label}
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -35,7 +35,7 @@ export default function EmpresaPage() {
         <div className="marketing-container">
           <div className="marketing-features-grid">
             {features.map((f) => (
-              <div key={f.title} className="marketing-feature-card">
+              <div key={f.title} className="marketing-feature-card card-elevated hover-lift">
                 <h2 className="font-semibold text-lg">{f.title}</h2>
                 <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{f.description}</p>
               </div>
@@ -51,7 +51,7 @@ export default function EmpresaPage() {
             <ul className="mt-6 space-y-3.5">
               {highlights.map((h) => (
                 <li key={h} className="flex gap-3 text-sm leading-relaxed">
-                  <CheckCircle2 className="h-5 w-5 shrink-0 text-[hsl(var(--marketing-accent))]" />
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
                   {h}
                 </li>
               ))}
@@ -64,12 +64,12 @@ export default function EmpresaPage() {
             {trust.map((t) => (
               <div
                 key={t.label}
-                className="flex gap-4 rounded-xl border border-border/80 p-5 sm:p-6 bg-card/80"
+                className="flex gap-4 rounded-xl border border-border p-5 sm:p-6 bg-card hover-lift"
               >
                 {t.label.includes('Venezuela') ? (
-                  <Shield className="h-8 w-8 shrink-0 text-[hsl(var(--marketing-accent))]" />
+                  <Shield className="h-8 w-8 shrink-0 text-primary" />
                 ) : (
-                  <Zap className="h-8 w-8 shrink-0 text-[hsl(var(--marketing-accent))]" />
+                  <Zap className="h-8 w-8 shrink-0 text-primary" />
                 )}
                 <div className="min-w-0">
                   <p className="font-semibold">{t.label}</p>

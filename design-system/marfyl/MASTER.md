@@ -1,5 +1,13 @@
 # Design System Master — MARFYL
 
+> **DEPRECATED — 2026-06-03**
+>
+> This design system is no longer active. It has been replaced by **marfyl-blue-horizon**.
+> - Old palette: Dark Materials (Cashmere #FFEE91, Sunset Coral #FFCAB5, Darkmoon #222222)
+> - New palette: Blue Horizon (Primary #3B82F6, Accent #0284C7, Background #F8FAFC)
+>
+> **Do not use this for new development.** Reference `design-system/marfyl-blue-horizon/MASTER.md` instead.
+
 > **Lógica:** Al construir una página, revisa primero `design-system/marfyl/pages/[pagina].md`.
 > Si existe, sus reglas **prevalecen** sobre este Master.
 > Si no, sigue este archivo y `docs/MARFYL-DARK-MATERIALS.md`.

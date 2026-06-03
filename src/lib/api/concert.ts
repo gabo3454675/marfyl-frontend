@@ -122,6 +122,13 @@ export const concertService = {
       .then((res) => res.data);
   },
 
+  /** Cancelar una orden pendiente (libera los asientos). */
+  cancelOrder(id: number): Promise<{ ok: boolean; message: string }> {
+    return apiClient
+      .post<{ ok: boolean; message: string }>(`/concert/admin/orders/${id}/cancel`)
+      .then((res) => res.data);
+  },
+
   /** Venta directa desde admin (hold + checkout + confirm en un paso). */
   sell(dto: AdminSellPayload): Promise<ConcertAdminOrder> {
     return apiClient
@@ -133,6 +140,13 @@ export const concertService = {
   scanTicket(qrPayload: string): Promise<ScanTicketResult> {
     return apiClient
       .post<ScanTicketResult>('/concert/admin/scan', { qrPayload })
+      .then((res) => res.data);
+  },
+
+  /** Reenviar email con entradas a un orden pagada. */
+  resendEmail(orderId: number): Promise<{ ok: boolean; message: string }> {
+    return apiClient
+      .post<{ ok: boolean; message: string }>(`/concert/admin/orders/${orderId}/resend-email`)
       .then((res) => res.data);
   },
 };

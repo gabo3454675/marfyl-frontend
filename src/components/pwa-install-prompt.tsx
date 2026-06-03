@@ -1,128 +1,109 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { X, Download, Smartphone } from 'lucide-react';
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
-
-export function PWAInstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [showPrompt, setShowPrompt] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
-
-  useEffect(() => {
-    // Verificar si ya está instalado
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstalled(true);
-      return;
-    }
-
-    // Verificar si ya se mostró el prompt antes (localStorage)
-    const hasShownPrompt = localStorage.getItem('pwa-install-prompt-shown');
-    if (hasShownPrompt) {
-      return;
-    }
-
-    // Escuchar el evento beforeinstallprompt
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setShowPrompt(true);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    // Verificar si la app ya está instalada
-    const checkInstalled = () => {
-      if (window.matchMedia('(display-mode: standalone)').matches) {
-        setIsInstalled(true);
-        setShowPrompt(false);
-      }
-    };
-
-    checkInstalled();
-    const interval = setInterval(checkInstalled, 1000);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      clearInterval(interval);
-    };
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-
-    // Mostrar el prompt de instalación
-    await deferredPrompt.prompt();
-
-    // Esperar a que el usuario responda
-    const { outcome } = await deferredPrompt.userChoice;
-
-    if (outcome === 'accepted') {
-      console.log('Usuario aceptó instalar la app');
-      localStorage.setItem('pwa-install-prompt-shown', 'true');
-    } else {
-      console.log('Usuario rechazó instalar la app');
-    }
-
-    setDeferredPrompt(null);
-    setShowPrompt(false);
-  };
-
-  const handleDismiss = () => {
-    setShowPrompt(false);
-    localStorage.setItem('pwa-install-prompt-shown', 'true');
-  };
-
-  // No mostrar si ya está instalado o no hay prompt disponible
-  if (isInstalled || !showPrompt || !deferredPrompt) {
-    return null;
-  }
-
-  return (
-    <div className="fixed left-4 right-4 z-50 bottom-[calc(var(--app-bottom-chrome)+0.75rem)] md:bottom-4 md:left-auto md:right-4 md:w-96 max-md:max-w-lg max-md:mx-auto">
-      <Card className="border-2 border-primary shadow-lg">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Smartphone className="h-5 w-5 text-primary" />
-              </div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-sm mb-1">
-                Instalar como App
-              </h3>
-              <p className="text-xs text-muted-foreground mb-3">
-                Instala esta aplicación en tu dispositivo para un acceso más rápido y una mejor experiencia.
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleInstallClick}
-                  size="sm"
-                  className="flex-1 text-xs"
-                >
-                  <Download className="mr-2 h-3 w-3" />
-                  Instalar
-                </Button>
-                <Button
-                  onClick={handleDismiss}
-                  variant="ghost"
-                  size="sm"
-                  className="px-2"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+'use client';
+
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { X, Download, Share } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
+import { MARFYL_LOGO_ICON } from '@/components/brand/marfyl-logo';
+
+export function PWAInstallPrompt() {
+  const { isInstallable, isInstalled, showIosGuide, install, dismiss } = usePWAInstall();
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (isInstalled) {
+      setVisible(false);
+      return;
+    }
+    if (isInstallable) {
+      setVisible(true);
+      return;
+    }
+    if (showIosGuide) {
+      setVisible(true);
+    }
+  }, [isInstallable, isInstalled, showIosGuide]);
+
+  const handleInstall = async () => {
+    const ok = await install();
+    if (ok) setVisible(false);
+  };
+
+  const handleDismiss = () => {
+    dismiss();
+    setVisible(false);
+  };
+
+  if (!visible || isInstalled) return null;
+
+  const isIos = showIosGuide && !isInstallable;
+
+  return (
+    <div
+      className="fixed left-4 right-4 z-[100] bottom-[calc(var(--app-bottom-chrome,0px)+0.75rem)] md:bottom-4 md:left-auto md:right-4 md:w-[26rem] max-md:max-w-lg max-md:mx-auto animate-in slide-in-from-bottom-4 duration-300"
+      role="dialog"
+      aria-labelledby="pwa-install-title"
+      aria-describedby="pwa-install-desc"
+    >
+      <Card className="border-2 border-primary/40 shadow-xl bg-card/95 backdrop-blur-md">
+        <CardContent className="p-4 sm:p-5">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <div className="shrink-0">
+              <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-xl border border-border bg-background shadow-sm overflow-hidden p-1.5">
+                <Image
+                  src={MARFYL_LOGO_ICON}
+                  alt=""
+                  width={56}
+                  height={56}
+                  className="h-full w-full object-contain"
+                  aria-hidden
+                />
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 id="pwa-install-title" className="font-bold text-base sm:text-lg tracking-tight">
+                Instalar MARFYL
+              </h3>
+              <p id="pwa-install-desc" className="text-xs sm:text-sm text-muted-foreground mt-1 mb-3 leading-relaxed">
+                {isIos
+                  ? 'Añade MARFYL a tu pantalla de inicio para abrirla como app, con acceso rápido y pantalla completa.'
+                  : 'Instala MARFYL en tu dispositivo para usarla como aplicación nativa, con icono en inicio y pantalla completa.'}
+              </p>
+              {isIos ? (
+                <ol className="text-xs text-muted-foreground space-y-1.5 mb-3 list-decimal list-inside">
+                  <li className="flex items-start gap-1.5">
+                    <Share className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary" aria-hidden />
+                    <span>Toca <strong className="text-foreground">Compartir</strong> en Safari</span>
+                  </li>
+                  <li>
+                    Elige <strong className="text-foreground">Añadir a pantalla de inicio</strong>
+                  </li>
+                  <li>
+                    Confirma — verás el logo <strong className="text-foreground">MARFYL</strong>
+                  </li>
+                </ol>
+              ) : null}
+              <div className="flex gap-2">
+                {!isIos ? (
+                  <Button onClick={handleInstall} size="sm" className="flex-1 marketing-cta border-0">
+                    <Download className="mr-2 h-4 w-4" />
+                    Instalar app
+                  </Button>
+                ) : (
+                  <Button onClick={handleDismiss} size="sm" className="flex-1" variant="secondary">
+                    Entendido
+                  </Button>
+                )}
+                <Button onClick={handleDismiss} variant="ghost" size="sm" className="px-2 shrink-0" aria-label="Cerrar">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

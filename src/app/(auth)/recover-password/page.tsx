@@ -52,10 +52,10 @@ export default function RecoverPasswordPage() {
 
   return (
     <div className="relative w-full max-w-md mx-auto">
-      <Card className="relative w-full backdrop-blur-sm bg-card/95 border-2 shadow-2xl">
+      <Card className="relative w-full card-elevated">
         <CardHeader className="space-y-4 pb-6">
           <div className="flex items-center justify-center mb-2">
-            <div className="relative bg-gradient-to-br from-indigo-500 to-purple-600 p-4 rounded-2xl shadow-lg">
+            <div className="relative bg-blue-600 p-4 rounded-2xl shadow-lg">
               <KeyRound className="h-8 w-8 text-white" />
             </div>
           </div>
@@ -117,7 +117,7 @@ export default function RecoverPasswordPage() {
               <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} disabled={loading} />
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

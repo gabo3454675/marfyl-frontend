@@ -16,12 +16,12 @@ export const metadata: Metadata = {
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="marketing-root">
-      <DmAmbientMotion palette="b" intensity="subtle" />
+      <DmAmbientMotion palette="a" intensity="subtle" />
       <div className="marketing-chrome">
         <MarketingNavbar />
         <MarketingPreviewBar />
       </div>
-      <main className="marketing-main">
+      <main className="marketing-main mesh-gradient-bg bg-[hsl(var(--background))]">
         <div className="marketing-page-flow">{children}</div>
         <MarketingFooter />
       </main>

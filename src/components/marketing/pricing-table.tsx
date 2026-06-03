@@ -11,12 +11,12 @@ export function PricingCards({ plans }: { plans: PricingPlan[] }) {
           className={cn(
             'rounded-2xl border p-6 flex flex-col',
             plan.highlighted
-              ? 'border-[hsl(var(--marketing-accent))] shadow-lg ring-1 ring-[hsl(var(--marketing-accent)/0.3)] scale-[1.02]'
-              : 'border-border/80 bg-card',
+              ? 'border-blue-600 bg-blue-50 shadow-lg ring-1 ring-blue-200 scale-[1.02]'
+              : 'border-slate-200 bg-white',
           )}
         >
           {plan.highlighted && (
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--marketing-accent))] mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 mb-2">
               Recomendado
             </span>
           )}
@@ -27,7 +27,7 @@ export function PricingCards({ plans }: { plans: PricingPlan[] }) {
           <ul className="mt-6 space-y-2 flex-1">
             {plan.features.map((f) => (
               <li key={f} className="flex gap-2 text-sm">
-                <Check className="h-4 w-4 shrink-0 text-[hsl(var(--marketing-accent))]" />
+                <Check className="h-4 w-4 shrink-0 text-blue-600" />
                 {f}
               </li>
             ))}
@@ -49,7 +49,7 @@ export function PricingComparison({
   }[];
 }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-border/80">
+    <div className="overflow-x-auto rounded-xl border border-slate-200">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b bg-muted/40">
@@ -82,7 +82,7 @@ export function PricingComparison({
 
 function CellIcon({ value }: { value: boolean }) {
   return value ? (
-    <Check className="h-4 w-4 mx-auto text-[hsl(var(--marketing-accent))]" />
+    <Check className="h-4 w-4 mx-auto text-blue-600" />
   ) : (
     <X className="h-4 w-4 mx-auto text-muted-foreground/50" />
   );

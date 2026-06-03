@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ExternalLink, Loader2, Settings2, Ticket } from 'lucide-react';
+import { ExternalLink, Loader2, Settings2, Ticket, Copy, Check } from 'lucide-react';
 import { concertService } from '@/lib/api';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard } from '@/components/admin/admin-card';
@@ -18,6 +18,7 @@ export default function ConciertoAdminPage() {
   const [loading, setLoading] = useState(true);
   const [settingUp, setSettingUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     if (!isConcertFeatureEnabled()) {
@@ -57,6 +58,14 @@ export default function ConciertoAdminPage() {
     } finally {
       setSettingUp(false);
     }
+  };
+
+  const handleCopyLink = () => {
+    if (!publicPath) return;
+    navigator.clipboard.writeText(publicPath).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
   const publicPath =
@@ -171,6 +180,61 @@ export default function ConciertoAdminPage() {
                 >
                   Sincronizar precios (planilla)
                 </Button>
+              </div>
+            </div>
+</AdminCard>
+
+          <AdminCard>
+            <div className="space-y-3 p-2 sm:p-4">
+              <h2 className="font-semibold">Checklist go-live</h2>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  {overview?.configured ? (
+                    <span className="text-green-500">✅</span>
+                  ) : (
+                    <span className="text-amber-500">⚠️</span>
+                  )}
+                  <span>Evento configurado</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-blue-500">⚠️</span>
+                  <span>RESEND_API_KEY configurada (verificar en backend .env)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-blue-500">📋</span>
+                  <span>Link de venta pública:</span>
+                  {publicPath ? (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 text-primary underline"
+                      onClick={handleCopyLink}
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="h-3 w-3" />
+                          ¡Copiado!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3 w-3" />
+                          {publicPath}
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <span className="text-muted-foreground">No disponible</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-blue-500">🧪</span>
+                  <button
+                    type="button"
+                    className="text-primary underline"
+                    onClick={() => alert('Flujo de prueba: aún no implementado')}
+                  >
+                    Probar flujo completo
+                  </button>
+                </div>
               </div>
             </div>
           </AdminCard>

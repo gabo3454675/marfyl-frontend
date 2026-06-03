@@ -156,6 +156,7 @@ export function mockHold(seatIds: number[]): HoldSeatsResponse {
 export function getMockOrder(token: string): ConcertOrderPublicView {
   if (token === 'demo-paid-token') {
     return {
+      id: 1,
       status: 'PAID',
       paid: true,
       buyerName: 'Carlos Pérez',
@@ -178,6 +179,7 @@ export function getMockOrder(token: string): ConcertOrderPublicView {
     };
   }
   return {
+    id: 2,
     status: 'PENDING_PAYMENT',
     paid: false,
     buyerName: 'María González',

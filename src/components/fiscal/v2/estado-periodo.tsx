@@ -36,7 +36,7 @@ export function FiscalEstadoPeriodo({
           <defs>
             <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="hsl(var(--fiscal-accent))" />
-              <stop offset="100%" stopColor="#f59e0b" />
+              <stop offset="100%" stopColor="#0284c7" />
             </linearGradient>
           </defs>
         </svg>
