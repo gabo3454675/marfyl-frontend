@@ -90,21 +90,23 @@ export default function DashboardLayout({
     };
   }, [isAuthenticated, selectedId, syncOrganizationRate]);
 
-  // Asegurar que solo renderizamos en el cliente
+  // Cliente montado + auth lista (useLayoutEffect evita pantalla congelada en SSR)
   useLayoutEffect(() => {
+    setMounted(true);
     if (devPreview) seedFiscalPreviewAuth();
+    if (!useAuthStore.getState()._hasHydrated) {
+      useAuthStore.getState().setHasHydrated(true);
+    }
   }, [devPreview]);
 
   useEffect(() => {
-    setMounted(true);
-    // Forzar hidratación si no se ha completado después de 500ms
-    const timer = setTimeout(() => {
-      if (!hasHydrated) {
+    const timer = window.setTimeout(() => {
+      if (!useAuthStore.getState()._hasHydrated) {
         useAuthStore.getState().setHasHydrated(true);
       }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [hasHydrated, devPreview]);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (mounted && hasHydrated && isAuthenticated && !readSessionCookieFromDocument()) {

@@ -275,16 +275,13 @@ export const useAuthStore = create<AuthState>()(
           removeItem: () => {},
         };
       }),
-      onRehydrateStorage: () => (state, error) => {
+      onRehydrateStorage: () => (_state, error) => {
         if (error) {
-          // Error silencioso - el store se inicializará con valores por defecto
+          console.warn('[auth-storage] Error al rehidratar; se usan valores por defecto.', error);
         }
-        if (state) {
-          // Hydration: verificar isSuperAdmin y marcar como hidratado
-          setTimeout(() => {
-            state.setHasHydrated(true);
-          }, 0);
-        }
+        queueMicrotask(() => {
+          useAuthStore.setState({ _hasHydrated: true });
+        });
       },
       partialize: (state) => ({
         user: state.user,
@@ -297,13 +294,14 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-// Hook para forzar hidratación si no se ha completado
+// Fallback: marcar hidratado si persist tarda o falla en silencio
 if (typeof window !== 'undefined') {
-  // En el cliente, asegurar que se marque como hidratado después de cargar
-  const store = useAuthStore.getState();
-  if (!store._hasHydrated) {
-    setTimeout(() => {
-      useAuthStore.getState().setHasHydrated(true);
-    }, 100);
-  }
+  useAuthStore.persist.onFinishHydration(() => {
+    useAuthStore.setState({ _hasHydrated: true });
+  });
+  queueMicrotask(() => {
+    if (!useAuthStore.getState()._hasHydrated) {
+      useAuthStore.setState({ _hasHydrated: true });
+    }
+  });
 }
