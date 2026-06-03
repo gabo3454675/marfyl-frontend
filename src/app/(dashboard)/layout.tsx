@@ -131,6 +131,20 @@ export default function DashboardLayout({
         return;
       }
 
+      // Org guardada inválida (p. ej. tras cambio de cuenta): elegir la primera disponible
+      if (hasOrganizations && selectedId && user && !user.isSuperAdmin) {
+        const orgIds = user.organizations?.map((o) => o.id) ?? [];
+        const companyIds = user.companies?.map((c) => c.id) ?? [];
+        const valid = orgIds.includes(selectedId) || companyIds.includes(selectedId);
+        if (!valid) {
+          if (orgIds.length > 0) {
+            useAuthStore.getState().selectOrganization(orgIds[0]);
+          } else if (companyIds.length > 0) {
+            useAuthStore.getState().selectCompany(companyIds[0]);
+          }
+        }
+      }
+
       // Validar que hay organizaciones disponibles
       if (hasOrganizations && !selectedId) {
         // Priorizar organizations sobre companies

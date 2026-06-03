@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { MoreVertical, TrendingUp, Users, FileText, AlertCircle, Loader2, ListTodo, ExternalLink, Receipt, Percent, Banknote } from 'lucide-react';
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/useAuthStore';
-import { isFiscalPreviewMode } from '@/lib/fiscal-preview';
+import { isFiscalPreviewMode, seedFiscalPreviewAuth } from '@/lib/fiscal-preview';
 import { getApiErrorMessage, isNetworkFailure, PREVIEW_OFFLINE_HINT } from '@/lib/api/get-error-message';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 import MetricCard from '@/components/metric-card';
@@ -279,6 +279,12 @@ export default function DashboardPage() {
     !!orgWithRate &&
     !isRateUpdatedToday(orgWithRate.rateUpdatedAt);
 
+  const canLoadDashboard = isAuthenticated || isFiscalPreviewMode();
+
+  useLayoutEffect(() => {
+    if (isFiscalPreviewMode()) seedFiscalPreviewAuth();
+  }, []);
+
   // Asegurar que el componente esté montado en el cliente
   useEffect(() => {
     setMounted(true);
@@ -346,7 +352,7 @@ export default function DashboardPage() {
   }, [selectedId]);
 
   const fetchMyPendingTasks = useCallback(async () => {
-    if (!isAuthenticated || !selectedId) return;
+    if (!canLoadDashboard || !selectedId) return;
     try {
       setLoadingTasks(true);
       const url = taskCategoryFilter ? `/tasks/my-pending?category=${encodeURIComponent(taskCategoryFilter)}` : '/tasks/my-pending';
@@ -357,10 +363,10 @@ export default function DashboardPage() {
     } finally {
       setLoadingTasks(false);
     }
-  }, [isAuthenticated, selectedId, taskCategoryFilter]);
+  }, [canLoadDashboard, selectedId, taskCategoryFilter]);
 
   const fetchCreatedByMeTasks = useCallback(async () => {
-    if (!isAuthenticated || !canSeeCreatedByMe || !selectedId) return;
+    if (!canLoadDashboard || !canSeeCreatedByMe || !selectedId) return;
     try {
       setLoadingCreatedByMe(true);
       const res = await apiClient.get<CreatedByMeTask[]>('/tasks/created-by-me');
@@ -370,14 +376,14 @@ export default function DashboardPage() {
     } finally {
       setLoadingCreatedByMe(false);
     }
-  }, [isAuthenticated, canSeeCreatedByMe, selectedId]);
+  }, [canLoadDashboard, canSeeCreatedByMe, selectedId]);
 
   useEffect(() => {
-    if (mounted && _hasHydrated && isAuthenticated) {
+    if (mounted && _hasHydrated && canLoadDashboard) {
       fetchMyPendingTasks();
       fetchCreatedByMeTasks();
     }
-  }, [mounted, _hasHydrated, isAuthenticated, fetchMyPendingTasks, fetchCreatedByMeTasks]);
+  }, [mounted, _hasHydrated, canLoadDashboard, fetchMyPendingTasks, fetchCreatedByMeTasks]);
 
   useEffect(() => {
     const onTasksUpdated = () => {
@@ -394,7 +400,7 @@ export default function DashboardPage() {
     }
   }, [mounted, _hasHydrated, isAuthenticated, router]);
 
-  // Al cambiar de organización: resetear datos mostrados y cargar los de la nueva org
+  // Al cambiar de organización: resetear datos mostrados (el fetch vuelve a marcar loading)
   useEffect(() => {
     if (!selectedId || !mounted || !_hasHydrated) return;
     setSummary(DEFAULT_SUMMARY);
@@ -402,24 +408,22 @@ export default function DashboardPage() {
     setDiagnosis(DEFAULT_DIAGNOSIS);
     setStrategy(DEFAULT_STRATEGY);
     setError(null);
-    setLoading(true);
     setLoadingHealth(true);
     setLoadingDiagnosis(true);
     setLoadingStrategy(true);
   }, [selectedId, mounted, _hasHydrated]);
 
   useEffect(() => {
-    // Solo intentar cargar datos después de que todo esté hidratado
-    if (mounted && _hasHydrated && isAuthenticated) {
+    if (mounted && _hasHydrated && canLoadDashboard) {
       fetchDashboardSummary();
     }
-  }, [mounted, _hasHydrated, isAuthenticated, fetchDashboardSummary]);
+  }, [mounted, _hasHydrated, canLoadDashboard, fetchDashboardSummary]);
 
   useEffect(() => {
-    if (mounted && _hasHydrated && isAuthenticated && canViewFinancialCharts) {
+    if (mounted && _hasHydrated && canLoadDashboard && canViewFinancialCharts) {
       fetchDashboardHealth();
     }
-  }, [mounted, _hasHydrated, isAuthenticated, canViewFinancialCharts, fetchDashboardHealth]);
+  }, [mounted, _hasHydrated, canLoadDashboard, canViewFinancialCharts, fetchDashboardHealth]);
 
   const fetchDashboardDiagnosis = useCallback(async () => {
     if (!selectedId) return;
@@ -442,10 +446,10 @@ export default function DashboardPage() {
   }, [selectedId]);
 
   useEffect(() => {
-    if (mounted && _hasHydrated && isAuthenticated && canViewFinancialCharts) {
+    if (mounted && _hasHydrated && canLoadDashboard && canViewFinancialCharts) {
       fetchDashboardDiagnosis();
     }
-  }, [mounted, _hasHydrated, isAuthenticated, canViewFinancialCharts, fetchDashboardDiagnosis]);
+  }, [mounted, _hasHydrated, canLoadDashboard, canViewFinancialCharts, fetchDashboardDiagnosis]);
 
   const fetchDashboardStrategy = useCallback(async () => {
     if (!selectedId) return;
@@ -468,10 +472,10 @@ export default function DashboardPage() {
   }, [selectedId]);
 
   useEffect(() => {
-    if (mounted && _hasHydrated && isAuthenticated && canViewFinancialCharts) {
+    if (mounted && _hasHydrated && canLoadDashboard && canViewFinancialCharts) {
       fetchDashboardStrategy();
     }
-  }, [mounted, _hasHydrated, isAuthenticated, canViewFinancialCharts, fetchDashboardStrategy]);
+  }, [mounted, _hasHydrated, canLoadDashboard, canViewFinancialCharts, fetchDashboardStrategy]);
 
   // Mientras se carga en el servidor o hidrata, mostrar un estado de carga
   if (!mounted || !_hasHydrated) {
