@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import apiClient from '@/lib/api';
+import { fiscalService, type PredeclaracionData } from '@/lib/api';
 import { FiscalShell } from '@/components/fiscal/fiscal-shell';
 import { FiscalToolbar } from '@/components/fiscal/fiscal-toolbar';
 import { NumberTicker } from '@/components/magic-ui/number-ticker';
@@ -13,32 +13,21 @@ import { Loader2, CheckCircle2, Circle } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import { toast } from 'sonner';
 
-interface PredeclData {
-  year: number;
-  month: number;
-  netIvaUsd: number;
-  ventas: { ivaAmount: number; totalAmount: number };
-  compras: { ivaAmount: number; totalAmount: number };
-  retencionesCount: number;
-  period?: { status: string };
-  steps: { id: number; title: string; done: boolean }[];
-}
-
 export default function PredeclaracionPage() {
   const router = useRouter();
   const { canManageFiscal } = usePermission();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [data, setData] = useState<PredeclData | null>(null);
+  const [data, setData] = useState<PredeclaracionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [closing, setClosing] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get<PredeclData>('/fiscal/predeclaracion', { params: { year, month } });
-      setData(res.data);
+      const res = await fiscalService.getPredeclaracion({ year, month });
+      setData(res);
     } catch {
       setData(null);
     } finally {
@@ -57,7 +46,7 @@ export default function PredeclaracionPage() {
   const handleClose = async () => {
     setClosing(true);
     try {
-      await apiClient.post(`/fiscal/periods/${year}/${month}/close`);
+      await fiscalService.closePeriod(year, month);
       toast.success('Período cerrado correctamente');
       load();
     } catch (e: unknown) {

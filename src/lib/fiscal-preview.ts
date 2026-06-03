@@ -15,8 +15,42 @@ export const FISCAL_PREVIEW_ORG_ID = 1;
 
 export const FISCAL_PREVIEW_TOKEN = 'dev-preview-token';
 
+export const EXPLICIT_LOGOUT_FLAG = 'marfyl_explicit_logout';
+
+export function isExplicitLogout(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return sessionStorage.getItem(EXPLICIT_LOGOUT_FLAG) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function markExplicitLogout(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(EXPLICIT_LOGOUT_FLAG, '1');
+    // También setear cookie temporal para que el middleware (server-side) lo vea
+    document.cookie = `${EXPLICIT_LOGOUT_FLAG}=1; path=/; max-age=60; SameSite=Lax`;
+  } catch {
+    /* sessionStorage no disponible, ignorar */
+  }
+}
+
+export function clearExplicitLogout(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.removeItem(EXPLICIT_LOGOUT_FLAG);
+    // También limpiar la cookie
+    document.cookie = `${EXPLICIT_LOGOUT_FLAG}=; path=/; max-age=0; SameSite=Lax`;
+  } catch {
+    /* ignorar */
+  }
+}
+
 export function seedFiscalPreviewAuth(): void {
   if (!isFiscalPreviewMode() || typeof window === 'undefined') return;
+  if (isExplicitLogout()) return;
   const { useAuthStore } = require('@/store/useAuthStore') as typeof import('@/store/useAuthStore');
   const store = useAuthStore.getState();
   if (store.isAuthenticated && store.token === FISCAL_PREVIEW_TOKEN) return;

@@ -115,7 +115,7 @@ export default function InvoicesPage() {
   const handleDownloadPDF = async (invoiceId: number) => {
     try {
       const response = await invoiceService.getPdf(invoiceId);
-      const contentType = response.headers?.['content-type'] ?? '';
+      const contentType = String(response.headers?.['content-type'] ?? '');
       if (contentType.includes('application/json')) {
         const text = await (response.data as Blob).text();
         const data = JSON.parse(text);

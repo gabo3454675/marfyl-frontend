@@ -9,10 +9,9 @@ import { Button } from '@/components/ui/button';
 import { ConcertVenueMap } from '@/components/concert/concert-venue-map';
 import { isConcertFeatureEnabled, CONCERT_DEFAULT_SLUG } from '@/lib/concert/feature';
 import type { ConcertEventPublic } from '@/lib/concert/types';
-import { concertPublicRoutes } from '@/lib/concert/routes';
+import { concertService } from '@/lib/api';
 import { getApiErrorMessage, isNetworkFailure } from '@/lib/api/get-error-message';
 import { CONCERT_MOCK_ENABLED, getMockEvent } from '@/lib/concert/mock-data';
-import axios from 'axios';
 
 export default function ConciertoMapaPage() {
   const [event, setEvent] = useState<ConcertEventPublic | null>(null);
@@ -24,18 +23,11 @@ export default function ConciertoMapaPage() {
     if (!isConcertFeatureEnabled()) return;
     setLoading(true);
     setError(null);
-    if (CONCERT_MOCK_ENABLED) {
-      setEvent(getMockEvent());
-      setLoading(false);
-      return;
-    }
     try {
-      const res = await axios.get<ConcertEventPublic>(
-        concertPublicRoutes.event(CONCERT_DEFAULT_SLUG),
-      );
-      setEvent(res.data);
+      const data = await concertService.getEvent(CONCERT_DEFAULT_SLUG);
+      setEvent(data);
     } catch (err) {
-      if (isNetworkFailure(err)) {
+      if (CONCERT_MOCK_ENABLED && isNetworkFailure(err)) {
         setEvent(getMockEvent());
       } else {
         setError(getApiErrorMessage(err, 'No se pudo cargar el plano'));

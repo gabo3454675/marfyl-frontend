@@ -2,14 +2,13 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import axios from 'axios';
 import Link from 'next/link';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ConcertTicketCard } from '@/components/concert/concert-ticket-card';
-import { concertPublicRoutes } from '@/lib/concert/routes';
 import { isConcertFeatureEnabled } from '@/lib/concert/feature';
 import type { ConcertOrderPublicView } from '@/lib/concert/types';
+import { concertService } from '@/lib/api';
 import { getApiErrorMessage, isNetworkFailure } from '@/lib/api/get-error-message';
 import { CONCERT_MOCK_ENABLED, getMockOrder } from '@/lib/concert/mock-data';
 
@@ -26,18 +25,11 @@ export default function ConcertTicketPage() {
     if (!slug || !orderToken) return;
     setLoading(true);
     setError(null);
-    if (CONCERT_MOCK_ENABLED) {
-      setOrder(getMockOrder(orderToken));
-      setLoading(false);
-      return;
-    }
     try {
-      const res = await axios.get<ConcertOrderPublicView>(
-        concertPublicRoutes.order(slug, orderToken),
-      );
-      setOrder(res.data);
+      const data = await concertService.getOrder(slug, orderToken);
+      setOrder(data);
     } catch (err) {
-      if (isNetworkFailure(err)) {
+      if (CONCERT_MOCK_ENABLED && isNetworkFailure(err)) {
         setOrder(getMockOrder(orderToken));
         setError(null);
       } else {

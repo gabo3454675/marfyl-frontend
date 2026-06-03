@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import apiClient from '@/lib/api';
+import { fiscalService, type RetencionIva } from '@/lib/api';
 import { FiscalShell } from '@/components/fiscal/fiscal-shell';
 import { FiscalToolbar } from '@/components/fiscal/fiscal-toolbar';
 import { Button } from '@/components/ui/button';
@@ -17,35 +17,21 @@ import {
 } from '@/components/ui/table';
 import { Loader2, Download, FileText } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
-import { useAuthStore } from '@/store/useAuthStore';
-import { API_BASE_URL } from '@/lib/config/api-config';
-
-interface Retencion {
-  id: number;
-  certificateNumber?: string | null;
-  supplierTaxId?: string | null;
-  supplierName?: string | null;
-  withholdingAmount: number | string;
-  ivaAmount: number | string;
-  expense?: { description?: string };
-}
 
 export default function FiscalRetencionesPage() {
   const router = useRouter();
   const { canManageFiscal } = usePermission();
-  const token = useAuthStore((s) => s.token);
-  const orgId = useAuthStore((s) => s.selectedOrganizationId ?? s.selectedCompanyId);
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [rows, setRows] = useState<Retencion[]>([]);
+  const [rows, setRows] = useState<RetencionIva[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get<Retencion[]>('/fiscal/retenciones', { params: { year, month } });
-      setRows(res.data ?? []);
+      const data = await fiscalService.listRetenciones({ year, month });
+      setRows(data ?? []);
     } catch {
       setRows([]);
     } finally {
@@ -61,32 +47,22 @@ export default function FiscalRetencionesPage() {
     load();
   }, [canManageFiscal, router, load]);
 
-  const exportTxt = () => {
-    const headers: HeadersInit = {};
-    if (token) headers.Authorization = `Bearer ${token}`;
-    if (orgId) headers['x-tenant-id'] = String(orgId);
-    fetch(`${API_BASE_URL}/fiscal/retenciones/export.txt?year=${year}&month=${month}`, { headers })
-      .then((r) => r.blob())
-      .then((blob) => {
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `retenciones-${year}-${month}.txt`;
-        a.click();
-      });
+  const exportTxt = async () => {
+    const blob = await fiscalService.exportRetencionesTxt({ year, month });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `retenciones-${year}-${month}.txt`;
+    a.click();
+    URL.revokeObjectURL(a.href);
   };
 
-  const openPdf = (id: number) => {
-    const headers: HeadersInit = {};
-    if (token) headers.Authorization = `Bearer ${token}`;
-    if (orgId) headers['x-tenant-id'] = String(orgId);
-    fetch(`${API_BASE_URL}/fiscal/retenciones/${id}/pdf`, { headers })
-      .then((r) => r.blob())
-      .then((blob) => {
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `retencion-${id}.pdf`;
-        a.click();
-      });
+  const openPdf = async (id: number) => {
+    const blob = await fiscalService.getRetencionPdf(id);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `retencion-${id}.pdf`;
+    a.click();
+    URL.revokeObjectURL(a.href);
   };
 
   if (!canManageFiscal) return null;

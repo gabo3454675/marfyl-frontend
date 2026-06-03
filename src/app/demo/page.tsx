@@ -17,11 +17,13 @@ export default function DemoHubPage() {
         </h1>
         <p className="mt-3 text-center text-sm text-white/60">
           {CONCERT_MOCK_ENABLED
-            ? 'Modo mock activo: UI completa sin PostgreSQL.'
-            : 'Con BD: pnpm db:docker && pnpm db:setup'}
+            ? 'Modo demo activo: fallback a mock en errores de red.'
+            : 'Modo real: conectado al backend.'}
         </p>
         <p className="mt-2 text-center text-xs text-white/45">
-          Admin usa vista previa (NEXT_PUBLIC_FISCAL_PREVIEW=true) — sin pantalla de login.
+          {CONCERT_MOCK_ENABLED
+            ? 'Para forzar datos reales: quita NEXT_PUBLIC_CONCERT_MOCK=true del .env.local'
+            : 'Para activar fallback a mock: agrega NEXT_PUBLIC_CONCERT_MOCK=true al .env.local'}
         </p>
 
         <ul className="mt-10 flex flex-col gap-3">

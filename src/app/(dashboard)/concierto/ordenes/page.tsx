@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { CheckCircle, ExternalLink, ImageIcon, Loader2, RefreshCw } from 'lucide-react';
-import { apiClient } from '@/lib/api';
+import { concertService } from '@/lib/api';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,6 @@ import {
 } from '@/components/ui/table';
 import { isConcertFeatureEnabled } from '@/lib/concert/feature';
 import type { ConcertAdminOrder } from '@/lib/concert/types';
-import { concertAdminRoutes } from '@/lib/concert/routes';
 import { getApiErrorMessage, isNetworkFailure } from '@/lib/api/get-error-message';
 import { CONCERT_MOCK_ENABLED, getMockOrders } from '@/lib/concert/mock-data';
 import { CONCERT_DEFAULT_SLUG } from '@/lib/concert/feature';
@@ -56,25 +55,15 @@ export default function ConciertoOrdenesPage() {
     if (!isConcertFeatureEnabled()) return;
     setLoading(true);
     setError(null);
-    if (CONCERT_MOCK_ENABLED) {
-      const all = getMockOrders();
-      setOrders(
-        filter === 'all' ? all : all.filter((o) => o.status === filter),
-      );
-      setLoading(false);
-      return;
-    }
     try {
-      const qs =
-        filter === 'all' ? '' : `?status=${filter}`;
-      const res = await apiClient.get<ConcertAdminOrder[]>(
-        `${concertAdminRoutes.orders}${qs}`,
-      );
-      setOrders(Array.isArray(res.data) ? res.data : []);
+      const status = filter === 'all' ? undefined : filter;
+      const data = await concertService.getOrders(status);
+      setOrders(Array.isArray(data) ? data : []);
     } catch (err) {
-      if (isNetworkFailure(err)) {
+      if (CONCERT_MOCK_ENABLED && isNetworkFailure(err)) {
         const all = getMockOrders();
         setOrders(filter === 'all' ? all : all.filter((o) => o.status === filter));
+        setError(null);
       } else {
         setError(getApiErrorMessage(err, 'No se pudieron cargar las órdenes'));
         setOrders([]);
@@ -90,20 +79,20 @@ export default function ConciertoOrdenesPage() {
 
   const confirm = async (id: number) => {
     setConfirmingId(id);
-    if (CONCERT_MOCK_ENABLED) {
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.id === id ? { ...o, status: 'PAID' as const, paidAt: new Date().toISOString() } : o,
-        ),
-      );
-      setConfirmingId(null);
-      return;
-    }
+    setError(null);
     try {
-      await apiClient.post(concertAdminRoutes.confirm(id));
+      await concertService.confirmOrder(id);
       await load();
     } catch (err) {
-      setError(getApiErrorMessage(err, 'No se pudo confirmar el pago'));
+      if (CONCERT_MOCK_ENABLED && isNetworkFailure(err)) {
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === id ? { ...o, status: 'PAID' as const, paidAt: new Date().toISOString() } : o,
+          ),
+        );
+      } else {
+        setError(getApiErrorMessage(err, 'No se pudo confirmar el pago'));
+      }
     } finally {
       setConfirmingId(null);
     }

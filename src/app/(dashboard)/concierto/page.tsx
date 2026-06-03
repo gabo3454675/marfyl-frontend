@@ -3,14 +3,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ExternalLink, Loader2, Settings2, Ticket } from 'lucide-react';
-import { apiClient } from '@/lib/api';
+import { concertService } from '@/lib/api';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard } from '@/components/admin/admin-card';
 import { AdminStatCard } from '@/components/admin/admin-stat-card';
 import { Button } from '@/components/ui/button';
 import { isConcertFeatureEnabled } from '@/lib/concert/feature';
 import type { ConcertAdminOverview } from '@/lib/concert/types';
-import { concertAdminRoutes } from '@/lib/concert/routes';
 import { getApiErrorMessage, isNetworkFailure } from '@/lib/api/get-error-message';
 import { CONCERT_MOCK_ENABLED, getMockOverview } from '@/lib/concert/mock-data';
 
@@ -28,17 +27,13 @@ export default function ConciertoAdminPage() {
     }
     setLoading(true);
     setError(null);
-    if (CONCERT_MOCK_ENABLED) {
-      setOverview(getMockOverview());
-      setLoading(false);
-      return;
-    }
     try {
-      const res = await apiClient.get<ConcertAdminOverview>(concertAdminRoutes.overview);
-      setOverview(res.data);
+      const data = await concertService.getOverview();
+      setOverview(data);
     } catch (err) {
-      if (isNetworkFailure(err)) {
+      if (CONCERT_MOCK_ENABLED && isNetworkFailure(err)) {
         setOverview(getMockOverview());
+        setError(null);
       } else {
         setError(getApiErrorMessage(err, 'No se pudo cargar el resumen'));
       }
@@ -55,7 +50,7 @@ export default function ConciertoAdminPage() {
     setSettingUp(true);
     setError(null);
     try {
-      await apiClient.post(concertAdminRoutes.setup);
+      await concertService.setupEvent();
       await load();
     } catch (err) {
       setError(getApiErrorMessage(err, 'No se pudo configurar el evento'));
@@ -165,7 +160,7 @@ export default function ConciertoAdminPage() {
                   onClick={async () => {
                     setSettingUp(true);
                     try {
-                      await apiClient.post(concertAdminRoutes.syncCatalog);
+                      await concertService.syncCatalog();
                       await load();
                     } catch (err) {
                       setError(getApiErrorMessage(err, 'No se pudo sincronizar precios'));

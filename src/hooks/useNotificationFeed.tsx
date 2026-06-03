@@ -9,12 +9,11 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import apiClient from '@/lib/api';
+import apiClient, { fiscalService } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/api/get-error-message';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePermission } from '@/hooks/usePermission';
 import type { TaskForResolution } from '@/components/task-resolution-modal';
-import type { ComplianceHubApiResponse } from '@/types/fiscal-calendar-hub';
 import {
   buildNotificationFeedItems,
   countActionableFeedItems,
@@ -130,10 +129,7 @@ export function NotificationFeedProvider({ children }: { children: ReactNode }) 
 
       if (canManageFiscal) {
         try {
-          const hubRes = await apiClient.get<ComplianceHubApiResponse>('/fiscal/compliance/hub', {
-            params: { year, month },
-          });
-          const hub = hubRes.data;
+          const hub = await fiscalService.getComplianceHub({ year, month });
           setFiscal({
             mode: hub.mode,
             modeReasons: hub.modeReasons ?? [],

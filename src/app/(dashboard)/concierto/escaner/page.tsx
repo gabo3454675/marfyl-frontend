@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Loader2, ScanLine } from 'lucide-react';
-import { apiClient } from '@/lib/api';
+import { concertService } from '@/lib/api';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard } from '@/components/admin/admin-card';
 import { Button } from '@/components/ui/button';
@@ -11,8 +11,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { isConcertFeatureEnabled } from '@/lib/concert/feature';
 import type { ScanTicketResult } from '@/lib/concert/types';
-import { concertAdminRoutes } from '@/lib/concert/routes';
-import { getApiErrorMessage } from '@/lib/api/get-error-message';
+import { getApiErrorMessage, isNetworkFailure } from '@/lib/api/get-error-message';
 import { CONCERT_MOCK_ENABLED } from '@/lib/concert/mock-data';
 
 export default function ConciertoEscanerPage() {
@@ -55,13 +54,11 @@ export default function ConciertoEscanerPage() {
       return;
     }
     try {
-      const res = await apiClient.post<ScanTicketResult>(concertAdminRoutes.scan, {
-        qrPayload: trimmed,
-      });
-      setResult(res.data);
+      const res = await concertService.scanTicket(trimmed);
+      setResult(res);
       setPayload('');
     } catch (err) {
-      if (CONCERT_MOCK_ENABLED) {
+      if (CONCERT_MOCK_ENABLED && isNetworkFailure(err)) {
         setError('Use el código MARFYL-TKT-DEMO-0001 en modo demo');
       } else {
         setError(getApiErrorMessage(err, 'Entrada no válida'));

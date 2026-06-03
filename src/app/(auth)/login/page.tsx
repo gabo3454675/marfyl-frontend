@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { authService } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Mail, Lock, Loader2, Sparkles, ArrowRight } from 'lucide-react';
-import { isFiscalPreviewMode } from '@/lib/fiscal-preview';
+import { isFiscalPreviewMode, isExplicitLogout } from '@/lib/fiscal-preview';
 import { LOGIN_COPY, PRICING_TEASER } from '@/lib/content/marketing-copy';
 
 function LoginForm() {
@@ -17,7 +17,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (isFiscalPreviewMode()) {
+    if (isFiscalPreviewMode() && !isExplicitLogout()) {
       router.replace('/');
     }
   }, [router]);

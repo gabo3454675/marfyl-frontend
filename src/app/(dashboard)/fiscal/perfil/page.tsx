@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FiscalShell } from '@/components/fiscal/fiscal-shell';
-import apiClient from '@/lib/api';
+import { fiscalService, type FiscalTaxpayerType } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,7 +21,7 @@ import { toast } from 'sonner';
 import { ContentFaqSheet } from '@/components/help/content-faq-sheet';
 import { FISCAL_FAQ } from '@/lib/content/faq-content';
 
-type TaxpayerType = 'ORDINARIO' | 'ESPECIAL' | 'FORMAL';
+type TaxpayerType = FiscalTaxpayerType;
 
 export default function FiscalPerfilPage() {
   const router = useRouter();
@@ -43,28 +43,11 @@ export default function FiscalPerfilPage() {
       router.replace('/');
       return;
     }
-    apiClient
-      .get<{
-        organization: {
-          taxId?: string | null;
-          legalName?: string | null;
-          nombre?: string;
-          isSpecialTaxpayer?: boolean;
-          isFormalTaxpayer?: boolean;
-        };
-        profile: {
-          taxId?: string | null;
-          legalName?: string | null;
-          taxpayerType?: TaxpayerType;
-          isWithholdingAgent?: boolean;
-          isSubjectToWithholding?: boolean;
-          controlSeriesPrefix?: string;
-          nextControlSequence?: number;
-        } | null;
-      }>('/fiscal/profile')
+    fiscalService
+      .getProfile()
       .then((res) => {
-        const org = res.data.organization;
-        const p = res.data.profile;
+        const org = res.organization;
+        const p = res.profile;
         setTaxId(p?.taxId ?? org?.taxId ?? '');
         setLegalName(p?.legalName ?? org?.legalName ?? org?.nombre ?? '');
         setTaxpayerType(p?.taxpayerType ?? 'ORDINARIO');
@@ -82,7 +65,7 @@ export default function FiscalPerfilPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await apiClient.post('/fiscal/profile', {
+      await fiscalService.upsertProfile({
         taxId: taxId.trim() || undefined,
         legalName: legalName.trim() || undefined,
         taxpayerType,

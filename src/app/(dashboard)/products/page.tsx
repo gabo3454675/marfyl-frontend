@@ -105,7 +105,7 @@ export default function ProductsPage() {
 
       const blob = new Blob([response.data], {
         type:
-          response.headers?.['content-type'] ||
+          String(response.headers?.['content-type'] ?? '') ||
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       });
 

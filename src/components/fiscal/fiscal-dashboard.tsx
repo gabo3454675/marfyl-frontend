@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import apiClient from '@/lib/api';
+import { fiscalService, type FiscalDashboardData } from '@/lib/api';
 import { FiscalShell } from '@/components/fiscal/fiscal-shell';
 import { FiscalKpiCard } from '@/components/fiscal/v2/kpi-card';
 import { FiscalAgenda, type AgendaItem } from '@/components/fiscal/v2/agenda-fiscal';
@@ -12,36 +12,17 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Upload, AlertTriangle, TrendingUp, FileText, ShoppingCart, Percent } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 
-interface DashboardData {
-  period: { year: number; month: number; label: string; status: string; statusLabel: string };
-  exchangeRate: number;
-  metrics: {
-    grossSalesUsd: number;
-    debitFiscalUsd: number;
-    debitFiscalBs: number;
-    creditFiscalUsd: number;
-    creditFiscalBs: number;
-    netIvaUsd: number;
-    netIvaBs: number;
-    salesCount: number;
-    purchasesCount: number;
-  };
-  agenda: { dayLabel: string; title: string; urgency: string }[];
-  alerts: { type: string; message: string }[];
-  profile: { taxId?: string | null; rifDigit?: number | null };
-}
-
 export function FiscalDashboard() {
   const router = useRouter();
   const { canManageFiscal } = usePermission();
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [data, setData] = useState<FiscalDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get<DashboardData>('/fiscal/dashboard');
-      setData(res.data);
+      const res = await fiscalService.getDashboard();
+      setData(res);
     } catch {
       setData(null);
     } finally {

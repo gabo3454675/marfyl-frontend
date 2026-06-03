@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { ChevronLeft, ChevronDown, LogOut, Check, Download } from 'lucide-react';
 import { FISCAL_NAV_ITEMS, isFiscalRoute, resolveFiscalNavId } from '@/config/fiscal-nav';
@@ -28,12 +28,12 @@ import { canShowNavItem, type NavItem } from '@/hooks/useNavByRole';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { markExplicitLogout } from '@/lib/fiscal-preview';
 
 const navigationItems = APP_NAV_ITEMS;
 const SIDEBAR_COLLAPSED_KEY = 'marfyl-sidebar-collapsed';
 
 export default function Sidebar() {
-  const router = useRouter();
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -123,8 +123,9 @@ export default function Sidebar() {
   const activeItem = getActiveItem();
 
   const handleLogout = () => {
+    markExplicitLogout();
     clearAuth();
-    router.push('/login');
+    window.location.assign('/login');
   };
 
   // Cambio de organización: obtener nuevo JWT con el tenantId (backend no confía en el frontend)

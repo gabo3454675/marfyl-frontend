@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import apiClient from '@/lib/api';
+import { fiscalService } from '@/lib/api';
 import {
   buildCalendarHubViewModel,
   buildHubFromComplianceApi,
@@ -10,7 +10,6 @@ import {
 import { mockHubViewModel } from '@/lib/fiscal/calendar-hub-mock';
 import type {
   CalendarApiResponse,
-  ComplianceHubApiResponse,
   FiscalCalendarHubViewModel,
   FiscalHistoryEvent,
 } from '@/types/fiscal-calendar-hub';
@@ -61,11 +60,9 @@ export function useFiscalCalendarHub(year: number, month: number) {
     let profileSnapshot = mapProfileToSnapshot({});
 
     try {
-      const hubRes = await apiClient.get<ComplianceHubApiResponse>('/fiscal/compliance/hub', {
-        params: { year, month },
-      });
+      const hubRes = await fiscalService.getComplianceHub({ year, month });
       historyRef.current = loadHistory();
-      const vm = buildHubFromComplianceApi(hubRes.data, {
+      const vm = buildHubFromComplianceApi(hubRes, {
         backendOnline: true,
         history: historyRef.current,
         fromMock: false,
@@ -79,14 +76,11 @@ export function useFiscalCalendarHub(year: number, month: number) {
 
     try {
       const [calRes, profileRes] = await Promise.all([
-        apiClient.get<CalendarApiResponse>('/fiscal/calendario', { params: { year, month } }),
-        apiClient.get<{
-          organization: Record<string, unknown>;
-          profile: Record<string, unknown> | null;
-        }>('/fiscal/profile'),
+        fiscalService.listCalendar({ year, month }),
+        fiscalService.getProfile(),
       ]);
-      cal = calRes.data;
-      profileSnapshot = mapProfileToSnapshot(profileRes.data as Parameters<typeof mapProfileToSnapshot>[0]);
+      cal = calRes;
+      profileSnapshot = mapProfileToSnapshot(profileRes as Parameters<typeof mapProfileToSnapshot>[0]);
     } catch {
       backendOnline = false;
       const mock = mockHubViewModel(year, month, true);
@@ -111,7 +105,7 @@ export function useFiscalCalendarHub(year: number, month: number) {
   const syncRules = useCallback(async () => {
     setSyncing(true);
     try {
-      await apiClient.post('/fiscal/calendario/sync', null, { params: { force: 'true' } });
+      await fiscalService.syncCalendario({ force: true });
       historyRef.current = pushHistory('sync', 'Reglas SENIAT sincronizadas', `Período ${month}/${year}`);
       await load();
       return true;

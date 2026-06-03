@@ -25,6 +25,7 @@ import { usePermission } from '@/hooks/usePermission';
 import { canShowNavItem } from '@/hooks/useNavByRole';
 import { useAuthStore } from '@/store/useAuthStore';
 import { apiClient, authService } from '@/lib/api';
+import { markExplicitLogout } from '@/lib/fiscal-preview';
 
 const navigationItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Grid2x2, href: '/', permission: 'canViewDashboard' as const },
@@ -144,8 +145,9 @@ export default function BottomNav() {
 
   const handleLogout = () => {
     setIsSheetOpen(false);
+    markExplicitLogout();
     clearAuth();
-    router.push('/login');
+    window.location.assign('/login');
   };
 
   return (

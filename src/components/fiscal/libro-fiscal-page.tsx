@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import apiClient from '@/lib/api';
+import { fiscalService } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,7 @@ import type { Documento } from '@/lib/fiscal/types';
 
 type LibroKind = 'ventas' | 'compras';
 
+/** Interfaz local que unifica LibroVentaLine y LibroCompraLine (no existe un type único exportado). */
 interface LibroLine {
   id: number;
   issueDate: string;
@@ -72,23 +73,22 @@ export function LibroFiscalPage({ kind }: { kind: LibroKind }) {
   const [loading, setLoading] = useState(true);
   const [lines, setLines] = useState<LibroLine[]>([]);
 
-  const endpoint = kind === 'ventas' ? '/fiscal/libro-ventas' : '/fiscal/libro-compras';
   const tituloTabla = kind === 'ventas' ? 'Lista de ventas' : 'Lista de compras';
   const normas = kind === 'ventas' ? NORMAS_VENTAS : NORMAS_COMPRAS;
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get<{ lines: LibroLine[] }>(endpoint, {
-        params: { year, month },
-      });
-      setLines(res.data.lines ?? []);
+      const response = kind === 'ventas'
+        ? await fiscalService.listLibroVentas({ year, month })
+        : await fiscalService.listLibroCompras({ year, month });
+      setLines(response.lines ?? []);
     } catch {
       setLines([]);
     } finally {
       setLoading(false);
     }
-  }, [endpoint, year, month]);
+  }, [kind, year, month]);
 
   useEffect(() => {
     if (!canManageFiscal) {

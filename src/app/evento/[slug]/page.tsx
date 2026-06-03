@@ -2,14 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import axios from 'axios';
 import { Loader2, Ticket, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ConcertVenueMap } from '@/components/concert/concert-venue-map';
 import { SeatMap } from '@/components/concert/seat-map';
-import { concertPublicRoutes } from '@/lib/concert/routes';
 import { isConcertFeatureEnabled } from '@/lib/concert/feature';
 import type {
   ConcertEventPublic,
@@ -17,6 +15,7 @@ import type {
   ConcertSeatPublic,
   HoldSeatsResponse,
 } from '@/lib/concert/types';
+import { concertService } from '@/lib/api';
 import { getApiErrorMessage, isNetworkFailure } from '@/lib/api/get-error-message';
 import { CONCERT_MOCK_ENABLED, getMockEvent, mockHold } from '@/lib/concert/mock-data';
 
@@ -54,16 +53,11 @@ export default function ConcertEventPage() {
     if (!slug) return;
     setLoading(true);
     setError(null);
-    if (CONCERT_MOCK_ENABLED) {
-      setEvent(getMockEvent());
-      setLoading(false);
-      return;
-    }
     try {
-      const res = await axios.get<ConcertEventPublic>(concertPublicRoutes.event(slug));
-      setEvent(res.data);
+      const data = await concertService.getEvent(slug);
+      setEvent(data);
     } catch (err) {
-      if (isNetworkFailure(err)) {
+      if (CONCERT_MOCK_ENABLED && isNetworkFailure(err)) {
         setEvent(getMockEvent());
         setError(null);
       } else {
@@ -126,21 +120,18 @@ export default function ConcertEventPage() {
     if (selected.size === 0) return;
     setHolding(true);
     setError(null);
-    if (CONCERT_MOCK_ENABLED) {
-      setHold(mockHold([...selected]));
-      setStep('checkout');
-      setHolding(false);
-      return;
-    }
     try {
-      const res = await axios.post<HoldSeatsResponse>(concertPublicRoutes.hold(slug), {
-        seatIds: [...selected],
-      });
-      setHold(res.data);
+      const data = await concertService.holdSeats(slug, [...selected]);
+      setHold(data);
       setStep('checkout');
     } catch (err) {
-      setError(getApiErrorMessage(err, 'No se pudieron reservar los asientos'));
-      await loadEvent();
+      if (CONCERT_MOCK_ENABLED && isNetworkFailure(err)) {
+        setHold(mockHold([...selected]));
+        setStep('checkout');
+      } else {
+        setError(getApiErrorMessage(err, 'No se pudieron reservar los asientos'));
+        await loadEvent();
+      }
     } finally {
       setHolding(false);
     }
@@ -164,11 +155,6 @@ export default function ConcertEventPage() {
     if (!hold) return;
     setSubmitting(true);
     setError(null);
-    if (CONCERT_MOCK_ENABLED) {
-      router.push(`/evento/${slug}/entrada/demo-pending-token`);
-      setSubmitting(false);
-      return;
-    }
     try {
       const form = new FormData();
       form.append('holdToken', hold.holdToken);
@@ -180,10 +166,14 @@ export default function ConcertEventPage() {
       if (paymentReference.trim()) form.append('paymentReference', paymentReference.trim());
       if (paymentProofFile) form.append('paymentProof', paymentProofFile);
 
-      const res = await axios.post(concertPublicRoutes.checkout(slug), form);
-      router.push(`/evento/${slug}/entrada/${res.data.orderPublicToken}`);
+      const data = await concertService.checkout(slug, form);
+      router.push(`/evento/${slug}/entrada/${data.orderPublicToken}`);
     } catch (err) {
-      setError(getApiErrorMessage(err, 'No se pudo registrar la compra'));
+      if (CONCERT_MOCK_ENABLED && isNetworkFailure(err)) {
+        router.push(`/evento/${slug}/entrada/demo-pending-token`);
+      } else {
+        setError(getApiErrorMessage(err, 'No se pudo registrar la compra'));
+      }
     } finally {
       setSubmitting(false);
     }

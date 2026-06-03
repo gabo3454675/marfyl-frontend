@@ -259,7 +259,7 @@ export default function ExpensesPage() {
       });
       const blob = new Blob([response.data], {
         type:
-          response.headers?.['content-type'] ||
+          String(response.headers?.['content-type'] ?? '') ||
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       });
       const url = window.URL.createObjectURL(blob);

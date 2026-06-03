@@ -584,7 +584,7 @@ export default function POSPage() {
                     onClick={async () => {
                       try {
                         const response = await invoiceService.getPdf(lastInvoiceId);
-                        const contentType = response.headers?.['content-type'] ?? '';
+                        const contentType = String(response.headers?.['content-type'] ?? '');
                         if (contentType.includes('application/json')) {
                           const text = await (response.data as Blob).text();
                           const data = JSON.parse(text);
