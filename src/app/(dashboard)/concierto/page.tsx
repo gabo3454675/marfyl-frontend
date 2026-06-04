@@ -8,12 +8,22 @@ import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard } from '@/components/admin/admin-card';
 import { AdminStatCard } from '@/components/admin/admin-stat-card';
 import { Button } from '@/components/ui/button';
-import { isConcertFeatureEnabled } from '@/lib/concert/feature';
+import {
+  isConcertAdminEnabledForOrganization,
+  isConcertFeatureEnabled,
+} from '@/lib/concert/feature';
+import { useAuthStore } from '@/store/useAuthStore';
 import type { ConcertAdminOverview } from '@/lib/concert/types';
 import { getApiErrorMessage, isNetworkFailure } from '@/lib/api/get-error-message';
 import { CONCERT_MOCK_ENABLED, getMockOverview } from '@/lib/concert/mock-data';
 
 export default function ConciertoAdminPage() {
+  const getCurrentOrganization = useAuthStore((s) => s.getCurrentOrganization);
+  const currentOrg = getCurrentOrganization();
+  const concertAllowed = isConcertAdminEnabledForOrganization(
+    currentOrg && 'slug' in currentOrg ? currentOrg : null,
+  );
+
   const [overview, setOverview] = useState<ConcertAdminOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [settingUp, setSettingUp] = useState(false);
@@ -21,8 +31,10 @@ export default function ConciertoAdminPage() {
   const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
-    if (!isConcertFeatureEnabled()) {
-      setError('Módulo de concierto desactivado');
+    if (!isConcertFeatureEnabled() || !concertAllowed) {
+      setError(
+        'Boletería disponible solo para Monddy Corp. Cambie de empresa en el menú lateral.',
+      );
       setLoading(false);
       return;
     }
@@ -41,7 +53,7 @@ export default function ConciertoAdminPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [concertAllowed]);
 
   useEffect(() => {
     load();

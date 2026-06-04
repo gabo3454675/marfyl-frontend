@@ -11,7 +11,9 @@ export function isFiscalPreviewMode(): boolean {
   return process.env.NODE_ENV === 'development';
 }
 
-export const FISCAL_PREVIEW_ORG_ID = 1;
+/** Solo vista previa dev; no usar org real de producción. */
+export const FISCAL_PREVIEW_ORG_ID = 3;
+export const FISCAL_PREVIEW_ORG_SLUG = 'monddy';
 
 export const FISCAL_PREVIEW_TOKEN = 'dev-preview-token';
 
@@ -62,8 +64,8 @@ export function seedFiscalPreviewAuth(): void {
       organizations: [
         {
           id: FISCAL_PREVIEW_ORG_ID,
-          name: 'Demo MARFYL',
-          slug: 'demo-marfyl',
+          name: 'Vista previa (dev)',
+          slug: FISCAL_PREVIEW_ORG_SLUG,
           plan: 'PRO',
           role: 'ADMIN',
           currencyCode: 'USD',

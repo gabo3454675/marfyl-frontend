@@ -35,9 +35,11 @@ function useOrganizationsList() {
  * el rol es correcto aunque no sea miembro de la org seleccionada.
  */
 export function usePermission() {
+  const user = useAuthStore((s) => s.user);
   const selectedOrganizationId = useAuthStore((s) => s.selectedOrganizationId);
   const selectedCompanyId = useAuthStore((s) => s.selectedCompanyId);
   const organizations = useOrganizationsList();
+  const isPlatformSuperAdmin = user?.isSuperAdmin === true;
   const selectedId = selectedOrganizationId ?? selectedCompanyId;
 
   const currentOrg = useMemo(
@@ -83,7 +85,7 @@ export function usePermission() {
       | 'FISCAL'
       | string;
 
-    const isSuperAdmin = role === 'SUPER_ADMIN';
+    const isSuperAdmin = isPlatformSuperAdmin || role === 'SUPER_ADMIN';
     const isAdmin = role === 'ADMIN';
     const isManager = role === 'MANAGER';
     const isSeller = role === 'SELLER';
@@ -115,7 +117,7 @@ export function usePermission() {
       canViewDashboard: true,
       canViewFinancialCharts: isSuperAdmin || isAdmin || isManager,
     };
-  }, [currentOrg]);
+  }, [currentOrg, isPlatformSuperAdmin]);
 
   return permissions;
 }

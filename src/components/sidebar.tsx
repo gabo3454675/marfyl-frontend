@@ -7,7 +7,10 @@ import { ChevronLeft, ChevronDown, LogOut, Check, Download } from 'lucide-react'
 import { FISCAL_NAV_ITEMS, isFiscalRoute, resolveFiscalNavId } from '@/config/fiscal-nav';
 import { APP_NAV_ITEMS, APP_NAV_SECTIONS, getNavItem, resolveAppNavId } from '@/config/app-nav';
 import { CONCERT_NAV_ITEMS, resolveConcertNavId } from '@/config/concert-nav';
-import { isConcertFeatureEnabled } from '@/lib/concert/feature';
+import {
+  isConcertAdminEnabledForOrganization,
+  isConcertFeatureEnabled,
+} from '@/lib/concert/feature';
 import { FiscalNavCollapsible, NavSection, SidebarNavLink } from '@/components/layout/sidebar-nav-parts';
 import { MarfylLogo } from '@/components/brand/marfyl-logo';
 import { Button } from '@/components/ui/button';
@@ -116,10 +119,6 @@ export default function Sidebar() {
     return resolveAppNavId(pathname ?? '');
   };
 
-  const concertNavItems = isConcertFeatureEnabled()
-    ? CONCERT_NAV_ITEMS.filter((item) => canShowNavItem(item as NavItem, permissions))
-    : [];
-
   const activeItem = getActiveItem();
 
   const handleLogout = () => {
@@ -166,6 +165,15 @@ export default function Sidebar() {
 
   // Obtener organización/empresa actual y tasa global (reactiva al guardar en Configuración)
   const currentOrg = getCurrentOrganization();
+  const concertNavItems =
+    isConcertFeatureEnabled() &&
+    isConcertAdminEnabledForOrganization(
+      currentOrg && 'slug' in currentOrg
+        ? (currentOrg as { slug: string; concertModuleEnabled?: boolean })
+        : null,
+    )
+      ? CONCERT_NAV_ITEMS.filter((item) => canShowNavItem(item as NavItem, permissions))
+      : [];
   const organizations = getOrganizations();
   // Super Admin: selector SIEMPRE visible (carga todas las orgs desde API, no solo membresías)
   const hasMultipleOrganizations = user?.isSuperAdmin === true

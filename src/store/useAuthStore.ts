@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { clearSessionCookie, setSessionCookie } from '@/lib/auth-session-cookie';
+import { filterOrganizationsForLogin } from '@/lib/founding-orgs';
 
 export interface Company {
   id: number;
@@ -24,6 +25,10 @@ export interface Organization {
   rateUpdatedAt?: string | null;
   /** Email de quien actualizó la tasa por última vez (toda la org ve lo mismo) */
   rateUpdatedBy?: string | null;
+  /** Grupo fundador: suscripción siempre activa sin cobro */
+  billingExempt?: boolean;
+  /** Boletería / concierto temporal habilitado en esta org */
+  concertModuleEnabled?: boolean;
 }
 
 interface User {
@@ -222,13 +227,20 @@ export const useAuthStore = create<AuthState>()(
       // Helper para obtener todas las organizaciones
       getOrganizations: () => {
         const state = get();
+        const isPlatformSuperAdmin = state.user?.isSuperAdmin === true;
         // Super Admin: usar lista de todas las orgs si está cargada
-        if (state.user?.isSuperAdmin && state.superAdminOrganizations.length > 0) {
-          return state.superAdminOrganizations;
+        if (isPlatformSuperAdmin && state.superAdminOrganizations.length > 0) {
+          return filterOrganizationsForLogin(
+            state.superAdminOrganizations,
+            isPlatformSuperAdmin,
+          );
         }
         // Priorizar organizations, pero incluir companies como fallback
         if (state.user?.organizations && state.user.organizations.length > 0) {
-          return state.user.organizations;
+          return filterOrganizationsForLogin(
+            state.user.organizations,
+            isPlatformSuperAdmin,
+          );
         }
         // Convertir companies a formato organization si no hay organizations
         return (state.user?.companies || []).map((c) => ({

@@ -11,6 +11,7 @@ export function isPublicSurfacePath(pathname: string): boolean {
     pathname.startsWith('/blog') ||
     pathname.startsWith('/login') ||
     pathname.startsWith('/register') ||
+    pathname.startsWith('/onboarding') ||
     pathname.startsWith('/recover-password') ||
     pathname.startsWith('/reset-password') ||
     pathname.startsWith('/evento') ||

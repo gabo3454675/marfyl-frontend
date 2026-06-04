@@ -18,10 +18,15 @@ export function getApiErrorMessage(err: unknown, fallback = 'Error al cargar dat
   if (err instanceof AxiosError) {
     const data = err.response?.data as { message?: string | string[] } | undefined;
     const msg = data?.message;
-    if (typeof msg === 'string') return msg;
+    if (typeof msg === 'string') {
+      if (msg === 'Internal server error' && (err.response?.status === 500 || err.response?.status === 503)) {
+        return 'Base de datos no disponible. En marfyl-backend: ejecute scripts/setup-local-postgres.sql en pgAdmin, luego pnpm db:setup y reinicie el backend.';
+      }
+      return msg;
+    }
     if (Array.isArray(msg)) return msg.join(', ');
-    if (err.response?.status === 503) {
-      return 'Base de datos no disponible. Ejecute pnpm db:docker y pnpm db:setup en el proyecto.';
+    if (err.response?.status === 503 || err.response?.status === 500) {
+      return 'Base de datos no disponible. En marfyl-backend: scripts/setup-local-postgres.sql → pnpm db:setup → reiniciar backend.';
     }
   }
   if (err instanceof Error && err.message) return err.message;

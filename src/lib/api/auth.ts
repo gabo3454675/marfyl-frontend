@@ -10,6 +10,8 @@ export interface RegisterPayload {
   email: string;
   password: string;
   fullName: string;
+  organizationName: string;
+  organizationSlug: string;
 }
 
 export interface CompletePasswordResetPayload {

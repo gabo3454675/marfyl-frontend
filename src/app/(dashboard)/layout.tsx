@@ -127,6 +127,16 @@ export default function DashboardLayout({
       }
       if (devPreview) return;
 
+      if (
+        isAuthenticated &&
+        user &&
+        !user.isSuperAdmin &&
+        !hasOrganizations
+      ) {
+        router.replace('/onboarding');
+        return;
+      }
+
       // requiresPasswordChange: bloquear acceso hasta actualizar clave temporal
       if (user?.requiresPasswordChange) {
         router.push(`/reset-password?email=${encodeURIComponent(user.email)}`);

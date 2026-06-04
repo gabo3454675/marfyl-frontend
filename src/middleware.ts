@@ -24,6 +24,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
+  if (!session && pathname === '/onboarding') {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
   // Vista previa dev: saltar login (excepto si el usuario hizo logout explícito)
   if (preview && pathname === '/login' && !explicitLogout) {
     return NextResponse.redirect(new URL('/', request.url));
@@ -33,5 +37,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/login', '/register'],
+  matcher: ['/', '/login', '/register', '/onboarding'],
 };

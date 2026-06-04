@@ -590,7 +590,7 @@ Usuario 2:
   Password: monddy33
 
 Organizaciones:
-  - MARFYL Demo (slug: marfyl-demo, plan: PREMIUM)
+  - Davean (slug: davean, plan: ENTERPRISE)
   - Monddy (slug: monddy, plan: ENTERPRISE)
   - El Rancho De German (slug: el-rancho-de-german, plan: ENTERPRISE)
 ```
@@ -602,7 +602,7 @@ Usuario:
   Password: admin123
 
 Organizaciones:
-  - Marfyl Demo (slug: marfyl-demo, plan: PREMIUM)
+  - Davean (slug: davean, plan: ENTERPRISE)
   - El Rancho de Germán (slug: el-rancho-de-german, plan: ENTERPRISE)
   - Monddy Corp (slug: monddy, plan: ENTERPRISE)
 ```
