@@ -24,6 +24,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { usePermission } from '@/hooks/usePermission';
 import { FiscalIntegrationStrip } from '@/components/fiscal/v2/fiscal-integration-strip';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
+import { toast } from 'sonner';
 
 interface InvoiceItem {
   id: number;
@@ -136,7 +137,7 @@ export default function InvoicesPage() {
     } catch (error: any) {
       console.error('Error downloading PDF:', error);
       const msg = error.response?.data?.message ?? 'Error al descargar la factura';
-      alert(typeof msg === 'string' ? msg : 'Error al descargar la factura');
+      toast.error(typeof msg === 'string' ? msg : 'Error al descargar la factura');
     }
   };
 

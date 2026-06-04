@@ -52,7 +52,7 @@ export function AdminCard({
           ) : null}
         </div>
       ) : null}
-      {children != null ? (
+      {children !== undefined ? (
         <div className={cn('admin-card-body p-4 sm:p-6', bodyClassName)}>{children}</div>
       ) : null}
     </AdminPanel>
@@ -97,7 +97,7 @@ export function AdminTableWrap({
   className?: string;
 }) {
   return (
-    <div className={cn('admin-table-wrap -mx-1 overflow-x-auto overscroll-x-contain', className)}>
+    <div className={cn('admin-table-wrap -mx-3 sm:-mx-1 overflow-x-auto overscroll-x-contain', className)}>
       {children}
     </div>
   );

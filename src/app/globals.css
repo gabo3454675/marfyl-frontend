@@ -830,10 +830,15 @@
   }
 
   .admin-section {
-    @apply pt-8 md:pt-10 border-t border-border/70 first:border-t-0 first:pt-0;
+    @apply pt-8 md:pt-10;
+    border-top: 1px solid hsl(var(--border) / 0.7);
   }
   .admin-section + .admin-section {
     @apply mt-2;
+  }
+  .admin-section:first-of-type {
+    border-top: none;
+    padding-top: 0;
   }
   .admin-section-head {
     @apply mb-5 md:mb-7;
@@ -1036,7 +1041,7 @@
     color: hsl(210, 100%, 63%);
   }
   .admin-metric-value {
-    @apply text-lg sm:text-xl lg:text-2xl font-bold tabular-nums tracking-tight text-foreground break-words leading-tight;
+    @apply text-lg sm:text-xl lg:text-2xl font-bold tabular-nums tracking-tight text-foreground break-all leading-tight;
   }
 
   .admin-metric-title {

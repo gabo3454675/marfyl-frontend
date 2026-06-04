@@ -13,7 +13,7 @@ export function FiscalToolbar({
   return (
     <div
       className={cn(
-        'flex flex-wrap items-end gap-3 rounded-lg border border-border/60 bg-muted/25 px-4 py-3',
+        'flex flex-col sm:flex-row flex-wrap items-end gap-3 rounded-lg border border-border/60 bg-muted/25 px-3 sm:px-4 py-3',
         className,
       )}
     >

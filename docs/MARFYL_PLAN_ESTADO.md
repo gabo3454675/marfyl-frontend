@@ -698,3 +698,43 @@ Navegar a /fiscal/predeclaracion → "Cerrar período"
 | Fecha | Cambio | Autor |
 |-------|--------|-------|
 | 2026-06-03 | Creación inicial del handoff | docs-agent |
+| 2026-06-04 | Auditoría integral + security hardening | security-agent, architect-agent, coding-interface-agent |
+
+---
+
+## Auditoría de Seguridad - 4 Junio 2026
+
+### Vulnerabilidades Críticas Corregidas
+
+| ID | Severidad | Descripción | Estado |
+|----|-----------|-------------|--------|
+| SEC-001 | 🔴 CRÍTICA | Credenciales hardcoded `338232gG`, `monddy33` | ✅ CORREGIDO |
+| SEC-002 | 🔴 CRÍTICA | JWT_SECRET por defecto inseguro | ✅ CORREGIDO |
+| SEC-003 | 🔴 CRÍTICA | Tokens públicos predecibles (uuidv4) | ✅ CORREGIDO |
+| SEC-004 | 🔴 CRÍTICA | Endpoint mark-paid sin protección | ✅ CORREGIDO |
+| SEC-005/006 | 🟠 ALTA | Sin rate limiting en auth | ✅ CORREGIDO |
+| SEC-007 | 🟠 ALTA | Sin protección CSRF | ✅ CORREGIDO |
+| SEC-009 | 🟡 MEDIA | Contraseña por defecto `MARFYL2026!` | ✅ CORREGIDO |
+| BUG-002 | 🔴 CRÍTICA | IVA hardcoded en PDF (=0) | ✅ CORREGIDO |
+
+### Nuevas Funcionalidades
+
+- **Soft-delete**: Schema actualizado con `deletedAt` en Invoice, Expense, Organization (compliance fiscal Venezuela 5+ años)
+- **Paginación server-side**: Endpoints `?page=&limit=` en invoices y products
+- **Dashboard optimizado**: GROUP BY en BD en lugar de findMany en memoria
+
+### UI/UX Corregido
+
+- AdminTableWrap padding móvil
+- FiscalToolbar responsive
+- InvoiceDetailSheet ancho
+- POS grid breakpoints
+- Toast en vez de alert()
+- Error handling en retryLast()
+
+### Documentación Relacionada
+
+- `marfyl-backend/SECURITY_AUDIT.md` - Reporte completo de auditoría
+- `marfyl-backend/PRODUCTION_CONFIG.md` - Configuración segura de producción
+- `marfyl-backend/DEPLOYMENT.md` - Guía de despliegue actualizada
+- `marfyl-backend/CHANGELOG.md` - Registro de cambios

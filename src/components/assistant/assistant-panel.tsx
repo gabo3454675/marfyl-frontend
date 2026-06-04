@@ -175,7 +175,13 @@ export function AssistantPanel({
                 <button
                   type="button"
                   className="text-xs font-medium underline text-red-200/90 hover:text-white"
-                  onClick={() => void retryLast()}
+                  onClick={async () => {
+                    try {
+                      await retryLast();
+                    } catch (e) {
+                      console.error('Retry failed:', e);
+                    }
+                  }}
                 >
                   Reintentar
                 </button>

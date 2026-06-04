@@ -173,7 +173,7 @@ export function InvoiceDetailSheet({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:max-w-xl md:max-w-2xl overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Detalle de la factura</SheetTitle>
             <SheetDescription>
