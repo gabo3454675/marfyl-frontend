@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/theme-provider';
+import { QueryProvider } from '@/components/query-provider';
 import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
 import { API_BASE_URL } from '@/lib/config/api-config';
 import { THEME_INIT_SCRIPT } from '@/lib/theme-storage';
@@ -72,9 +73,11 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <ThemeProvider>
-          {children}
-          <PWAInstallPrompt />
-          <Toaster richColors position="top-center" closeButton />
+          <QueryProvider>
+            {children}
+            <PWAInstallPrompt />
+            <Toaster richColors position="top-center" closeButton />
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>
