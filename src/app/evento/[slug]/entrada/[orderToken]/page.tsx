@@ -13,6 +13,8 @@ import { concertService } from '@/lib/api';
 import { getApiErrorMessage, isNetworkFailure } from '@/lib/api/get-error-message';
 import { CONCERT_MOCK_ENABLED, getMockOrder } from '@/lib/concert/mock-data';
 
+import { CONCERT_TICKET_DISPLAY } from '@/lib/concert/ticket-display.constants';
+
 export default function ConcertTicketPage() {
   const params = useParams();
   const slug = params?.slug as string;
@@ -73,7 +75,7 @@ export default function ConcertTicketPage() {
   if (loading && !order) {
     return (
       <div className="concert-shell flex justify-center py-24">
-        <Loader2 className="h-10 w-10 animate-spin text-[hsl(var(--dm-a-accent))]" />
+        <Loader2 className="h-10 w-10 animate-spin text-teal-300" />
       </div>
     );
   }
@@ -154,8 +156,17 @@ return (
       )}
 
       <header className="text-center">
-        <h1 className="text-2xl font-bold">Sus entradas</h1>
-        <p className="mt-2 text-sm text-white/60">
+        <p className="text-xs font-semibold uppercase tracking-widest text-teal-300">
+          MARFYL · Entradas digitales
+        </p>
+        <h1 className="mt-2 text-2xl font-bold text-white">{CONCERT_TICKET_DISPLAY.mainArtist}</h1>
+        <p className="mt-1 text-base text-white/80">
+          {order.event?.subtitle ?? CONCERT_TICKET_DISPLAY.eventHeadline}
+        </p>
+        <p className="mt-2 text-base font-bold text-teal-300">
+          Ingreso {CONCERT_TICKET_DISPLAY.entryTimeLabel}
+        </p>
+        <p className="mt-3 text-sm text-white/50">
           Presente el código QR en el acceso. Guarde o capture esta pantalla.
         </p>
       </header>
@@ -165,6 +176,7 @@ return (
             key={ticket.publicToken}
             ticket={ticket}
             eventTitle={order.event!.title}
+            eventSubtitle={order.event!.subtitle}
             venueName={order.event!.venueName}
             eventStartsAt={order.event!.eventStartsAt}
             buyerName={order.buyerName!}

@@ -2,10 +2,12 @@
 
 import { QRCodeSVG } from 'qrcode.react';
 import type { ConcertTicketPublic } from '@/lib/concert/types';
+import { CONCERT_TICKET_DISPLAY } from '@/lib/concert/ticket-display.constants';
 
 type Props = {
   ticket: ConcertTicketPublic;
   eventTitle: string;
+  eventSubtitle?: string | null;
   venueName?: string | null;
   eventStartsAt: string;
   buyerName: string;
@@ -14,28 +16,38 @@ type Props = {
 export function ConcertTicketCard({
   ticket,
   eventTitle,
+  eventSubtitle,
   venueName,
   eventStartsAt,
   buyerName,
 }: Props) {
   const date = new Date(eventStartsAt);
+  const artist = CONCERT_TICKET_DISPLAY.mainArtist;
+  const headline = eventSubtitle ?? CONCERT_TICKET_DISPLAY.eventHeadline;
 
   return (
     <article className="concert-ticket-card">
       <header className="concert-ticket-card-header">
-        <p className="concert-ticket-eyebrow">Entrada digital</p>
-        <h2 className="concert-ticket-title">{eventTitle}</h2>
-        {venueName && <p className="concert-ticket-venue">{venueName}</p>}
-        <p className="concert-ticket-date">
+        <p className="concert-ticket-eyebrow">Entrada digital · MARFYL</p>
+        <h2 className="concert-ticket-title">{artist}</h2>
+        <p className="concert-ticket-subtitle">{headline}</p>
+        <p className="concert-ticket-schedule">
+          Ingreso {CONCERT_TICKET_DISPLAY.entryTimeLabel}
+          {' · '}
           {date.toLocaleDateString('es-VE', {
             weekday: 'long',
             day: 'numeric',
             month: 'long',
-            year: 'numeric',
             hour: '2-digit',
             minute: '2-digit',
+            timeZone: 'America/Caracas',
           })}
         </p>
+        {venueName && (
+          <p className="concert-ticket-venue">
+            {venueName} · {eventTitle || CONCERT_TICKET_DISPLAY.venueLabel}
+          </p>
+        )}
       </header>
       <div className="concert-ticket-qr-wrap">
         <QRCodeSVG
@@ -59,7 +71,9 @@ export function ConcertTicketCard({
         </div>
         <div>
           <dt>Código</dt>
-          <dd className="concert-ticket-code">{ticket.qrPayload}</dd>
+          <dd className="concert-ticket-code">
+            {ticket.ticketCode ?? ticket.publicToken.slice(0, 8).toUpperCase()}
+          </dd>
         </div>
       </dl>
       {ticket.checkedIn && (

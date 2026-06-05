@@ -75,7 +75,30 @@ export interface ConcertTicketPublic {
   seatLabel: string;
   sectionCode: string;
   qrPayload: string;
+  ticketCode?: string;
   checkedIn: boolean;
+}
+
+export interface ConcertTicketScanView {
+  valid: boolean;
+  status: 'confirmed' | 'used' | 'pending' | 'invalid';
+  title: string;
+  greeting?: string;
+  message: string;
+  buyerName?: string;
+  ticketCode?: string;
+  seatLabel?: string;
+  sectionCode?: string;
+  checkedInAt?: string;
+  event?: {
+    title: string;
+    headline?: string;
+    venueName?: string;
+    eventStartsAt?: string;
+    entryTimeLabel?: string;
+    mainArtist?: string;
+    lineup?: string;
+  };
 }
 
 export interface ConcertOrderPublicView {
@@ -89,6 +112,7 @@ export interface ConcertOrderPublicView {
   message?: string;
   event?: {
     title: string;
+    subtitle?: string | null;
     venueName?: string | null;
     eventStartsAt: string;
   };

@@ -1421,7 +1421,7 @@ html {
 }
 
 .concert-hero-eyebrow {
-  @apply text-xs font-semibold uppercase tracking-[0.2em] text-blue-400;
+  @apply text-xs font-semibold uppercase tracking-[0.2em] text-teal-300;
 }
 
 .concert-hero-title {
@@ -1536,8 +1536,8 @@ html {
 }
 
 .concert-ticket-card {
-  @apply rounded-2xl border border-blue-500/30 bg-gradient-to-b from-blue-500/10 to-transparent p-6;
-  box-shadow: 0 4px 24px hsl(var(--dm-a-accent) / 0.15);
+  @apply rounded-2xl border border-teal-400/25 bg-gradient-to-b from-teal-500/10 to-transparent p-6;
+  box-shadow: 0 4px 24px rgba(94, 234, 212, 0.12);
 }
 
 .concert-ticket-card-header {
@@ -1545,15 +1545,23 @@ html {
 }
 
 .concert-ticket-eyebrow {
-  @apply text-xs uppercase tracking-widest text-blue-400;
+  @apply text-xs uppercase tracking-widest text-teal-300;
 }
 
 .concert-ticket-title {
-  @apply mt-1 text-xl font-bold text-white;
+  @apply mt-2 text-2xl font-bold text-white;
+}
+
+.concert-ticket-subtitle {
+  @apply mt-1 text-base font-medium text-white/85;
+}
+
+.concert-ticket-schedule {
+  @apply mt-3 text-base font-bold text-teal-300;
 }
 
 .concert-ticket-venue {
-  @apply text-sm text-slate-400;
+  @apply mt-2 text-sm text-slate-400;
 }
 
 .concert-ticket-date {
@@ -1577,7 +1585,7 @@ html {
 }
 
 .concert-ticket-code {
-  @apply break-all font-mono text-xs text-slate-400;
+  @apply break-all font-mono text-xs text-teal-300;
 }
 
 .concert-ticket-used {

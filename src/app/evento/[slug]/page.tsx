@@ -18,6 +18,7 @@ import type {
 import { concertService } from '@/lib/api';
 import { getApiErrorMessage, isNetworkFailure } from '@/lib/api/get-error-message';
 import { CONCERT_MOCK_ENABLED, getMockEvent, mockHold } from '@/lib/concert/mock-data';
+import { CONCERT_TICKET_DISPLAY } from '@/lib/concert/ticket-display.constants';
 
 const PAYMENT_LABELS: Record<ConcertPaymentMethod, string> = {
   CASH_USD: 'Efectivo USD en local',
@@ -196,7 +197,7 @@ export default function ConcertEventPage() {
   if (loading) {
     return (
       <div className="concert-shell flex justify-center py-24">
-        <Loader2 className="h-10 w-10 animate-spin text-[hsl(var(--dm-a-accent))]" />
+        <Loader2 className="h-10 w-10 animate-spin text-teal-300" />
       </div>
     );
   }
@@ -224,18 +225,25 @@ export default function ConcertEventPage() {
   return (
     <div className="concert-shell pb-32">
       <header className="concert-hero">
-        <p className="concert-hero-eyebrow">Venta digital</p>
-        <h1 className="concert-hero-title">{event.title}</h1>
-        {event.subtitle && <p className="concert-hero-sub">{event.subtitle}</p>}
-        {event.venueName && (
-          <p className="mt-1 text-sm text-white/60">{event.venueName}</p>
-        )}
-        <p className="mt-2 text-sm text-white/50">
+        <p className="concert-hero-eyebrow">Venta digital · MARFYL</p>
+        <h1 className="concert-hero-title">{CONCERT_TICKET_DISPLAY.mainArtist}</h1>
+        <p className="concert-hero-sub">
+          {event.subtitle ?? CONCERT_TICKET_DISPLAY.eventHeadline}
+        </p>
+        <p className="mt-3 text-base font-bold text-teal-300">
+          Ingreso {CONCERT_TICKET_DISPLAY.entryTimeLabel}
+          {' · '}
           {new Date(event.eventStartsAt).toLocaleString('es-VE', {
             dateStyle: 'full',
             timeStyle: 'short',
+            timeZone: 'America/Caracas',
           })}
         </p>
+        {event.venueName && (
+          <p className="mt-2 text-sm text-white/55">
+            {event.venueName} · {event.title || CONCERT_TICKET_DISPLAY.venueLabel}
+          </p>
+        )}
       </header>
 
       {event.publicNotes && (

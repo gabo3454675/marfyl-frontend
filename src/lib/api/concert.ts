@@ -8,6 +8,7 @@ import type {
   ConcertAdminOverview,
   ConcertAdminOrder,
   ScanTicketResult,
+  ConcertTicketScanView,
 } from '@/lib/concert/types';
 
 /* ── Request payload types ────────────────────────────────────────── */
@@ -80,6 +81,13 @@ export const concertService = {
   getOrder(slug: string, orderToken: string): Promise<ConcertOrderPublicView> {
     return apiClient
       .get<ConcertOrderPublicView>(`/concert/public/${slug}/orden/${orderToken}`)
+      .then((res) => res.data);
+  },
+
+  /** Vista pública al escanear el QR del boleto (confirmación para el cliente). */
+  getTicket(slug: string, ticketToken: string): Promise<ConcertTicketScanView> {
+    return apiClient
+      .get<ConcertTicketScanView>(`/concert/public/${slug}/boleto/${ticketToken}`)
       .then((res) => res.data);
   },
 
