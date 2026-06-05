@@ -38,3 +38,27 @@ export function TypingIndicator() {
     </div>
   );
 }
+
+/**
+ * Streaming bubble - shows content as it streams in
+ */
+export function StreamBubble({
+  content,
+  className,
+}: {
+  content: string;
+  className?: string;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className={cn('flex w-full justify-start', className)}
+    >
+      <div className="ai-bubble-assistant max-w-[min(300px,88%)] px-4 py-3.5 text-[15px] leading-relaxed text-white shadow-lg">
+        <span>{content}</span>
+        <span className="ai-cursor ml-0.5" />
+      </div>
+    </motion.div>
+  );
+}

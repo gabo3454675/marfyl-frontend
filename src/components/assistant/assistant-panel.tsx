@@ -4,15 +4,20 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Bot, MoreHorizontal, Sparkles } from 'lucide-react';
 import { sendAssistantMessage, type ChatMessage } from '@/lib/api/assistant';
-import { ASSISTANT_QUICK_PROMPTS, ASSISTANT_STARTER } from './assistant-tokens';
+import { useAuthStore } from '@/store/useAuthStore';
+import { ASSISTANT_QUICK_PROMPTS } from './assistant-tokens';
+import {
+  ASSISTANT_STARTER_MESSAGE,
+  clearAssistantHistory,
+  loadAssistantHistory,
+  saveAssistantHistory,
+} from './assistant-chat-storage';
 import { ChatBubble, TypingIndicator } from './chat-bubble';
 import { AssistantSummaryCard } from './assistant-summary-card';
 import { AssistantComposer } from './assistant-composer';
 import { formatAssistantError } from './format-assistant-error';
 import { cn } from '@/lib/utils';
 import { DmAmbientMotion } from '@/components/ui/dm-ambient-motion';
-
-const STARTER: ChatMessage = { role: 'assistant', content: ASSISTANT_STARTER };
 
 function buildContext(pathname: string) {
   if (pathname.startsWith('/fiscal')) return 'Usuario en módulo Fiscal MARFYL';
@@ -30,12 +35,19 @@ export function AssistantPanel({
   variant?: 'sheet' | 'page';
 }) {
   const pathname = usePathname() ?? '/';
-  const [messages, setMessages] = useState<ChatMessage[]>([STARTER]);
+  const userId = useAuthStore((s) => s.user?.id);
+  const setToken = useAuthStore((s) => s.setToken);
+  const selectOrganization = useAuthStore((s) => s.selectOrganization);
+  const [messages, setMessages] = useState<ChatMessage[]>([ASSISTANT_STARTER_MESSAGE]);
+  const [historyReady, setHistoryReady] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const onlyStarter = messages.length === 1 && messages[0]?.role === 'assistant';
+  const onlyStarter =
+    messages.length === 1 &&
+    messages[0]?.role === 'assistant' &&
+    messages[0]?.content === ASSISTANT_STARTER_MESSAGE.content;
 
   const scrollDown = useCallback(() => {
     requestAnimationFrame(() => {
@@ -48,19 +60,39 @@ export function AssistantPanel({
     scrollDown();
   }, [messages.length, loading, scrollDown]);
 
+  useEffect(() => {
+    if (!userId) {
+      setHistoryReady(true);
+      return;
+    }
+    const stored = loadAssistantHistory(userId);
+    setMessages(stored);
+    setHistoryReady(true);
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId || !historyReady) return;
+    saveAssistantHistory(userId, messages);
+  }, [messages, userId, historyReady]);
+
   const sendText = async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || loading) return;
     setError(null);
     const userMsg: ChatMessage = { role: 'user', content: trimmed };
-    const history = [...messages.slice(1), userMsg];
+    const history = messages.slice(1);
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setLoading(true);
     scrollDown();
     try {
-      const { reply } = await sendAssistantMessage(trimmed, history, buildContext(pathname));
-      setMessages((prev) => [...prev, { role: 'assistant', content: reply }]);
+      const res = await sendAssistantMessage(trimmed, history, buildContext(pathname));
+      if (res.switchOrganization?.access_token) {
+        setToken(res.switchOrganization.access_token);
+        selectOrganization(res.switchOrganization.organizationId);
+        window.dispatchEvent(new Event('organization-changed'));
+      }
+      setMessages((prev) => [...prev, { role: 'assistant', content: res.reply }]);
     } catch (e: unknown) {
       setError(formatAssistantError(e));
     } finally {
@@ -70,7 +102,8 @@ export function AssistantPanel({
   };
 
   const reset = () => {
-    setMessages([STARTER]);
+    setMessages([ASSISTANT_STARTER_MESSAGE]);
+    if (userId) clearAssistantHistory(userId);
     setInput('');
     setError(null);
   };
@@ -83,14 +116,15 @@ export function AssistantPanel({
     setError(null);
     setLoading(true);
     try {
-      const { reply } = await sendAssistantMessage(
-        lastUser.content,
-        [...history, lastUser],
-        buildContext(pathname),
-      );
+      const res = await sendAssistantMessage(lastUser.content, history, buildContext(pathname));
+      if (res.switchOrganization?.access_token) {
+        setToken(res.switchOrganization.access_token);
+        selectOrganization(res.switchOrganization.organizationId);
+        window.dispatchEvent(new Event('organization-changed'));
+      }
       setMessages((prev) => [
         ...prev.slice(0, lastUserIdx + 1),
-        { role: 'assistant', content: reply },
+        { role: 'assistant', content: res.reply },
       ]);
     } catch (e: unknown) {
       setError(formatAssistantError(e));
@@ -154,7 +188,7 @@ export function AssistantPanel({
           >
             {onlyStarter && (
               <div className="ai-welcome mb-2 shrink-0">
-                <p className="text-sm text-white/80 leading-relaxed">{ASSISTANT_STARTER}</p>
+                <p className="text-sm text-white/80 leading-relaxed">{ASSISTANT_STARTER_MESSAGE.content}</p>
                 <p className="text-xs text-white/45 mt-2">
                   Elija una acción rápida o escriba su consulta abajo.
                 </p>
