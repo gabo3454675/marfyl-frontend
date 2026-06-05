@@ -61,6 +61,14 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <head>
         <script
+          // El contenido se genera desde API_BASE_URL en build time. Si el
+          // server SSR no tiene acceso a process.env.NEXT_PUBLIC_API_URL y
+          // cae al fallback mientras que el bundle del cliente tiene el valor
+          // inlineado, el string resultante puede diferir entre server y
+          // cliente. Es un caso legítimo de uso (contenido determinista por
+          // construcción, no por estado de React), por eso se silencia el
+          // warning de hydration a nivel de este <script>.
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `window.__NEXT_PUBLIC_API_URL__=${JSON.stringify(API_BASE_URL)};`,
           }}
