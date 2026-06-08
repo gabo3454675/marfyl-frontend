@@ -533,18 +533,20 @@ export default function POSPage() {
           <span className="block text-sm md:text-base">Procesa ventas rápidamente</span>
         </>
       }
-      className="h-full flex flex-col"
+      className="h-full flex flex-col admin-pos-mobile-pad"
       contentClassName="flex-1 flex flex-col min-h-0 !space-y-0"
     >
 
-      {/* Barra fija móvil: Resumen + Cobrar siempre visibles (mobile-first) */}
-      <div className="sticky top-0 z-20 flex items-center justify-between gap-4 py-3 px-4 -mx-4 md:-mx-6 mb-4 md:mb-0 bg-background/95 border-b border-border md:hidden backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="flex flex-col min-w-0">
-          <span className="text-xs text-muted-foreground">Total</span>
-          <span className="text-xl font-bold tabular-nums">{formatCurrency(total)}</span>
+      {/* Barra fija móvil: total + COBRAR siempre accesible sobre la bottom nav */}
+      <div className="admin-pos-checkout-bar md:hidden" role="region" aria-label="Resumen de cobro">
+        <div className="flex min-w-0 flex-col">
+          <span className="text-[11px] text-muted-foreground leading-none">
+            {cart.length > 0 ? `${cart.length} ítem${cart.length === 1 ? '' : 's'}` : 'Carrito vacío'}
+          </span>
+          <span className="text-lg font-bold tabular-nums truncate">{formatCurrency(total)}</span>
         </div>
         <Button
-          className="shrink-0 h-11 px-6 text-base font-semibold cursor-pointer"
+          className="shrink-0 h-11 min-w-[7.5rem] px-5 text-base font-semibold touch-manipulation"
           onClick={handleCheckout}
           disabled={cart.length === 0 || processing}
         >
@@ -617,9 +619,9 @@ export default function POSPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 flex-1 min-h-0">
         {/* Panel Izquierdo - Catálogo */}
-        <div className="lg:col-span-2 flex flex-col min-h-0">
+        <div className="lg:col-span-2 flex flex-col min-h-0 order-1">
           <AdminCard
             title="Catálogo de Productos"
             className="admin-pos-panel"
@@ -627,7 +629,7 @@ export default function POSPage() {
             elevation="sm"
           >
               {/* Filtro rápido + búsqueda */}
-              <div className="mb-4 space-y-3">
+              <div className="mb-4 space-y-3 shrink-0">
                 <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
@@ -666,8 +668,8 @@ export default function POSPage() {
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : (
-                <div className="flex-1 overflow-y-auto">
-                  <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                <div className="flex-1 min-h-[12rem] max-h-[min(52dvh,28rem)] lg:max-h-none lg:min-h-0 overflow-y-auto overscroll-y-contain">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3 md:gap-4">
                     {filteredProducts.map((product) => (
                       <div
                         key={product.id}
@@ -744,21 +746,32 @@ export default function POSPage() {
           </AdminCard>
         </div>
 
-        {/* Panel Derecho - Carrito (sticky en desktop para no perder Cobrar al hacer scroll) */}
-        <div className="flex flex-col min-h-0 lg:sticky lg:top-14 lg:self-start lg:max-h-[calc(100vh-5rem)]">
+        {/* Panel Derecho - Carrito con scroll interno y footer fijo de totales/cobrar */}
+        <div className="admin-pos-cart order-2">
           <AdminCard
             title={
               <span className="flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5" />
                 Carrito de Venta
+                {cart.length > 0 ? (
+                  <Badge variant="secondary" className="ml-1 tabular-nums">
+                    {cart.length}
+                  </Badge>
+                ) : null}
               </span>
             }
-            className="admin-pos-panel overflow-hidden"
-            bodyClassName="flex flex-1 flex-col min-h-0"
+            className="admin-pos-panel h-full max-h-[inherit]"
+            bodyClassName="admin-pos-cart-body p-4 sm:p-5"
             elevation="sm"
           >
+            <div
+              className={cn(
+                'admin-pos-cart-controls',
+                splitPayment && 'max-h-[min(36dvh,17rem)] overflow-y-auto overscroll-y-contain pr-1',
+              )}
+            >
               {/* Selector de Moneda: Bolívares / Dólares */}
-              <div className="mb-4">
+              <div>
                 <Label className="block mb-2">Moneda de pago</Label>
                 <div className="flex gap-2">
                   <Button
@@ -783,7 +796,7 @@ export default function POSPage() {
               </div>
 
               {/* Selector de Cliente */}
-              <div className="mb-4">
+              <div>
                 <Label htmlFor="customer">Cliente</Label>
                 <select
                   id="customer"
@@ -809,7 +822,7 @@ export default function POSPage() {
               </div>
 
               {/* Modalidades de pago (Bs / $ / crédito o combinado) */}
-              <div className="mb-4 space-y-3">
+              <div className="space-y-3">
                 <Label className="block text-sm font-medium">Modalidades de pago</Label>
                 <div className="flex items-center justify-between gap-2">
                   <Label htmlFor="split-pay" className="text-sm font-normal cursor-pointer leading-tight">
@@ -899,7 +912,7 @@ export default function POSPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="admin-pos-pay-methods">
                     {(
                       [
                         { id: 'CASH_USD', label: 'Efectivo $' },
@@ -923,9 +936,10 @@ export default function POSPage() {
                   </div>
                 )}
               </div>
+            </div>
 
-              {/* Items del carrito */}
-              <div className="flex-1 overflow-y-auto mb-4 min-h-0">
+              {/* Items del carrito — scroll independiente */}
+              <div className="admin-pos-cart-scroll">
                 {cart.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <ShoppingCart className="h-12 w-12 mx-auto mb-2 opacity-50" />
@@ -985,7 +999,7 @@ export default function POSPage() {
                 )}
               </div>
 
-              <div className="space-y-2 pt-4 border-t border-border text-sm">
+              <div className="admin-pos-cart-footer space-y-2 text-sm">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Subtotal</span>
                   <span>{formatCurrency(subtotal)}</span>
@@ -1005,9 +1019,9 @@ export default function POSPage() {
                 )}
               </div>
 
-              {/* Botón de cobrar */}
+              {/* Botón de cobrar (desktop/tablet; móvil usa barra fija inferior) */}
               <Button
-                className="w-full mt-4 h-12 text-lg font-semibold cursor-pointer"
+                className="hidden md:flex w-full mt-3 h-12 text-lg font-semibold touch-manipulation"
                 onClick={handleCheckout}
                 disabled={cart.length === 0 || processing}
               >

@@ -1002,6 +1002,66 @@
     @apply flex flex-1 flex-col min-h-0;
   }
 
+  /* Carrito POS: scroll interno + totales/cobrar siempre visibles */
+  .admin-pos-cart {
+    @apply flex flex-col min-h-0 w-full;
+    max-height: min(72dvh, 40rem);
+  }
+  @media (min-width: 1024px) {
+    .admin-pos-cart {
+      position: sticky;
+      top: 0.75rem;
+      align-self: start;
+      max-height: calc(100dvh - 5.75rem);
+    }
+  }
+  .admin-pos-cart-body {
+    @apply flex flex-1 flex-col min-h-0 overflow-hidden;
+  }
+  .admin-pos-cart-controls {
+    @apply shrink-0 space-y-4;
+  }
+  .admin-pos-cart-scroll {
+    @apply flex-1 min-h-[8rem] overflow-y-auto overscroll-y-contain border-y border-border/60 my-3 py-1;
+    -webkit-overflow-scrolling: touch;
+  }
+  .admin-pos-cart-footer {
+    @apply shrink-0 border-t border-border bg-card pt-3;
+  }
+
+  /* Barra fija de cobro en móvil (sobre bottom nav) */
+  .admin-pos-checkout-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    z-index: 35;
+    bottom: var(--app-bottom-chrome);
+    @apply flex items-center justify-between gap-3 border-t border-border px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/90;
+    background: hsl(var(--background) / 0.95);
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  }
+  .dark .admin-pos-checkout-bar {
+    background: hsl(var(--dm-a-base) / 0.92);
+    border-color: hsl(0 0% 100% / 0.08);
+  }
+  .admin-pos-mobile-pad {
+    padding-bottom: calc(var(--app-bottom-chrome) + 5rem);
+  }
+  @media (min-width: 768px) {
+    .admin-pos-mobile-pad {
+      padding-bottom: 0;
+    }
+  }
+
+  .admin-pos-pay-methods {
+    @apply flex gap-2 overflow-x-auto overscroll-x-contain pb-1 -mx-1 px-1;
+    scrollbar-width: thin;
+  }
+  .admin-pos-pay-methods > * {
+    @apply shrink-0;
+  }
+
   .admin-pos-product-tile {
     @apply rounded-xl border border-border bg-card/80 p-4 cursor-pointer transition-all duration-200 ease-out;
     box-shadow: 0 1px 2px hsl(0 0% 0% / 0.04);
