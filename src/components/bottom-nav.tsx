@@ -1,18 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Grid2x2, ShoppingCart, Box, MoreVertical, Users, FileText, CreditCard, DollarSign, Settings, LogOut, PackageMinus, History, BarChart3, Wallet, AlertTriangle, TrendingUp, Truck, Landmark } from 'lucide-react';
 import { FISCAL_NAV_ITEMS } from '@/config/fiscal-nav';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { OrganizationSwitcher } from '@/components/organization-switcher';
 import {
   Sheet,
   SheetContent,
@@ -24,7 +18,6 @@ import { cn } from '@/lib/utils';
 import { usePermission } from '@/hooks/usePermission';
 import { canShowNavItem } from '@/hooks/useNavByRole';
 import { useAuthStore } from '@/store/useAuthStore';
-import { apiClient, authService } from '@/lib/api';
 import { markExplicitLogout } from '@/lib/fiscal-preview';
 
 const navigationItems = [
@@ -55,69 +48,7 @@ export default function BottomNav() {
   const pathname = usePathname();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const permissions = usePermission();
-  const {
-    user,
-    selectedCompanyId,
-    selectedOrganizationId,
-    selectCompany,
-    selectOrganization,
-    setSuperAdminOrganizations,
-    getOrganizations,
-    getCurrentOrganization,
-    clearAuth,
-  } = useAuthStore();
-
-  // Super Admin: cargar todas las organizaciones (la auto-selección y reload la hace el Sidebar para evitar doble recarga)
-  useEffect(() => {
-    if (!user?.isSuperAdmin) return;
-    apiClient
-      .get<{ id: number; name: string; slug: string; plan: string; currencyCode?: string; currencySymbol?: string; exchangeRate?: number; rateUpdatedAt?: string | null }[]>('/tenants/organizations-all')
-      .then((res) => {
-        const orgs = (res.data || []).map((o) => ({
-          id: o.id,
-          name: o.name,
-          slug: o.slug,
-          plan: o.plan ?? 'FREE',
-          role: 'SUPER_ADMIN',
-          currencyCode: o.currencyCode ?? 'USD',
-          currencySymbol: o.currencySymbol ?? '$',
-          exchangeRate: o.exchangeRate ?? 1,
-          rateUpdatedAt: o.rateUpdatedAt ?? null,
-        }));
-        setSuperAdminOrganizations(orgs);
-      })
-      .catch(() => {});
-  }, [user?.isSuperAdmin, setSuperAdminOrganizations]);
-
-  const organizations = getOrganizations();
-  const currentOrg = getCurrentOrganization();
-  const hasMultipleOrganizations = organizations.length > 1 || (user?.isSuperAdmin === true && organizations.length >= 1);
-  const selectedId = selectedOrganizationId || selectedCompanyId;
-
-  const handleOrganizationChange = async (organizationId: number) => {
-    if (user?.isSuperAdmin || (user?.organizations && user.organizations.length > 0)) {
-      try {
-        const data = await authService.switchOrganization(organizationId);
-        if (data?.access_token) {
-          // Actualizar el JWT con el tenant correcto y reflejar selección en el store
-          useAuthStore.getState().setToken(data.access_token);
-          selectOrganization(data.organizationId ?? organizationId);
-        } else {
-          selectOrganization(organizationId);
-        }
-      } catch {
-        // Si falla el switch en backend, al menos actualizar selección local
-        selectOrganization(organizationId);
-      }
-    } else {
-      selectCompany(organizationId);
-    }
-
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('organization-changed'));
-      window.location.href = '/';
-    }
-  };
+  const { clearAuth } = useAuthStore();
 
   const getActiveItem = () => {
     if (pathname === '/') return 'dashboard';
@@ -188,48 +119,14 @@ export default function BottomNav() {
               <SheetTitle>Menú</SheetTitle>
             </SheetHeader>
 
-            {/* Selector de Organización (Mobile) - Touch-friendly min 44px */}
             <div className="mt-4">
               <p className="text-xs font-medium text-muted-foreground mb-2">
                 Organización activa
               </p>
-
-              {hasMultipleOrganizations ? (
-                <Select
-                  value={selectedId ? selectedId.toString() : undefined}
-                  onValueChange={(value) => {
-                    const id = Number(value);
-                    if (!Number.isNaN(id)) {
-                      handleOrganizationChange(id);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-full md:w-auto min-h-[44px] py-3 text-base touch-manipulation">
-                    <SelectValue
-                      placeholder={currentOrg?.name || 'Seleccionar organización'}
-                    />
-                  </SelectTrigger>
-                  <SelectContent
-                    side="bottom"
-                    collisionPadding={10}
-                    className="max-w-[calc(100vw-20px)]"
-                  >
-                    {organizations.map((org) => (
-                      <SelectItem
-                        key={org.id}
-                        value={org.id.toString()}
-                        className="min-h-[44px] py-3 text-base touch-manipulation"
-                      >
-                        {org.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <div className="w-full rounded-md border border-border bg-secondary/30 px-3 py-3 text-sm min-h-[44px] flex items-center">
-                  {currentOrg?.name || 'Mi Organización'}
-                </div>
-              )}
+              <OrganizationSwitcher
+                variant="menu-list"
+                onBeforeSwitch={() => setIsSheetOpen(false)}
+              />
             </div>
 
             <div className="mt-4 space-y-1">
