@@ -26,9 +26,11 @@ function buildMockEvent(): ConcertEventPublic {
     priceUsdStandard: 40,
     priceUsdVip: 70,
     exchangeRate: 40.5,
-    bankAccountName: 'Inversiones Hemenegilda Capacidad',
-    bankAccountInfo: 'Transferencia — solicite datos al organizador.',
-    pagoMovilInfo: 'Pago móvil — indique referencia al pagar.',
+    bankAccountName: 'Inversiones Hemenegilda S.A',
+    bankAccountInfo:
+      'Banco del Tesoro · Cuenta 010630707667073012556 · RIF J-405144823 · Tel. 0412-7572592',
+    pagoMovilInfo:
+      'Pago móvil — Banco del Tesoro · Tel. 0412-7572592 · RIF J-405144823 · Titular: Inversiones Hemenegilda S.A',
     cashInstructions: 'Efectivo USD en taquilla.',
     publicNotes: 'Modo demo local. Con Docker: pnpm db:docker && pnpm db:setup',
     paymentMethods: ['CASH_USD', 'PAGO_MOVIL', 'BANK_TRANSFER'],
@@ -185,6 +187,18 @@ export function getMockOrder(token: string): ConcertOrderPublicView {
     buyerName: 'María González',
     amountUsd: 110,
     amountBs: 130,
+    paymentMethod: 'PAGO_MOVIL',
+    paymentReference: '123456789',
     message: 'Pago en revisión (demo)',
+    event: {
+      title: 'Horacio Blanco Acústico en Íntimo',
+      venueName: 'Bodegón Monddy',
+      eventStartsAt: new Date('2026-06-15T23:00:00').toISOString(),
+      bankAccountName: 'Inversiones Hemenegilda S.A',
+      bankAccountInfo:
+        'Banco del Tesoro · Cuenta 010630707667073012556 · RIF J-405144823 · Tel. 0412-7572592',
+      pagoMovilInfo:
+        'Pago móvil — Banco del Tesoro · Tel. 0412-7572592 · RIF J-405144823 · Titular: Inversiones Hemenegilda S.A',
+    },
   };
 }

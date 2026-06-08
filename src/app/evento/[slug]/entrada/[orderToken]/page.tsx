@@ -8,12 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ConcertTicketCard } from '@/components/concert/concert-ticket-card';
 import { isConcertFeatureEnabled } from '@/lib/concert/feature';
-import type { ConcertOrderPublicView } from '@/lib/concert/types';
+import { ConcertPaymentDetails } from '@/components/concert/concert-payment-details';
+import type { ConcertOrderPublicView, ConcertPaymentMethod } from '@/lib/concert/types';
+import { CONCERT_TICKET_DISPLAY } from '@/lib/concert/ticket-display.constants';
 import { concertService } from '@/lib/api';
 import { getApiErrorMessage, isNetworkFailure } from '@/lib/api/get-error-message';
 import { CONCERT_MOCK_ENABLED, getMockOrder } from '@/lib/concert/mock-data';
-
-import { CONCERT_TICKET_DISPLAY } from '@/lib/concert/ticket-display.constants';
 
 export default function ConcertTicketPage() {
   const params = useParams();
@@ -94,31 +94,56 @@ export default function ConcertTicketPage() {
   if (!order) return null;
 
   if (!order.paid) {
+    const payMethod = (order.paymentMethod ?? 'PAGO_MOVIL') as ConcertPaymentMethod;
+    const paymentEvent =
+      order.event?.bankAccountName != null
+        ? {
+            bankAccountName: order.event.bankAccountName,
+            bankAccountInfo: order.event.bankAccountInfo,
+            pagoMovilInfo: order.event.pagoMovilInfo,
+            cashInstructions: order.event.cashInstructions,
+          }
+        : null;
+
     return (
-      <div className="concert-shell mx-auto max-w-md text-center">
-        <h1 className="text-2xl font-bold">Pago en revisión</h1>
-        <p className="mt-3 text-white/70">{order.message}</p>
-        <p className="mt-2 text-sm text-white/50">
-          Hola {order.buyerName}. Cuando el organizador confirme su pago, sus entradas
-          aparecerán aquí automáticamente.
-        </p>
-        {order.amountUsd != null && (
-          <p className="mt-4 text-lg font-medium">
-            Total: USD {order.amountUsd.toFixed(2)}
-            {order.amountBs != null && (
-              <> · Bs {order.amountBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</>
-            )}
+      <div className="concert-shell mx-auto max-w-md space-y-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">Pago en revisión</h1>
+          <p className="mt-3 text-white/70">{order.message}</p>
+          <p className="mt-2 text-sm text-white/50">
+            Hola {order.buyerName}. Cuando el organizador confirme su pago, sus entradas
+            aparecerán aquí automáticamente.
           </p>
-        )}
-        <Button className="mt-6 gap-2" variant="outline" onClick={load}>
-          <RefreshCw className="h-4 w-4" />
-          Actualizar estado
-        </Button>
-        <p className="mt-6">
-          <Link href={`/evento/${slug}`} className="text-sm text-[hsl(var(--dm-a-accent))] underline">
-            Volver al evento
-          </Link>
-        </p>
+          {order.amountUsd != null && (
+            <p className="mt-4 text-lg font-medium">
+              Total: USD {order.amountUsd.toFixed(2)}
+              {order.amountBs != null && (
+                <> · Bs {order.amountBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</>
+              )}
+            </p>
+          )}
+          {order.paymentReference ? (
+            <p className="mt-2 text-sm text-white/60">
+              Referencia enviada: <span className="font-mono">{order.paymentReference}</span>
+            </p>
+          ) : null}
+        </div>
+
+        {paymentEvent ? (
+          <ConcertPaymentDetails event={paymentEvent} method={payMethod} />
+        ) : null}
+
+        <div className="text-center">
+          <Button className="gap-2" variant="outline" onClick={load}>
+            <RefreshCw className="h-4 w-4" />
+            Actualizar estado
+          </Button>
+          <p className="mt-6">
+            <Link href={`/evento/${slug}`} className="text-sm text-[hsl(var(--dm-a-accent))] underline">
+              Volver al evento
+            </Link>
+          </p>
+        </div>
       </div>
     );
   }

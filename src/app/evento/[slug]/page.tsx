@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ConcertVenueMap } from '@/components/concert/concert-venue-map';
+import { ConcertPaymentDetails } from '@/components/concert/concert-payment-details';
 import { SeatMap } from '@/components/concert/seat-map';
 import { isConcertFeatureEnabled } from '@/lib/concert/feature';
 import type {
@@ -375,17 +376,8 @@ export default function ConcertEventPage() {
             ))}
           </div>
 
-          {paymentMethod === 'PAGO_MOVIL' && event.pagoMovilInfo && (
-            <p className="text-sm text-white/70">{event.pagoMovilInfo}</p>
-          )}
-          {paymentMethod === 'BANK_TRANSFER' && (
-            <div className="text-sm text-white/70">
-              <p className="font-medium text-white">{event.bankAccountName}</p>
-              {event.bankAccountInfo && <p>{event.bankAccountInfo}</p>}
-            </div>
-          )}
-          {paymentMethod === 'CASH_USD' && event.cashInstructions && (
-            <p className="text-sm text-white/70">{event.cashInstructions}</p>
+          {event.paymentMethods.includes(paymentMethod) && (
+            <ConcertPaymentDetails event={event} method={paymentMethod} />
           )}
 
           {needsReference && (

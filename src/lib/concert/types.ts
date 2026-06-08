@@ -109,12 +109,18 @@ export interface ConcertOrderPublicView {
   buyerName?: string;
   amountUsd?: number;
   amountBs?: number;
+  paymentMethod?: ConcertPaymentMethod;
+  paymentReference?: string | null;
   message?: string;
   event?: {
     title: string;
     subtitle?: string | null;
     venueName?: string | null;
     eventStartsAt: string;
+    bankAccountName?: string;
+    bankAccountInfo?: string | null;
+    pagoMovilInfo?: string | null;
+    cashInstructions?: string | null;
   };
   tickets?: ConcertTicketPublic[];
 }
