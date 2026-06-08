@@ -28,9 +28,9 @@ function buildMockEvent(): ConcertEventPublic {
     exchangeRate: 40.5,
     bankAccountName: 'Inversiones Hemenegilda S.A',
     bankAccountInfo:
-      'Banco del Tesoro · Cuenta 010630707667073012556 · RIF J-405144823 · Tel. 0412-7572592',
+      'Banco del Tesoro · Cuenta 010630707667073012556 · RIF J-405144823 (tipo J) · Tel. 0412-7572592',
     pagoMovilInfo:
-      'Pago móvil — Banco del Tesoro · Tel. 0412-7572592 · RIF J-405144823 · Titular: Inversiones Hemenegilda S.A',
+      'Pago móvil — Banco del Tesoro · Tel. 0412-7572592 · RIF J-405144823 (tipo J — jurídico) · Titular: Inversiones Hemenegilda S.A',
     cashInstructions: 'Efectivo USD en taquilla.',
     publicNotes: 'Modo demo local. Con Docker: pnpm db:docker && pnpm db:setup',
     paymentMethods: ['CASH_USD', 'PAGO_MOVIL', 'BANK_TRANSFER'],

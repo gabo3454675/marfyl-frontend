@@ -43,6 +43,20 @@ function CopyRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function formatPaymentRif(raw?: string | null): string {
+  const trimmed = (raw ?? '').trim();
+  if (/^[JVEGPD]-?\d/i.test(trimmed)) {
+    const letter = trimmed.charAt(0).toUpperCase();
+    const digits = trimmed.replace(/^[JVEGPD]-?/i, '').replace(/\D/g, '');
+    return digits ? `${letter}-${digits}` : trimmed;
+  }
+  const digitsOnly = trimmed.replace(/\D/g, '');
+  if (digitsOnly.length >= 8) {
+    return `J-${digitsOnly}`;
+  }
+  return 'J-405144823';
+}
+
 /** Extrae campos estructurados del texto guardado en el evento (o del formato Monddy). */
 function parsePaymentDetails(event: PaymentEventFields, method: ConcertPaymentMethod) {
   const source =
@@ -54,14 +68,14 @@ function parsePaymentDetails(event: PaymentEventFields, method: ConcertPaymentMe
 
   const accountMatch = source.match(/Cuenta\s+(\d+)/i);
   const phoneMatch = source.match(/Tel\.?\s*([\d-]+)/i);
-  const rifMatch = source.match(/RIF\s+([JVEGPD]-?\d+)/i);
+  const rifMatch = source.match(/RIF\s+([JVEGPD]-?\d[\d-]*)/i);
 
   return {
     holder: event.bankAccountName,
     bank: source.includes('Tesoro') ? 'Banco del Tesoro' : undefined,
     account: accountMatch?.[1] ?? (method === 'BANK_TRANSFER' ? '010630707667073012556' : undefined),
     phone: phoneMatch?.[1] ?? (method === 'PAGO_MOVIL' ? '0412-7572592' : undefined),
-    rif: rifMatch?.[1] ?? 'J-405144823',
+    rif: formatPaymentRif(rifMatch?.[1]),
     fallbackText:
       method === 'CASH_USD'
         ? event.cashInstructions
@@ -104,7 +118,9 @@ export function ConcertPaymentDetails({
       <div className="space-y-2">
         <CopyRow label="Titular" value={details.holder} />
         {details.bank ? <CopyRow label="Banco" value={details.bank} /> : null}
-        {details.rif ? <CopyRow label="RIF" value={details.rif} /> : null}
+        {details.rif ? (
+          <CopyRow label="RIF para el pago (tipo J)" value={details.rif} />
+        ) : null}
         {method === 'PAGO_MOVIL' && details.phone ? (
           <CopyRow label="Teléfono pago móvil" value={details.phone} />
         ) : null}
@@ -113,7 +129,10 @@ export function ConcertPaymentDetails({
         ) : null}
       </div>
       <p className="text-xs text-white/55">
-        Realice el pago por el monto exacto de su orden e indique el número de referencia al confirmar.
+        {method === 'PAGO_MOVIL'
+          ? 'En su app bancaria use el RIF J-405144823 (letra J — persona jurídica) al realizar el pago móvil.'
+          : 'Use el RIF J-405144823 (letra J — persona jurídica) si la transferencia lo solicita.'}{' '}
+        Indique el monto exacto de su orden y el número de referencia al confirmar.
       </p>
     </div>
   );
