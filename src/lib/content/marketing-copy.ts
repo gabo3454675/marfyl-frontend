@@ -76,5 +76,5 @@ export const PRICING_TEASER = {
   description:
     'POS, inventario, facturación y módulo fiscal según el tamaño de tu operación. Precios en USD con referencia en Bs.',
   contactLabel: 'Consultar planes',
-  mailto: 'mailto:hola@marfyl.com?subject=Planes%20MARFYL',
+  mailto: 'mailto:hola@marfyl.site?subject=Planes%20MARFYL',
 } as const;
