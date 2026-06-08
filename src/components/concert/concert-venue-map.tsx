@@ -7,9 +7,11 @@ import {
   zoneStatusLabel,
 } from '@/lib/concert/venue-stats';
 import type { ConcertSeatPublic } from '@/lib/concert/types';
+import { formatBsAmount, usdToBsForConcert } from '@/lib/concert/pricing';
 
 type Props = {
   seats: ConcertSeatPublic[];
+  exchangeRate?: number;
   mode: 'buy' | 'monitor';
   selectedIds?: Set<number>;
   activeMesa?: number | null;
@@ -37,13 +39,16 @@ function ZoneBlock({
   mode,
   isActive,
   onClick,
+  exchangeRate,
 }: {
   def: (typeof SALON_ZONE_DEFS)[0];
   seats: ConcertSeatPublic[];
   mode: 'buy' | 'monitor';
   isActive: boolean;
   onClick: () => void;
+  exchangeRate: number;
 }) {
+  const priceBs = usdToBsForConcert(def.priceUsd, exchangeRate);
   const occupancy = buildMesaOccupancy(seats, def.mesaNumber);
   const soldOut = occupancy.total > 0 && occupancy.available === 0;
 
@@ -64,7 +69,7 @@ function ZoneBlock({
       <span className="venue-zone-tier">{TIER_SHORT[def.tier]}</span>
       <span className="venue-zone-num">Mesa {def.zoneLabel}</span>
       <span className="venue-zone-price">
-        ${def.priceUsd} · Bs {def.priceBs}
+        ${def.priceUsd} · Bs {formatBsAmount(priceBs)}
       </span>
       <span className="venue-zone-meta">
         {soldOut ? (
@@ -123,6 +128,7 @@ function RowLabel({ children }: { children: React.ReactNode }) {
 
 export function ConcertVenueMap({
   seats,
+  exchangeRate = 1,
   mode,
   selectedIds = new Set(),
   activeMesa = null,
@@ -144,6 +150,7 @@ export function ConcertVenueMap({
         seats={seats}
         mode={mode}
         isActive={activeMesa === mesa}
+        exchangeRate={exchangeRate}
         onClick={() => onZoneClick?.(mesa)}
       />
     );
@@ -154,19 +161,27 @@ export function ConcertVenueMap({
       <div className="venue-legend venue-legend--rich">
         <div className="venue-legend-item venue-zone--vip venue-legend-swatch">
           <strong>Silla VIP</strong>
-          <span>Mesas 03, 04, 07, 08 · $60 / Bs 70</span>
+          <span>
+            Mesas 03, 04, 07, 08 · $60 / Bs {formatBsAmount(usdToBsForConcert(60, exchangeRate))}
+          </span>
         </div>
         <div className="venue-legend-item venue-zone--preferencial venue-legend-swatch">
           <strong>Silla preferencial</strong>
-          <span>Mesas 01, 02, 05, 06 · $50 / Bs 60</span>
+          <span>
+            Mesas 01, 02, 05, 06 · $50 / Bs {formatBsAmount(usdToBsForConcert(50, exchangeRate))}
+          </span>
         </div>
         <div className="venue-legend-item venue-zone--media venue-legend-swatch">
           <strong>Silla media</strong>
-          <span>Mesas 09, 10, 11, 12, 13, 14 · $45 / Bs 55</span>
+          <span>
+            Mesas 09–14 · $45 / Bs {formatBsAmount(usdToBsForConcert(45, exchangeRate))}
+          </span>
         </div>
         <div className="venue-legend-item venue-zone--general venue-legend-swatch">
           <strong>Silla general</strong>
-          <span>Mesas 15, 16, 17, 18, 19, 20 · $40 / Bs 50</span>
+          <span>
+            Mesas 15–20 · $40 / Bs {formatBsAmount(usdToBsForConcert(40, exchangeRate))}
+          </span>
         </div>
       </div>
 
@@ -219,7 +234,8 @@ export function ConcertVenueMap({
             <p className="venue-mesa-panel-tier">{TIER_SHORT[activeDef.tier]} · {activeDef.tierLabel}</p>
             <h3>Mesa {activeDef.zoneLabel}</h3>
             <p className="text-sm opacity-90">
-              USD {activeDef.priceUsd} · Bs {activeDef.priceBs}
+              USD {activeDef.priceUsd} · Bs{' '}
+              {formatBsAmount(usdToBsForConcert(activeDef.priceUsd, exchangeRate))}
               {' · '}
               {zoneStatusLabel(buildMesaOccupancy(seats, activeMesa!))}
             </p>

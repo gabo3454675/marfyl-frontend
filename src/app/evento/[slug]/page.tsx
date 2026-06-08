@@ -19,6 +19,7 @@ import { concertService } from '@/lib/api';
 import { getApiErrorMessage, isNetworkFailure } from '@/lib/api/get-error-message';
 import { CONCERT_MOCK_ENABLED, getMockEvent, mockHold } from '@/lib/concert/mock-data';
 import { CONCERT_TICKET_DISPLAY } from '@/lib/concert/ticket-display.constants';
+import { usdToBsForConcert } from '@/lib/concert/pricing';
 
 const PAYMENT_LABELS: Record<ConcertPaymentMethod, string> = {
   CASH_USD: 'Efectivo USD en local',
@@ -100,8 +101,10 @@ export default function ConcertEventPage() {
       selectedSeats.reduce(
         (sum, seat) =>
           sum +
-          (seat.priceBs ??
-            (seat.priceUsd ?? event?.priceUsdStandard ?? 0) * (event?.exchangeRate ?? 1)),
+          usdToBsForConcert(
+            seat.priceUsd ?? event?.priceUsdStandard ?? 0,
+            event?.exchangeRate ?? 1,
+          ),
         0,
       ),
     [selectedSeats, event?.priceUsdStandard, event?.exchangeRate],
@@ -267,6 +270,7 @@ export default function ConcertEventPage() {
 
           <ConcertVenueMap
             seats={salonSeats}
+            exchangeRate={event?.exchangeRate ?? 1}
             mode="buy"
             selectedIds={selected}
             activeMesa={activeMesa}
