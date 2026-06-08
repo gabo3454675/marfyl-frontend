@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     'apple-mobile-web-app-status-bar-style': 'black-translucent',
     'apple-mobile-web-app-title': 'MARFYL',
     'format-detection': 'telephone=no',
-    'msapplication-TileColor': '#38BDF8',
+    'msapplication-TileColor': '#2276D2',
     'msapplication-TileImage': '/android-chrome-192x192.png',
     'msapplication-tap-highlight': 'no',
   },
@@ -48,7 +48,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: '#38BDF8',
+  themeColor: '#2276D2',
   viewportFit: 'cover',
 };
 
