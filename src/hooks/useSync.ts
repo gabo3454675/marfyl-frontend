@@ -28,13 +28,18 @@ export function useSync() {
     let successCount = 0;
     let failCount = 0;
 
-    for (const record of toSync) {
-      try {
-        await invoiceService.create(record.payload);
-        await db.pendingInvoices.delete(record.id!);
-        successCount++;
-      } catch {
-        failCount++;
+    const concurrency = 3;
+    for (let i = 0; i < toSync.length; i += concurrency) {
+      const batch = toSync.slice(i, i + concurrency);
+      const results = await Promise.allSettled(
+        batch.map(async (record) => {
+          await invoiceService.create(record.payload);
+          await db.pendingInvoices.delete(record.id!);
+        }),
+      );
+      for (const r of results) {
+        if (r.status === 'fulfilled') successCount++;
+        else failCount++;
       }
     }
 

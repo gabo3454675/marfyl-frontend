@@ -91,7 +91,6 @@ export function buildNotificationFeedItems(input: {
   myTasks: TaskForResolution[];
   pendingInvoices: Invoice[];
   lowStockProducts: LowStockProduct[];
-  showRateReminder: boolean;
   fiscal: FiscalFeedSnapshot | null;
   fiscalLoadError: string | null;
   operationalErrors: string[];
@@ -238,19 +237,6 @@ export function buildNotificationFeedItems(input: {
       icon: 'alert',
       productId: p.id,
       href: '/alertas-stock',
-    });
-  }
-
-  if (input.showRateReminder) {
-    items.push({
-      id: 'rate-daily',
-      kind: 'rate',
-      title: 'Actualizar tasa del día',
-      description: 'Confirma o registra la tasa BCV para cobrar bien en bolívares.',
-      status: 'pending',
-      timeLabel: 'Hoy',
-      icon: 'clock',
-      openRateModal: true,
     });
   }
 

@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { MARKETING_NAV } from '@/lib/content/marketing-pages';
 import { MarfylLogo } from '@/components/brand/marfyl-logo';
@@ -13,6 +14,17 @@ import { cn } from '@/lib/utils';
 export function MarketingNavbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    document.body.style.overflow = open ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [open]);
 
   return (
     <header className="marketing-nav glass-navbar sticky top-0 z-50 shrink-0">
@@ -50,38 +62,61 @@ export function MarketingNavbar() {
           <ThemeToggle variant="compact" />
           <button
             type="button"
-            className="p-2 rounded-md border border-border text-foreground"
+            className="marketing-mobile-menu-btn"
             onClick={() => setOpen(!open)}
             aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
+            aria-expanded={open}
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </div>
 
-      {open && (
-        <div className="md:hidden border-t border-border bg-background/95 backdrop-blur-xl px-4 py-4 space-y-2 max-h-[70vh] overflow-y-auto">
-          {MARKETING_NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="block py-2 text-sm font-medium text-foreground"
+      <AnimatePresence>
+        {open && (
+          <>
+            <motion.button
+              type="button"
+              className="marketing-mobile-backdrop md:hidden"
+              aria-label="Cerrar menú"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onClick={() => setOpen(false)}
+            />
+            <motion.div
+              className="marketing-mobile-drawer md:hidden"
+              initial={{ opacity: 0, y: -12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             >
-              {item.label}
-            </Link>
-          ))}
-          <div className="flex flex-col gap-2 pt-2">
-            <ThemeToggle variant="full" />
-            <Button variant="outline" asChild>
-              <Link href="/login">Iniciar sesión</Link>
-            </Button>
-            <Button className="marketing-cta border-0" asChild>
-              <Link href="/register">Crear cuenta</Link>
-            </Button>
-          </div>
-        </div>
-      )}
+              {MARKETING_NAV.map((item) => {
+                const active = pathname === item.href || pathname.startsWith(item.href + '/');
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn('marketing-mobile-drawer__link', active && 'marketing-mobile-drawer__link--active')}
+                    onClick={() => setOpen(false)}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+              <div className="marketing-mobile-drawer__actions">
+                <ThemeToggle variant="full" />
+                <Button variant="outline" className="w-full min-h-[44px]" asChild>
+                  <Link href="/login">Iniciar sesión</Link>
+                </Button>
+                <Button className="marketing-cta border-0 w-full min-h-[44px]" asChild>
+                  <Link href="/register">Crear cuenta</Link>
+                </Button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

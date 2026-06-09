@@ -28,7 +28,7 @@ export function AdminPageHeader({
         ) : null}
         <h1 className="admin-page-title">{title}</h1>
         {subtitle ? (
-          <p className="admin-page-subtitle mt-1.5 sm:mt-2">{subtitle}</p>
+          <div className="admin-page-subtitle mt-1.5 sm:mt-2">{subtitle}</div>
         ) : null}
       </div>
       {actions ? (

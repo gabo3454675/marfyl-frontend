@@ -2,6 +2,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { API_BASE_URL } from '@/lib/config/api-config';
 import { clearSessionCookie } from '@/lib/auth-session-cookie';
 import { FISCAL_PREVIEW_TOKEN, isFiscalPreviewMode, seedFiscalPreviewAuth } from '@/lib/fiscal-preview';
+import { useAuthStore } from '@/store/useAuthStore';
 
 function getApiUrl(): string {
   if (typeof window !== 'undefined' && (window as unknown as { __NEXT_PUBLIC_API_URL__?: string }).__NEXT_PUBLIC_API_URL__) {
@@ -34,7 +35,6 @@ apiClient.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
       try {
-        const { useAuthStore } = require('@/store/useAuthStore');
         const store = useAuthStore.getState();
         const selectedOrganizationId = store.selectedOrganizationId || store.selectedCompanyId;
         const isPublicRoute = config.url?.includes('/auth/');

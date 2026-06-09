@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,69 +9,35 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Loader2, TrendingUp } from 'lucide-react';
-import apiClient from '@/lib/api';
+import { TrendingUp } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
-import { toast } from 'sonner';
 
 interface RateConfigModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+function formatRateUpdatedAt(rateUpdatedAt: string | null | undefined): string {
+  if (!rateUpdatedAt) return 'Sin registro';
+  try {
+    return new Date(rateUpdatedAt).toLocaleString('es-VE', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return 'Sin registro';
+  }
+}
+
+/** Solo lectura: la tasa BCV se actualiza sola en el servidor. */
 export function RateConfigModal({ open, onOpenChange }: RateConfigModalProps) {
   const getCurrentOrganization = useAuthStore((s) => s.getCurrentOrganization);
-  const setOrganizationConfig = useAuthStore((s) => s.setOrganizationConfig);
-  const organizationId = useAuthStore((s) => s.selectedOrganizationId ?? s.selectedCompanyId);
   const currentOrg = getCurrentOrganization();
   const orgWithRate = currentOrg && 'exchangeRate' in currentOrg ? currentOrg : null;
-
-  const [exchangeRate, setExchangeRate] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (open && orgWithRate?.exchangeRate != null) {
-      setExchangeRate(String(orgWithRate.exchangeRate));
-    }
-  }, [open, orgWithRate?.exchangeRate]);
-
-  const handleSave = async () => {
-    if (!organizationId) return;
-    const num = parseFloat(exchangeRate.replace(',', '.'));
-    if (Number.isNaN(num) || num <= 0) {
-      toast.error('Tasa inválida', { description: 'Ingresa una tasa válida mayor a 0.' });
-      return;
-    }
-    setSaving(true);
-    try {
-      const { data } = await apiClient.patch<{ exchangeRate: number; rateUpdatedAt?: string | null; rateUpdatedBy?: string | null; currencyCode?: string; currencySymbol?: string }>(
-        '/tenants/organization',
-        { exchangeRate: num }
-      );
-      setOrganizationConfig(organizationId, {
-        exchangeRate: data.exchangeRate,
-        rateUpdatedAt: data.rateUpdatedAt ?? undefined,
-        rateUpdatedBy: data.rateUpdatedBy ?? undefined,
-        currencyCode: data.currencyCode,
-        currencySymbol: data.currencySymbol,
-      });
-      setExchangeRate(String(data.exchangeRate));
-      toast.success('Tasa actualizada para toda la organización', {
-        description: 'Todos los usuarios verán la nueva tasa al recargar o al volver a la app. Se registró quién la actualizó.',
-      });
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('organization-rate-updated'));
-      }
-      onOpenChange(false);
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Error al guardar la tasa';
-      toast.error('Error al guardar la tasa', { description: msg });
-    } finally {
-      setSaving(false);
-    }
-  };
+  const rate = orgWithRate?.exchangeRate;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -80,38 +45,33 @@ export function RateConfigModal({ open, onOpenChange }: RateConfigModalProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            Configuración de Tasa
+            Tasa BCV
           </DialogTitle>
           <DialogDescription>
-            Tasa de cambio (BCV/Paralelo) para conversiones. Actualízala cuando el valor del día cambie.
+            MARFYL actualiza la tasa del dólar oficial (BCV) automáticamente. No necesitas
+            configurarla manualmente.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="modal-exchangeRate">Tasa actual</Label>
-            <Input
-              id="modal-exchangeRate"
-              type="text"
-              inputMode="decimal"
-              placeholder="36.50"
-              value={exchangeRate}
-              onChange={(e) => setExchangeRate(e.target.value)}
-            />
+        <div className="space-y-3 py-2">
+          <div className="rounded-lg border border-border bg-muted/40 px-4 py-3">
+            <p className="text-xs text-muted-foreground">Tasa vigente en tu empresa</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+              {rate != null && Number.isFinite(Number(rate))
+                ? `${Number(rate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} Bs/USD`
+                : '—'}
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Última actualización: {formatRateUpdatedAt(orgWithRate?.rateUpdatedAt)}
+            </p>
           </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Fuente: BCV vía DolarApi. Se sincroniza al iniciar el servidor, varias veces al día y
+            en segundo plano. POS, facturas y boletería usan esta tasa automáticamente.
+          </p>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Guardando...
-              </>
-            ) : (
-              'Guardar tasa'
-            )}
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cerrar
           </Button>
         </DialogFooter>
       </DialogContent>

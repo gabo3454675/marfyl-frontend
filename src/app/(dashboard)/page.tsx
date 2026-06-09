@@ -17,9 +17,9 @@ import { AdminPageHeader, AdminSection } from '@/components/admin/admin-page-hea
 import { AdminCard, AdminChartCard } from '@/components/admin/admin-card';
 import { AdminPanel } from '@/components/admin/admin-panel';
 import { AdminMotionStagger, AdminMotionItem } from '@/components/admin/admin-motion';
-import { RateConfigModal } from '@/components/rate-config-modal';
 import apiClient from '@/lib/api';
 import { usePermission } from '@/hooks/usePermission';
+import { useNotificationFeed } from '@/hooks/useNotificationFeed';
 import { cn } from '@/lib/utils';
 
 // Cargar componentes pesados de Recharts solo en el cliente
@@ -229,21 +229,10 @@ interface CreatedByMeTask {
   invoice?: { id: number; totalAmount: unknown; status: string } | null;
 }
 
-/** Retorna true si la tasa fue actualizada hoy (misma fecha que hoy). */
-function isRateUpdatedToday(rateUpdatedAt: string | null | undefined): boolean {
-  if (!rateUpdatedAt) return false;
-  try {
-    const d = new Date(rateUpdatedAt);
-    const today = new Date();
-    return d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
-  } catch {
-    return false;
-  }
-}
-
 export default function DashboardPage() {
   const router = useRouter();
-  const { isAuthenticated, user, selectedOrganizationId, selectedCompanyId, _hasHydrated, getCurrentOrganization } = useAuthStore();
+  const { isAuthenticated, user, selectedOrganizationId, selectedCompanyId } = useAuthStore();
+  const { myTasks, loading: feedTasksLoading, refetch: refetchFeedTasks } = useNotificationFeed();
   const selectedId = selectedOrganizationId || selectedCompanyId;
   const { canViewFinancialCharts, isSuperAdmin, isAdmin, isManager } = usePermission();
   const [summary, setSummary] = useState<DashboardSummary>(DEFAULT_SUMMARY);
@@ -253,8 +242,6 @@ export default function DashboardPage() {
   const [loadingCreatedByMe, setLoadingCreatedByMe] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
-  const [rateConfigModalOpen, setRateConfigModalOpen] = useState(false);
   const [health, setHealth] = useState<DashboardHealth>(DEFAULT_HEALTH);
   const [loadingHealth, setLoadingHealth] = useState(false);
   const [diagnosis, setDiagnosis] = useState<DashboardDiagnosis>(DEFAULT_DIAGNOSIS);
@@ -267,17 +254,13 @@ export default function DashboardPage() {
   const selectedIdRef = useRef<number | null>(selectedId);
   selectedIdRef.current = selectedId;
 
+  const displayedTasks = taskCategoryFilter ? pendingTasks : myTasks;
+  const tasksLoading = taskCategoryFilter ? loadingTasks : feedTasksLoading;
+
   const ventasMesHealth = useMemo(() => {
     const value = health.totalVentasMes;
     return { value, sparkline: [value * 0.5, value * 0.7, value * 0.85, value, value * 1.05, value] };
   }, [health.totalVentasMes]);
-
-  const currentOrg = getCurrentOrganization();
-  const orgWithRate = currentOrg && 'rateUpdatedAt' in currentOrg ? currentOrg : null;
-  const showRateSystemTask =
-    (isSuperAdmin || isAdmin || isManager) &&
-    !!orgWithRate &&
-    !isRateUpdatedToday(orgWithRate.rateUpdatedAt);
 
   const canLoadDashboard = isAuthenticated || isFiscalPreviewMode();
 
@@ -285,78 +268,99 @@ export default function DashboardPage() {
     if (isFiscalPreviewMode()) seedFiscalPreviewAuth();
   }, []);
 
-  // Asegurar que el componente esté montado en el cliente
-  useEffect(() => {
-    setMounted(true);
-    // Forzar hidratación si no se ha completado
-    const timer = setTimeout(() => {
-      if (!_hasHydrated) {
-        useAuthStore.getState().setHasHydrated(true);
+  const loadDashboard = useCallback(async () => {
+    if (!canLoadDashboard || !selectedId) {
+      if (!selectedId) {
+        setLoading(false);
+        setError('No hay empresa seleccionada. Por favor, selecciona una empresa.');
+        setSummary(DEFAULT_SUMMARY);
       }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [_hasHydrated]);
-
-  const fetchDashboardSummary = useCallback(async () => {
-    if (!selectedId) {
-      setLoading(false);
-      setError('No hay empresa seleccionada. Por favor, selecciona una empresa.');
-      setSummary(DEFAULT_SUMMARY);
       return;
     }
 
     const idAtStart = selectedId;
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await apiClient.get<DashboardSummary>('/dashboard/summary');
-      if (selectedIdRef.current === idAtStart) {
-        setSummary(response.data);
-      }
-    } catch (err: unknown) {
-      if (selectedIdRef.current === idAtStart) {
-        console.error('Error fetching dashboard summary:', err);
-        const offline = isNetworkFailure(err);
-        const errorMessage =
-          offline && isFiscalPreviewMode()
-            ? PREVIEW_OFFLINE_HINT
-            : getApiErrorMessage(err, 'Error al cargar los datos del dashboard');
-        setError(errorMessage);
-        setSummary(DEFAULT_SUMMARY);
-      }
-    } finally {
-      if (selectedIdRef.current === idAtStart) {
-        setLoading(false);
-      }
-    }
-  }, [selectedId]);
-
-  const fetchDashboardHealth = useCallback(async () => {
-    if (!selectedId) return;
-    const idAtStart = selectedId;
-    try {
+    setLoading(true);
+    setError(null);
+    if (canViewFinancialCharts) {
       setLoadingHealth(true);
-      const res = await apiClient.get<DashboardHealth>('/dashboard/health');
-      if (selectedIdRef.current === idAtStart) {
-        setHealth(res.data);
-      }
-    } catch {
-      if (selectedIdRef.current === idAtStart) {
-        setHealth(DEFAULT_HEALTH);
-      }
-    } finally {
-      if (selectedIdRef.current === idAtStart) {
-        setLoadingHealth(false);
-      }
+      setLoadingDiagnosis(true);
+      setLoadingStrategy(true);
     }
-  }, [selectedId]);
+    if (canSeeCreatedByMe) setLoadingCreatedByMe(true);
 
-  const fetchMyPendingTasks = useCallback(async () => {
-    if (!canLoadDashboard || !selectedId) return;
+    const summaryReq = apiClient.get<DashboardSummary>('/dashboard/summary');
+    const healthReq = canViewFinancialCharts
+      ? apiClient.get<DashboardHealth>('/dashboard/health')
+      : null;
+    const diagnosisReq = canViewFinancialCharts
+      ? apiClient.get<DashboardDiagnosis>('/dashboard/diagnosis')
+      : null;
+    const strategyReq = canViewFinancialCharts
+      ? apiClient.get<DashboardStrategy>('/dashboard/strategy')
+      : null;
+    const createdByMeReq =
+      canSeeCreatedByMe ? apiClient.get<CreatedByMeTask[]>('/tasks/created-by-me') : null;
+
+    const [summaryRes, healthRes, diagnosisRes, strategyRes, createdRes] = await Promise.allSettled([
+      summaryReq,
+      healthReq ?? Promise.resolve(null),
+      diagnosisReq ?? Promise.resolve(null),
+      strategyReq ?? Promise.resolve(null),
+      createdByMeReq ?? Promise.resolve(null),
+    ]);
+
+    if (selectedIdRef.current !== idAtStart) return;
+
+    if (summaryRes.status === 'fulfilled' && summaryRes.value) {
+      setSummary(summaryRes.value.data);
+    } else {
+      const err = summaryRes.status === 'rejected' ? summaryRes.reason : null;
+      const offline = err != null && isNetworkFailure(err);
+      setError(
+        offline && isFiscalPreviewMode()
+          ? PREVIEW_OFFLINE_HINT
+          : getApiErrorMessage(err, 'Error al cargar los datos del dashboard'),
+      );
+      setSummary(DEFAULT_SUMMARY);
+    }
+    setLoading(false);
+
+    if (healthRes.status === 'fulfilled' && healthRes.value) {
+      setHealth(healthRes.value.data);
+    } else {
+      setHealth(DEFAULT_HEALTH);
+    }
+    setLoadingHealth(false);
+
+    if (diagnosisRes.status === 'fulfilled' && diagnosisRes.value) {
+      setDiagnosis(diagnosisRes.value.data);
+    } else {
+      setDiagnosis(DEFAULT_DIAGNOSIS);
+    }
+    setLoadingDiagnosis(false);
+
+    if (strategyRes.status === 'fulfilled' && strategyRes.value) {
+      setStrategy(strategyRes.value.data);
+    } else {
+      setStrategy(DEFAULT_STRATEGY);
+    }
+    setLoadingStrategy(false);
+
+    if (createdRes.status === 'fulfilled' && createdRes.value) {
+      setCreatedByMeTasks(Array.isArray(createdRes.value.data) ? createdRes.value.data : []);
+    } else {
+      setCreatedByMeTasks([]);
+    }
+    setLoadingCreatedByMe(false);
+  }, [canLoadDashboard, selectedId, canViewFinancialCharts, canSeeCreatedByMe]);
+
+  const fetchFilteredTasks = useCallback(async () => {
+    if (!canLoadDashboard || !selectedId || !taskCategoryFilter) return;
     try {
       setLoadingTasks(true);
-      const url = taskCategoryFilter ? `/tasks/my-pending?category=${encodeURIComponent(taskCategoryFilter)}` : '/tasks/my-pending';
-      const res = await apiClient.get<PendingTask[]>(url);
+      const res = await apiClient.get<PendingTask[]>(
+        `/tasks/my-pending?category=${encodeURIComponent(taskCategoryFilter)}`,
+      );
       setPendingTasks(Array.isArray(res.data) ? res.data : []);
     } catch {
       setPendingTasks([]);
@@ -365,44 +369,36 @@ export default function DashboardPage() {
     }
   }, [canLoadDashboard, selectedId, taskCategoryFilter]);
 
-  const fetchCreatedByMeTasks = useCallback(async () => {
-    if (!canLoadDashboard || !canSeeCreatedByMe || !selectedId) return;
-    try {
-      setLoadingCreatedByMe(true);
-      const res = await apiClient.get<CreatedByMeTask[]>('/tasks/created-by-me');
-      setCreatedByMeTasks(Array.isArray(res.data) ? res.data : []);
-    } catch {
-      setCreatedByMeTasks([]);
-    } finally {
-      setLoadingCreatedByMe(false);
-    }
-  }, [canLoadDashboard, canSeeCreatedByMe, selectedId]);
+  useEffect(() => {
+    if (canLoadDashboard) loadDashboard();
+  }, [canLoadDashboard, loadDashboard]);
 
   useEffect(() => {
-    if (mounted && _hasHydrated && canLoadDashboard) {
-      fetchMyPendingTasks();
-      fetchCreatedByMeTasks();
-    }
-  }, [mounted, _hasHydrated, canLoadDashboard, fetchMyPendingTasks, fetchCreatedByMeTasks]);
+    if (taskCategoryFilter) fetchFilteredTasks();
+  }, [taskCategoryFilter, fetchFilteredTasks]);
 
   useEffect(() => {
     const onTasksUpdated = () => {
-      fetchMyPendingTasks();
-      fetchCreatedByMeTasks();
+      refetchFeedTasks();
+      if (taskCategoryFilter) fetchFilteredTasks();
+      if (canSeeCreatedByMe && selectedId) {
+        apiClient.get<CreatedByMeTask[]>('/tasks/created-by-me').then((res) => {
+          setCreatedByMeTasks(Array.isArray(res.data) ? res.data : []);
+        }).catch(() => setCreatedByMeTasks([]));
+      }
     };
     window.addEventListener('tasks-updated', onTasksUpdated);
     return () => window.removeEventListener('tasks-updated', onTasksUpdated);
-  }, [fetchMyPendingTasks, fetchCreatedByMeTasks]);
+  }, [refetchFeedTasks, taskCategoryFilter, fetchFilteredTasks, canSeeCreatedByMe, selectedId]);
 
   useEffect(() => {
-    if (mounted && _hasHydrated && !isAuthenticated && !isFiscalPreviewMode()) {
+    if (!isAuthenticated && !isFiscalPreviewMode()) {
       router.push('/login');
     }
-  }, [mounted, _hasHydrated, isAuthenticated, router]);
+  }, [isAuthenticated, router]);
 
-  // Al cambiar de organización: resetear datos mostrados (el fetch vuelve a marcar loading)
   useEffect(() => {
-    if (!selectedId || !mounted || !_hasHydrated) return;
+    if (!selectedId) return;
     setSummary(DEFAULT_SUMMARY);
     setHealth(DEFAULT_HEALTH);
     setDiagnosis(DEFAULT_DIAGNOSIS);
@@ -411,83 +407,7 @@ export default function DashboardPage() {
     setLoadingHealth(true);
     setLoadingDiagnosis(true);
     setLoadingStrategy(true);
-  }, [selectedId, mounted, _hasHydrated]);
-
-  useEffect(() => {
-    if (mounted && _hasHydrated && canLoadDashboard) {
-      fetchDashboardSummary();
-    }
-  }, [mounted, _hasHydrated, canLoadDashboard, fetchDashboardSummary]);
-
-  useEffect(() => {
-    if (mounted && _hasHydrated && canLoadDashboard && canViewFinancialCharts) {
-      fetchDashboardHealth();
-    }
-  }, [mounted, _hasHydrated, canLoadDashboard, canViewFinancialCharts, fetchDashboardHealth]);
-
-  const fetchDashboardDiagnosis = useCallback(async () => {
-    if (!selectedId) return;
-    const idAtStart = selectedId;
-    try {
-      setLoadingDiagnosis(true);
-      const res = await apiClient.get<DashboardDiagnosis>('/dashboard/diagnosis');
-      if (selectedIdRef.current === idAtStart) {
-        setDiagnosis(res.data);
-      }
-    } catch {
-      if (selectedIdRef.current === idAtStart) {
-        setDiagnosis(DEFAULT_DIAGNOSIS);
-      }
-    } finally {
-      if (selectedIdRef.current === idAtStart) {
-        setLoadingDiagnosis(false);
-      }
-    }
   }, [selectedId]);
-
-  useEffect(() => {
-    if (mounted && _hasHydrated && canLoadDashboard && canViewFinancialCharts) {
-      fetchDashboardDiagnosis();
-    }
-  }, [mounted, _hasHydrated, canLoadDashboard, canViewFinancialCharts, fetchDashboardDiagnosis]);
-
-  const fetchDashboardStrategy = useCallback(async () => {
-    if (!selectedId) return;
-    const idAtStart = selectedId;
-    try {
-      setLoadingStrategy(true);
-      const res = await apiClient.get<DashboardStrategy>('/dashboard/strategy');
-      if (selectedIdRef.current === idAtStart) {
-        setStrategy(res.data);
-      }
-    } catch {
-      if (selectedIdRef.current === idAtStart) {
-        setStrategy(DEFAULT_STRATEGY);
-      }
-    } finally {
-      if (selectedIdRef.current === idAtStart) {
-        setLoadingStrategy(false);
-      }
-    }
-  }, [selectedId]);
-
-  useEffect(() => {
-    if (mounted && _hasHydrated && canLoadDashboard && canViewFinancialCharts) {
-      fetchDashboardStrategy();
-    }
-  }, [mounted, _hasHydrated, canLoadDashboard, canViewFinancialCharts, fetchDashboardStrategy]);
-
-  // Mientras se carga en el servidor o hidrata, mostrar un estado de carga
-  if (!mounted || !_hasHydrated) {
-    return (
-      <div className="w-full min-w-0">
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2 text-sm sm:text-base text-muted-foreground">Cargando...</span>
-        </div>
-      </div>
-    );
-  }
 
   if (!isAuthenticated && !isFiscalPreviewMode()) {
     return null;
@@ -553,7 +473,7 @@ export default function DashboardPage() {
           >
             {error}
           </p>
-          <Button onClick={() => fetchDashboardSummary()} variant="outline" className="cursor-pointer">
+          <Button onClick={() => loadDashboard()} variant="outline" className="cursor-pointer">
             Reintentar conexión
           </Button>
         </AdminCard>
@@ -627,41 +547,15 @@ export default function DashboardPage() {
               </div>
             </div>
             <div>
-              {loadingTasks ? (
+              {tasksLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
-              ) : pendingTasks.length === 0 && !showRateSystemTask ? (
+              ) : displayedTasks.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">No tienes tareas pendientes</p>
               ) : (
                 <div className="space-y-3">
-                  {/* Tarea de sistema: Actualizar Tasa del Día (solo SUPER_ADMIN, ADMIN, MANAGER) */}
-                  {showRateSystemTask && (
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/15 transition-colors">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-foreground text-sm sm:text-base">Actualizar Tasa del Día</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                          La tasa de cambio no ha sido actualizada hoy. Por favor verifica el valor actual.
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-2">Tarea de sistema</p>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
-                        <Badge variant="secondary" className="text-xs bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/40">
-                          Alta
-                        </Badge>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => setRateConfigModalOpen(true)}
-                          className="gap-1.5 shrink-0"
-                        >
-                          <TrendingUp className="h-3.5 w-3.5" />
-                          Configurar tasa
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                  {pendingTasks.map((task) => (
+                  {displayedTasks.map((task) => (
                     <div
                       key={task.id}
                       className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
@@ -1226,7 +1120,6 @@ export default function DashboardPage() {
         </AdminMotionStagger>
       )}
 
-      <RateConfigModal open={rateConfigModalOpen} onOpenChange={setRateConfigModalOpen} />
     </div>
   );
 }

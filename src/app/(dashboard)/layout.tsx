@@ -1,23 +1,29 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useState, useCallback } from 'react';
+import { useEffect, useLayoutEffect, useState, useCallback, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter, usePathname } from 'next/navigation';
 import { isFiscalPreviewMode, seedFiscalPreviewAuth } from '@/lib/fiscal-preview';
 import { readSessionCookieFromDocument, setSessionCookie } from '@/lib/auth-session-cookie';
 import { useAuthStore } from '@/store/useAuthStore';
 import { apiClient } from '@/lib/api';
-import Sidebar from '@/components/sidebar';
-import BottomNav from '@/components/bottom-nav';
 import { AdminTopbar } from '@/components/admin/admin-topbar';
 import { NotificationFeedProvider } from '@/hooks/useNotificationFeed';
 import { RateConfigModal } from '@/components/rate-config-modal';
 import { AssistantProvider } from '@/components/assistant/assistant-provider';
-import { MarfylAssistant } from '@/components/assistant/marfyl-assistant';
 import { DmAmbientMotion } from '@/components/ui/dm-ambient-motion';
 import { DevAppSwitcher } from '@/components/marketing/dev-app-switcher';
 import { useSync } from '@/hooks/useSync';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
+
+const Sidebar = dynamic(() => import('@/components/sidebar'), { ssr: false });
+const BottomNav = dynamic(() => import('@/components/bottom-nav'), { ssr: false });
+const MarfylAssistant = dynamic(
+  () => import('@/components/assistant/marfyl-assistant').then((m) => ({ default: m.MarfylAssistant })),
+  { ssr: false },
+);
 
 export default function DashboardLayout({
   children,
@@ -27,22 +33,20 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname() ?? '';
   const isAssistantRoute = pathname === '/assistant' || pathname.startsWith('/assistant/');
+  const isPosRoute = pathname === '/pos';
   const devPreview = isFiscalPreviewMode();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const hasHydrated = useAuthStore((state) => state._hasHydrated);
   const selectedOrganizationId = useAuthStore((state) => state.selectedOrganizationId);
   const selectedCompanyId = useAuthStore((state) => state.selectedCompanyId);
-  const hasOrganizations = useAuthStore((state) => state.hasOrganizations());
-  const getOrganizations = useAuthStore((state) => state.getOrganizations);
   const user = useAuthStore((state) => state.user);
-  const [mounted, setMounted] = useState(false);
-
-  // Usar organizationId o companyId como fallback
-  const selectedId = selectedOrganizationId || selectedCompanyId;
-  // Super Admin sin orgs en BD: no bloquear con loading infinito
-  const orgsList = getOrganizations();
+  const orgsList = useMemo(() => useAuthStore.getState().getOrganizations(), [user]);
+  const hasOrganizations = orgsList.length > 0;
   const isSuperAdminWithNoOrgs = user?.isSuperAdmin === true && orgsList.length === 0;
   const [rateConfigModalOpen, setRateConfigModalOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  const selectedId = selectedOrganizationId || selectedCompanyId;
 
   // Sincronizar facturas pendientes al volver online
   useSync();
@@ -71,22 +75,17 @@ export default function DashboardLayout({
     syncOrganizationRate();
   }, [mounted, hasHydrated, isAuthenticated, selectedId, syncOrganizationRate]);
 
-  /** Campanita / feed: abrir modal de tasa desde recordatorio */
-  useEffect(() => {
-    const openRate = () => setRateConfigModalOpen(true);
-    window.addEventListener('open-rate-config-modal', openRate);
-    return () => window.removeEventListener('open-rate-config-modal', openRate);
-  }, []);
-
+  /** Refrescar tasa al volver a la pestaña + cada 15 min (backend cachea 60s) */
   useEffect(() => {
     if (!isAuthenticated || !selectedId) return;
-    const onSync = () => syncOrganizationRate();
-    const onVisibility = () => { if (document.visibilityState === 'visible') onSync(); };
-    window.addEventListener('focus', onSync);
-    window.addEventListener('visibilitychange', onVisibility);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') syncOrganizationRate();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    const timer = window.setInterval(syncOrganizationRate, 15 * 60 * 1000);
     return () => {
-      window.removeEventListener('focus', onSync);
-      window.removeEventListener('visibilitychange', onVisibility);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.clearInterval(timer);
     };
   }, [isAuthenticated, selectedId, syncOrganizationRate]);
 
@@ -99,13 +98,11 @@ export default function DashboardLayout({
     }
   }, [devPreview]);
 
+  /** Campanita: abrir modal informativo de tasa */
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      if (!useAuthStore.getState()._hasHydrated) {
-        useAuthStore.getState().setHasHydrated(true);
-      }
-    }, 300);
-    return () => window.clearTimeout(timer);
+    const openRate = () => setRateConfigModalOpen(true);
+    window.addEventListener('open-rate-config-modal', openRate);
+    return () => window.removeEventListener('open-rate-config-modal', openRate);
   }, []);
 
   useEffect(() => {
@@ -258,10 +255,16 @@ export default function DashboardLayout({
             className={
               isAssistantRoute
                 ? 'flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden'
-                : 'app-main-scroll'
+                : cn('app-main-scroll', isPosRoute && 'app-main-scroll--pos')
             }
           >
-            <div className={isAssistantRoute ? 'flex flex-1 flex-col min-h-0 min-w-0' : 'app-page-shell'}>
+            <div
+              className={
+                isAssistantRoute
+                  ? 'flex flex-1 flex-col min-h-0 min-w-0'
+                  : cn('app-page-shell', isPosRoute && 'app-page-shell--pos')
+              }
+            >
               {children}
             </div>
           </div>
@@ -275,7 +278,7 @@ export default function DashboardLayout({
       </div>
 
       {/* Fuera del flex shell: evita recorte por overflow-hidden en desktop */}
-      {!isAssistantRoute && <MarfylAssistant />}
+      {!isAssistantRoute && <MarfylAssistant hideOnMobile={isPosRoute} />}
       </>
       </AssistantProvider>
     </NotificationFeedProvider>

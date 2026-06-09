@@ -169,14 +169,9 @@ export default function TeamPage() {
 
   const handleSaveExchangeRate = async () => {
     if (!organizationId) return;
-    const num = parseFloat(exchangeRate.replace(',', '.'));
-    if (Number.isNaN(num) || num <= 0) {
-      toast.error('Tasa inválida', { description: 'Ingresa una tasa válida mayor a 0.' });
-      return;
-    }
     setSavingRate(true);
     try {
-      const payload: { exchangeRate: number; currencyCode?: string; currencySymbol?: string } = { exchangeRate: num };
+      const payload: { currencyCode?: string; currencySymbol?: string } = {};
       if (currencyCode?.trim()) payload.currencyCode = currencyCode.trim();
       if (currencySymbol?.trim()) payload.currencySymbol = currencySymbol.trim();
       const { data } = await apiClient.patch<{ exchangeRate: number; rateUpdatedAt?: string | null; rateUpdatedBy?: string | null; currencyCode?: string; currencySymbol?: string }>('/tenants/organization', payload);
@@ -190,8 +185,8 @@ export default function TeamPage() {
       setExchangeRate(String(data.exchangeRate));
       if (data.currencyCode != null) setCurrencyCode(data.currencyCode);
       if (data.currencySymbol != null) setCurrencySymbol(data.currencySymbol);
-      toast.success('Configuración actualizada para toda la organización', {
-        description: 'Todos los usuarios verán la nueva tasa y moneda. Se registró quién la actualizó.',
+      toast.success('Moneda actualizada', {
+        description: 'La tasa BCV sigue sincronizándose sola desde el BCV.',
       });
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || 'Error al guardar';
@@ -467,18 +462,18 @@ export default function TeamPage() {
                 Tasa BCV / Paralelo
               </span>
             }
-            description="Tasa de cambio para conversiones (ej. USD a VES). Solo usuarios con permisos de administración pueden modificarla."
+            description="Tasa BCV oficial. Se actualiza sola varias veces al día desde DolarApi."
           >
             <div className="flex flex-wrap items-end gap-4">
               <div className="space-y-2 flex-1 min-w-[140px]">
-                <Label htmlFor="exchangeRate">Tasa actual</Label>
+                <Label htmlFor="exchangeRate">Tasa BCV (automática)</Label>
                 <Input
                   id="exchangeRate"
                   type="text"
-                  inputMode="decimal"
-                  placeholder="36.50"
+                  readOnly
+                  tabIndex={-1}
+                  className="bg-muted/50 cursor-default"
                   value={exchangeRate}
-                  onChange={(e) => setExchangeRate(e.target.value)}
                 />
               </div>
               <div className="space-y-2 min-w-[100px]">
@@ -505,7 +500,7 @@ export default function TeamPage() {
               </div>
               <Button onClick={handleSaveExchangeRate} disabled={savingRate} className="cursor-pointer">
                 {savingRate ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {savingRate ? ' Guardando...' : 'Guardar'}
+                {savingRate ? ' Guardando...' : 'Guardar moneda'}
               </Button>
             </div>
           </AdminCard>

@@ -23,20 +23,9 @@ import {
 
 export type { FeedItemKind, NotificationFeedItem } from '@/lib/notifications/feed-builder';
 
-function isRateStaleForToday(rateUpdatedAt: string | null | undefined): boolean {
-  if (rateUpdatedAt == null || rateUpdatedAt === '') return true;
-  const d = new Date(rateUpdatedAt);
-  if (Number.isNaN(d.getTime())) return true;
-  const today = new Date();
-  return (
-    d.getFullYear() !== today.getFullYear() ||
-    d.getMonth() !== today.getMonth() ||
-    d.getDate() !== today.getDate()
-  );
-}
-
 type NotificationFeedContextValue = {
   feedItems: NotificationFeedItem[];
+  myTasks: TaskForResolution[];
   badgeCount: number;
   loading: boolean;
   error: string | null;
@@ -45,33 +34,14 @@ type NotificationFeedContextValue = {
 
 const NotificationFeedContext = createContext<NotificationFeedContextValue | null>(null);
 
-const POLL_MS = 5 * 60 * 1000;
+const POLL_MS = 10 * 60 * 1000;
 
 export function NotificationFeedProvider({ children }: { children: ReactNode }) {
   const selectedOrganizationId = useAuthStore((s) => s.selectedOrganizationId);
   const selectedCompanyId = useAuthStore((s) => s.selectedCompanyId);
-  const user = useAuthStore((s) => s.user);
-  const superAdminOrganizations = useAuthStore((s) => s.superAdminOrganizations);
   const { canManageFiscal } = usePermission();
 
   const selectedId = selectedOrganizationId ?? selectedCompanyId;
-
-  const rateUpdatedAt = useMemo(() => {
-    if (!selectedId) return null as string | null | undefined;
-    if (user?.isSuperAdmin && superAdminOrganizations.length > 0) {
-      const o = superAdminOrganizations.find((x) => x.id === selectedId);
-      return o && 'rateUpdatedAt' in o ? (o as { rateUpdatedAt?: string | null }).rateUpdatedAt : null;
-    }
-    const fromUser =
-      user?.organizations?.find((o) => o.id === selectedId) ||
-      user?.companies?.find((c) => c.id === selectedId);
-    if (fromUser && 'rateUpdatedAt' in fromUser) {
-      return (fromUser as { rateUpdatedAt?: string | null }).rateUpdatedAt;
-    }
-    return null;
-  }, [selectedId, user, superAdminOrganizations]);
-
-  const showRateReminder = isRateStaleForToday(rateUpdatedAt);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -193,7 +163,6 @@ export function NotificationFeedProvider({ children }: { children: ReactNode }) 
         myTasks,
         pendingInvoices,
         lowStockProducts,
-        showRateReminder,
         fiscal,
         fiscalLoadError,
         operationalErrors,
@@ -202,7 +171,6 @@ export function NotificationFeedProvider({ children }: { children: ReactNode }) 
       myTasks,
       pendingInvoices,
       lowStockProducts,
-      showRateReminder,
       fiscal,
       fiscalLoadError,
       operationalErrors,
@@ -212,8 +180,8 @@ export function NotificationFeedProvider({ children }: { children: ReactNode }) 
   const badgeCount = useMemo(() => countActionableFeedItems(feedItems), [feedItems]);
 
   const value = useMemo(
-    () => ({ feedItems, badgeCount, loading, error, refetch: loadData }),
-    [feedItems, badgeCount, loading, error, loadData],
+    () => ({ feedItems, myTasks, badgeCount, loading, error, refetch: loadData }),
+    [feedItems, myTasks, badgeCount, loading, error, loadData],
   );
 
   return (

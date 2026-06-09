@@ -22,7 +22,7 @@ function buildMockEvent(): ConcertEventPublic {
     title: 'Horacio Blanco Acústico en Íntimo — Bodegón Monddy',
     subtitle: 'Vista demo (sin base de datos)',
     venueName: 'Av. Francisco Solano, Chacaíto, Caracas',
-    eventStartsAt: new Date('2026-06-15T23:00:00').toISOString(),
+    eventStartsAt: new Date('2026-07-18T20:00:00.000Z').toISOString(),
     priceUsdStandard: 40,
     priceUsdVip: 70,
     exchangeRate: 40.5,
@@ -85,7 +85,7 @@ export function getMockOverview(): ConcertAdminOverview {
       id: 1,
       slug: CONCERT_DEFAULT_SLUG,
       title: 'Horacio Blanco Acústico en Íntimo',
-      eventStartsAt: new Date('2026-06-15T23:00:00').toISOString(),
+      eventStartsAt: new Date('2026-07-18T20:00:00.000Z').toISOString(),
       publicUrl: `/evento/${CONCERT_DEFAULT_SLUG}`,
     },
     stats: {
@@ -167,7 +167,7 @@ export function getMockOrder(token: string): ConcertOrderPublicView {
       event: {
         title: 'Horacio Blanco Acústico en Íntimo',
         venueName: 'Bodegón Monddy',
-        eventStartsAt: new Date('2026-06-15T23:00:00').toISOString(),
+        eventStartsAt: new Date('2026-07-18T20:00:00.000Z').toISOString(),
       },
       tickets: [
         {
@@ -193,7 +193,7 @@ export function getMockOrder(token: string): ConcertOrderPublicView {
     event: {
       title: 'Horacio Blanco Acústico en Íntimo',
       venueName: 'Bodegón Monddy',
-      eventStartsAt: new Date('2026-06-15T23:00:00').toISOString(),
+      eventStartsAt: new Date('2026-07-18T20:00:00.000Z').toISOString(),
       bankAccountName: 'Inversiones Hemenegilda S.A',
       bankAccountInfo:
         'Banco del Tesoro · Cuenta 010630707667073012556 · RIF J-405144823 (tipo J) · Tel. 0412-7572592',

@@ -5,33 +5,30 @@ import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard } from '@/components/admin/admin-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   ShoppingCart,
-  Plus,
-  Minus,
-  Trash2,
-  Search,
   Package,
   CheckCircle2,
   Loader2,
   Printer,
   Layers,
   Sparkles,
+  Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import apiClient, { invoiceService } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePermission } from '@/hooks/usePermission';
 import { FiscalIntegrationStrip } from '@/components/fiscal/v2/fiscal-integration-strip';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { db } from '@/lib/db';
 import { toast } from 'sonner';
 import { round2 } from '@/lib/currencyConversion';
 import { computeCartIva } from '@/lib/tax-calculator';
+import { PosCartPanel } from '@/components/pos/pos-cart-panel';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 interface Product {
   id: number;
@@ -128,6 +125,7 @@ export default function POSPage() {
     status: string;
     available: number;
   } | null>(null);
+  const [mobileCartOpen, setMobileCartOpen] = useState(false);
 
   // Cargar productos
   const fetchProducts = useCallback(async () => {
@@ -510,6 +508,37 @@ export default function POSPage() {
     }
   };
 
+  const cartPanelProps = {
+    cart,
+    currencyMode,
+    onCurrencyModeChange: setCurrencyMode,
+    customers,
+    selectedCustomerId,
+    onCustomerChange: setSelectedCustomerId,
+    paymentMethod,
+    onPaymentMethodChange: setPaymentMethod,
+    splitPayment,
+    onSplitPaymentChange: setSplitPayment,
+    splitLines,
+    onSplitLinesChange: setSplitLines,
+    customerCredit,
+    total,
+    subtotal,
+    ivaAmount,
+    tasaBcv,
+    splitEquivalentUsd,
+    processing,
+    formatCurrency,
+    getUnitPriceDisplay: (product: { salePrice: number }) => getUnitPriceDisplay(product as Product),
+    sellableUnits: (product: { id: number; stock: number }) => sellableUnits(product as Product),
+    onUpdateQuantity: updateQuantity,
+    onRemoveFromCart: removeFromCart,
+    onCheckout: async () => {
+      await handleCheckout();
+      setMobileCartOpen(false);
+    },
+  };
+
   if (!canManageCustomers) {
     return (
       <AdminPageShell eyebrow="Ventas" title="Punto de Venta" subtitle="Acceso restringido" animate={false}>
@@ -529,32 +558,48 @@ export default function POSPage() {
       title="Punto de Venta"
       subtitle={
         <>
-          {canManageFiscal && <FiscalIntegrationStrip variant="pos" className="mb-2 md:mb-3" />}
+          {canManageFiscal && (
+            <FiscalIntegrationStrip variant="pos" className="mb-2 hidden sm:block md:mb-3" />
+          )}
           <span className="block text-sm md:text-base">Procesa ventas rápidamente</span>
         </>
       }
-      className="h-full flex flex-col admin-pos-mobile-pad"
-      contentClassName="flex-1 flex flex-col min-h-0 !space-y-0"
+      className="admin-pos-shell admin-pos-mobile-pad flex h-full flex-col"
+      contentClassName="flex min-h-0 flex-1 flex-col !space-y-0"
+      headerClassName="mb-3 sm:mb-5 md:mb-6"
     >
 
-      {/* Barra fija móvil: total + COBRAR siempre accesible sobre la bottom nav */}
-      <div className="admin-pos-checkout-bar md:hidden" role="region" aria-label="Resumen de cobro">
-        <div className="flex min-w-0 flex-col">
-          <span className="text-[11px] text-muted-foreground leading-none">
-            {cart.length > 0 ? `${cart.length} ítem${cart.length === 1 ? '' : 's'}` : 'Carrito vacío'}
+      {/* Barra fija móvil/tablet: carrito + COBRAR sobre bottom nav */}
+      <div className="admin-pos-checkout-bar lg:hidden" role="region" aria-label="Resumen de cobro">
+        <button
+          type="button"
+          className="admin-pos-checkout-summary touch-manipulation"
+          onClick={() => setMobileCartOpen(true)}
+          aria-label="Abrir carrito"
+        >
+          <span className="flex items-center gap-2 text-left">
+            <span className="relative inline-flex">
+              <ShoppingCart className="h-5 w-5 text-primary" />
+              {cart.length > 0 ? (
+                <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                  {cart.length}
+                </span>
+              ) : null}
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[11px] leading-none text-muted-foreground">
+                {cart.length > 0 ? 'Ver carrito' : 'Carrito vacío'}
+              </span>
+              <span className="block truncate text-lg font-bold tabular-nums">{formatCurrency(total)}</span>
+            </span>
           </span>
-          <span className="text-lg font-bold tabular-nums truncate">{formatCurrency(total)}</span>
-        </div>
+        </button>
         <Button
-          className="shrink-0 h-11 min-w-[7.5rem] px-5 text-base font-semibold touch-manipulation"
+          className="h-11 min-w-[6.5rem] shrink-0 touch-manipulation px-4 text-base font-semibold"
           onClick={handleCheckout}
           disabled={cart.length === 0 || processing}
         >
-          {processing ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            'COBRAR'
-          )}
+          {processing ? <Loader2 className="h-5 w-5 animate-spin" /> : 'COBRAR'}
         </Button>
       </div>
 
@@ -619,13 +664,13 @@ export default function POSPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 flex-1 min-h-0">
-        {/* Panel Izquierdo - Catálogo */}
-        <div className="lg:col-span-2 flex flex-col min-h-0 order-1">
+      <div className="admin-pos-grid grid min-h-0 flex-1 grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-3 lg:gap-6">
+        {/* Catálogo — pantalla completa en móvil */}
+        <div className="admin-pos-catalog order-1 flex min-h-0 flex-col lg:col-span-2">
           <AdminCard
             title="Catálogo de Productos"
-            className="admin-pos-panel"
-            bodyClassName="flex flex-1 flex-col min-h-0"
+            className="admin-pos-panel min-h-0 flex-1"
+            bodyClassName="flex min-h-0 flex-1 flex-col"
             elevation="sm"
           >
               {/* Filtro rápido + búsqueda */}
@@ -668,8 +713,8 @@ export default function POSPage() {
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : (
-                <div className="flex-1 min-h-[12rem] max-h-[min(52dvh,28rem)] lg:max-h-none lg:min-h-0 overflow-y-auto overscroll-y-contain">
-                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3 md:gap-4">
+                <div className="admin-pos-catalog-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3 md:grid-cols-3 md:gap-4">
                     {filteredProducts.map((product) => (
                       <div
                         key={product.id}
@@ -692,7 +737,7 @@ export default function POSPage() {
                           }
                         }}
                       >
-                          <div className="flex items-center justify-between gap-2 mb-2 min-h-[22px]">
+                          <div className="mb-1.5 flex min-h-[18px] items-center justify-between gap-1">
                             {product.isBundle ? (
                               <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
                                 <Layers className="h-3.5 w-3.5" />
@@ -709,12 +754,12 @@ export default function POSPage() {
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center justify-center mb-2">
-                            <Package className="h-10 w-10 text-muted-foreground/80" />
+                          <div className="mb-1.5 flex items-center justify-center">
+                            <Package className="h-8 w-8 text-muted-foreground/80 sm:h-10 sm:w-10" />
                           </div>
-                          <h3 className="font-semibold text-sm mb-1 line-clamp-2 leading-snug">{product.name}</h3>
-                          <div className="flex items-center justify-between gap-2 mb-2">
-                            <span className="text-lg font-bold text-primary tabular-nums">
+                          <h3 className="mb-1 line-clamp-2 text-xs font-semibold leading-snug sm:text-sm">{product.name}</h3>
+                          <div className="mb-1 flex items-center justify-between gap-1">
+                            <span className="text-base font-bold tabular-nums text-primary sm:text-lg">
                               {formatCurrency(getUnitPriceDisplay(product))}
                             </span>
                             <Badge
@@ -746,297 +791,28 @@ export default function POSPage() {
           </AdminCard>
         </div>
 
-        {/* Panel Derecho - Carrito con scroll interno y footer fijo de totales/cobrar */}
-        <div className="admin-pos-cart order-2">
-          <AdminCard
-            title={
-              <span className="flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                Carrito de Venta
-                {cart.length > 0 ? (
-                  <Badge variant="secondary" className="ml-1 tabular-nums">
-                    {cart.length}
-                  </Badge>
-                ) : null}
-              </span>
-            }
-            className="admin-pos-panel h-full max-h-[inherit]"
-            bodyClassName="admin-pos-cart-body p-4 sm:p-5"
-            elevation="sm"
-          >
-            <div
-              className={cn(
-                'admin-pos-cart-controls',
-                splitPayment && 'max-h-[min(36dvh,17rem)] overflow-y-auto overscroll-y-contain pr-1',
-              )}
-            >
-              {/* Selector de Moneda: Bolívares / Dólares */}
-              <div>
-                <Label className="block mb-2">Moneda de pago</Label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant={currencyMode === 'BS' ? 'default' : 'outline'}
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => setCurrencyMode('BS')}
-                  >
-                    Bolívares
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={currencyMode === 'USD' ? 'default' : 'outline'}
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => setCurrencyMode('USD')}
-                  >
-                    Dólares
-                  </Button>
-                </div>
-              </div>
-
-              {/* Selector de Cliente */}
-              <div>
-                <Label htmlFor="customer">Cliente</Label>
-                <select
-                  id="customer"
-                  value={selectedCustomerId || ''}
-                  onChange={(e) => setSelectedCustomerId(e.target.value ? Number(e.target.value) : null)}
-                  className="w-full mt-1 px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="">Cliente Genérico</option>
-                  {customers.map((customer) => (
-                    <option key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </option>
-                  ))}
-                </select>
-                {paymentMethod === 'CREDIT' && customerCredit && (
-                  <p className="text-xs mt-1 text-muted-foreground">
-                    Límite disponible: ${customerCredit.available.toFixed(2)}
-                    {total > customerCredit.available && (
-                      <span className="text-destructive ml-1">(insuficiente)</span>
-                    )}
-                  </p>
-                )}
-              </div>
-
-              {/* Modalidades de pago (Bs / $ / crédito o combinado) */}
-              <div className="space-y-3">
-                <Label className="block text-sm font-medium">Modalidades de pago</Label>
-                <div className="flex items-center justify-between gap-2">
-                  <Label htmlFor="split-pay" className="text-sm font-normal cursor-pointer leading-tight">
-                    Pago combinado (varios medios en un solo cobro)
-                  </Label>
-                  <Switch
-                    id="split-pay"
-                    checked={splitPayment}
-                    onCheckedChange={(v) => {
-                      setSplitPayment(v);
-                      if (v && paymentMethod === 'CREDIT') setPaymentMethod('CASH_USD');
-                    }}
-                  />
-                </div>
-
-                {splitPayment ? (
-                  <div className="rounded-lg border border-border p-3 space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      Indique cada monto en su moneda: USD para efectivo $, Zelle, tarjeta; Bs para efectivo Bs y
-                      Pago Móvil. La suma debe cuadrar con el total en USD (tasa {tasaBcv.toFixed(2)}).
-                    </p>
-                    {splitLines.map((line, idx) => (
-                      <div key={idx} className="flex flex-wrap gap-2 items-center">
-                        <select
-                          value={line.method}
-                          onChange={(e) => {
-                            const next = [...splitLines];
-                            next[idx] = { ...next[idx], method: e.target.value as PaymentMethod };
-                            setSplitLines(next);
-                          }}
-                          className="h-9 flex-1 min-w-[140px] rounded-md border border-input bg-background px-2 text-sm"
-                        >
-                          {(Object.keys(PAYMENT_LABELS) as PaymentMethod[])
-                            .filter((m) => m !== 'CREDIT')
-                            .map((m) => (
-                              <option key={m} value={m}>
-                                {PAYMENT_LABELS[m]}
-                              </option>
-                            ))}
-                        </select>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder={BS_PAYMENT_METHODS.includes(line.method) ? 'Monto Bs' : 'Monto USD'}
-                          className="h-9 w-32"
-                          value={line.amount}
-                          onChange={(e) => {
-                            const next = [...splitLines];
-                            next[idx] = { ...next[idx], amount: e.target.value };
-                            setSplitLines(next);
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-9 w-9 shrink-0"
-                          disabled={splitLines.length <= 2}
-                          onClick={() => setSplitLines((prev) => prev.filter((_, i) => i !== idx))}
-                          aria-label="Quitar línea"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      disabled={splitLines.length >= 6}
-                      onClick={() =>
-                        setSplitLines((prev) => [...prev, { method: 'ZELLE', amount: '' }])
-                      }
-                    >
-                      Añadir línea
-                    </Button>
-                    <p className="text-xs tabular-nums">
-                      Cobrado (equiv.):{' '}
-                      <span className="font-semibold">{splitEquivalentUsd.toFixed(2)} USD</span>
-                      {' · '}
-                      Venta: <span className="font-semibold">{total.toFixed(2)} USD</span>
-                      {Math.abs(splitEquivalentUsd - total) > 0.02 && (
-                        <span className="text-destructive ml-1">— debe coincidir</span>
-                      )}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="admin-pos-pay-methods">
-                    {(
-                      [
-                        { id: 'CASH_USD', label: 'Efectivo $' },
-                        { id: 'CASH_BS', label: 'Efectivo Bs' },
-                        { id: 'PAGO_MOVIL', label: 'Pago Móvil Bs' },
-                        { id: 'ZELLE', label: 'Zelle $' },
-                        { id: 'CARD', label: 'Tarjeta' },
-                        { id: 'CREDIT', label: 'Crédito' },
-                      ] as const
-                    ).map(({ id, label }) => (
-                      <Button
-                        key={id}
-                        type="button"
-                        variant={paymentMethod === id ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setPaymentMethod(id)}
-                      >
-                        {label}
-                      </Button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-              {/* Items del carrito — scroll independiente */}
-              <div className="admin-pos-cart-scroll">
-                {cart.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <ShoppingCart className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">El carrito está vacío</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {cart.map((item) => (
-                      <div
-                        key={item.product.id}
-                        className="p-3 border border-border rounded-lg bg-secondary/50"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-sm">{item.product.name}</h4>
-                            <p className="text-xs text-muted-foreground">
-                              {formatCurrency(getUnitPriceDisplay(item.product))} c/u
-                            </p>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => removeFromCart(item.product.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => updateQuantity(item.product.id, -1)}
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <span className="w-8 text-center font-semibold">{item.quantity}</span>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => updateQuantity(item.product.id, 1)}
-                              disabled={item.quantity >= sellableUnits(item.product)}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                          </div>
-                          <span className="font-bold">
-                            {formatCurrency(round2(getUnitPriceDisplay(item.product) * item.quantity))}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="admin-pos-cart-footer space-y-2 text-sm">
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Subtotal</span>
-                  <span>{formatCurrency(subtotal)}</span>
-                </div>
-                <div className="flex justify-between text-muted-foreground">
-                  <span>IVA (16%)</span>
-                  <span>{formatCurrency(ivaAmount)}</span>
-                </div>
-                <div className="flex justify-between font-bold text-lg pt-1">
-                  <span>Total a cobrar</span>
-                  <span>{formatCurrency(total)}</span>
-                </div>
-                {(paymentMethod === 'CASH_BS' || paymentMethod === 'PAGO_MOVIL') && (
-                  <p className="text-xs text-muted-foreground">
-                    Equiv. Bs: {new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(round2(total * tasaBcv))}
-                  </p>
-                )}
-              </div>
-
-              {/* Botón de cobrar (desktop/tablet; móvil usa barra fija inferior) */}
-              <Button
-                className="hidden md:flex w-full mt-3 h-12 text-lg font-semibold touch-manipulation"
-                onClick={handleCheckout}
-                disabled={cart.length === 0 || processing}
-              >
-                {processing ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Procesando...
-                  </>
-                ) : (
-                  'COBRAR'
-                )}
-              </Button>
-          </AdminCard>
+        {/* Carrito desktop — en móvil va en sheet inferior */}
+        <div className="admin-pos-cart hidden lg:flex">
+          <PosCartPanel {...cartPanelProps} />
         </div>
       </div>
+
+      <Sheet open={mobileCartOpen} onOpenChange={setMobileCartOpen}>
+        <SheetContent
+          side="bottom"
+          className="admin-pos-cart-sheet flex max-h-[min(88dvh,720px)] flex-col gap-0 p-0 pb-[calc(var(--app-bottom-chrome)+3.75rem)]"
+        >
+          <SheetHeader className="shrink-0 border-b px-4 py-3 text-left">
+            <SheetTitle className="flex items-center gap-2 text-base">
+              <ShoppingCart className="h-5 w-5" />
+              Carrito y pago
+            </SheetTitle>
+          </SheetHeader>
+          <div className="min-h-0 flex-1 overflow-hidden px-1">
+            <PosCartPanel {...cartPanelProps} compact showCheckoutButton={false} className="border-0 shadow-none" />
+          </div>
+        </SheetContent>
+      </Sheet>
     </AdminPageShell>
   );
 }

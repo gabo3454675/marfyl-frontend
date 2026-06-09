@@ -2,7 +2,6 @@
 
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import type { LucideIcon } from 'lucide-react';
 import { AdminPanel } from '@/components/admin/admin-panel';
 
@@ -15,6 +14,35 @@ interface MetricCardProps {
   sparklineData: number[];
 }
 
+function Sparkline({ data }: { data: number[] }) {
+  if (data.length < 2) return null;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const w = 100;
+  const h = 36;
+  const points = data
+    .map((v, i) => {
+      const x = (i / (data.length - 1)) * w;
+      const y = h - ((v - min) / range) * (h - 4) - 2;
+      return `${x},${y}`;
+    })
+    .join(' ');
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="h-full w-full" preserveAspectRatio="none" aria-hidden>
+      <polyline
+        fill="none"
+        stroke="hsl(210, 100%, 50%)"
+        strokeWidth="2"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        points={points}
+      />
+    </svg>
+  );
+}
+
 export default function MetricCard({
   title,
   value,
@@ -23,9 +51,6 @@ export default function MetricCard({
   icon: Icon,
   sparklineData,
 }: MetricCardProps) {
-  const changeData = sparklineData.map((val) => ({ value: val }));
-  const strokeColor = 'hsl(210, 100%, 50%)';
-
   return (
     <AdminPanel className="admin-metric-card group h-full hover-lift" elevation="sm">
       <div className="p-4 sm:p-5 lg:p-6">
@@ -40,17 +65,7 @@ export default function MetricCard({
         </div>
 
         <div className="mb-3 h-9 sm:h-10 opacity-90">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={changeData}>
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke={strokeColor}
-                dot={false}
-                strokeWidth={2}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <Sparkline data={sparklineData} />
         </div>
 
         <div className="flex items-center gap-1 flex-wrap">

@@ -1004,8 +1004,13 @@
 
   /* Carrito POS: scroll interno + totales/cobrar siempre visibles */
   .admin-pos-cart {
-    @apply flex flex-col min-h-0 w-full;
+    @apply flex w-full flex-col min-h-0;
     max-height: min(72dvh, 40rem);
+  }
+  @media (max-width: 1023px) {
+    .admin-pos-cart {
+      max-height: none;
+    }
   }
   @media (min-width: 1024px) {
     .admin-pos-cart {
@@ -1029,29 +1034,68 @@
     @apply shrink-0 border-t border-border bg-card pt-3;
   }
 
-  /* Barra fija de cobro en móvil (sobre bottom nav) */
+  /* Barra fija de cobro en móvil/tablet (sobre bottom nav) */
   .admin-pos-checkout-bar {
     position: fixed;
     left: 0;
     right: 0;
-    z-index: 35;
+    z-index: 45;
     bottom: var(--app-bottom-chrome);
-    @apply flex items-center justify-between gap-3 border-t border-border px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/90;
-    background: hsl(var(--background) / 0.95);
-    padding-left: max(1rem, env(safe-area-inset-left, 0px));
-    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+    @apply flex items-center justify-between gap-2 border-t border-border px-3 py-2.5 backdrop-blur supports-[backdrop-filter]:bg-background/90;
+    background: hsl(var(--background) / 0.96);
+    padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+    min-height: 3.75rem;
+  }
+  .admin-pos-checkout-summary {
+    @apply min-w-0 flex-1 rounded-lg px-1 py-0.5 text-left transition-colors active:bg-muted/60;
   }
   .dark .admin-pos-checkout-bar {
-    background: hsl(var(--dm-a-base) / 0.92);
+    background: hsl(var(--dm-a-base) / 0.94);
     border-color: hsl(0 0% 100% / 0.08);
   }
   .admin-pos-mobile-pad {
-    padding-bottom: calc(var(--app-bottom-chrome) + 5rem);
+    --app-pos-checkout-h: 3.75rem;
+    padding-bottom: calc(var(--app-bottom-chrome) + var(--app-pos-checkout-h));
   }
-  @media (min-width: 768px) {
+  @media (min-width: 1024px) {
     .admin-pos-mobile-pad {
       padding-bottom: 0;
     }
+  }
+
+  /* POS móvil: catálogo a pantalla completa, sin scroll de página duplicado */
+  @media (max-width: 1023px) {
+    .app-main-scroll--pos {
+      padding-bottom: 0;
+      overflow: hidden;
+    }
+    .app-page-shell--pos {
+      @apply flex h-full min-h-0 flex-col p-3 pt-2 sm:p-4;
+      padding-bottom: 0;
+    }
+    .admin-pos-shell {
+      @apply flex min-h-0 flex-1 flex-col;
+    }
+    .admin-pos-grid {
+      @apply flex min-h-0 flex-1 flex-col;
+    }
+    .admin-pos-catalog {
+      @apply min-h-0 flex-1;
+    }
+    .admin-pos-catalog-scroll {
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+
+  .admin-pos-cart-sheet {
+    @apply rounded-t-2xl;
+  }
+  .admin-pos-cart-sheet .admin-pos-panel {
+    @apply border-0 shadow-none;
+  }
+  .admin-pos-cart-sheet .admin-card-header {
+    @apply hidden;
   }
 
   .admin-pos-pay-methods {
@@ -1063,8 +1107,10 @@
   }
 
   .admin-pos-product-tile {
-    @apply rounded-xl border border-border bg-card/80 p-4 cursor-pointer transition-all duration-200 ease-out;
+    @apply cursor-pointer rounded-xl border border-border bg-card/80 p-2.5 transition-all duration-200 ease-out sm:p-4;
     box-shadow: 0 1px 2px hsl(0 0% 0% / 0.04);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
   .admin-pos-product-tile:hover {
     @apply border-primary/45;
@@ -1277,6 +1323,7 @@
 .marketing-root {
   @apply relative isolate flex min-h-[100dvh] flex-col;
   --marketing-accent: 210 100% 56%;
+  --marketing-bottom-nav-h: 4.25rem;
   --background: 210 40% 98%;
   --foreground: 222 47% 11%;
   --primary: 210 100% 56%;
@@ -1289,6 +1336,9 @@
   --ring: 210 100% 56%;
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  overscroll-behavior-y: none;
 }
 
 .dark .marketing-root {
@@ -1348,21 +1398,94 @@
 
 .marketing-main {
   @apply relative z-[1] flex-1 w-full min-w-0;
+  padding-bottom: calc(var(--marketing-bottom-nav-h) + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  .marketing-main {
+    padding-bottom: 0;
+  }
 }
 
 .marketing-page-flow {
   @apply flex flex-col gap-0;
 }
 
+.marketing-page-transition {
+  @apply flex min-h-full flex-col;
+}
+
+/* Bottom tab bar — mobile app feel */
+.marketing-mobile-nav {
+  @apply fixed inset-x-0 bottom-0 z-[60];
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: hsl(var(--background) / 0.88);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border-top: 1px solid hsl(var(--border) / 0.65);
+}
+
+.marketing-mobile-nav__inner {
+  @apply mx-auto flex h-[var(--marketing-bottom-nav-h)] max-w-lg items-stretch justify-around px-1;
+}
+
+.marketing-mobile-nav__item {
+  @apply flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[10px] font-medium leading-none transition-colors;
+  color: hsl(var(--muted-foreground));
+  min-height: 44px;
+}
+
+.marketing-mobile-nav__item--active {
+  color: hsl(var(--primary));
+}
+
+.marketing-mobile-menu-btn {
+  @apply inline-flex h-11 w-11 items-center justify-center rounded-lg text-foreground transition-colors;
+  @apply hover:bg-muted/80 active:scale-[0.97];
+}
+
+.marketing-mobile-backdrop {
+  @apply fixed inset-0 z-[45] bg-black/40 md:hidden;
+  top: 3.5rem;
+}
+
+.marketing-mobile-drawer {
+  @apply absolute left-0 right-0 z-[46] border-b px-4 py-4 shadow-lg md:hidden;
+  top: 100%;
+  background: hsl(var(--background) / 0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-color: hsl(var(--border) / 0.7);
+}
+
+.marketing-mobile-drawer__link {
+  @apply flex min-h-[44px] items-center rounded-lg px-3 text-base font-medium transition-colors;
+  color: hsl(var(--foreground));
+}
+
+.marketing-mobile-drawer__link--active {
+  @apply bg-primary/10 text-primary;
+}
+
+.marketing-mobile-drawer__link:not(.marketing-mobile-drawer__link--active):active {
+  @apply bg-muted/70;
+}
+
+.marketing-mobile-drawer__actions {
+  @apply mt-3 flex flex-col gap-2 border-t pt-4;
+  border-color: hsl(var(--border) / 0.6);
+}
+
 .marketing-hero {
   @apply relative isolate overflow-hidden;
-  min-height: min(88vh, 760px);
-  padding-top: 2.5rem;
-  padding-bottom: 3.5rem;
+  min-height: min(78vh, 640px);
+  padding-top: 1.75rem;
+  padding-bottom: 2.5rem;
 }
 
 @media (min-width: 640px) {
   .marketing-hero {
+    min-height: min(88vh, 760px);
     padding-top: 3.5rem;
     padding-bottom: 4rem;
   }
