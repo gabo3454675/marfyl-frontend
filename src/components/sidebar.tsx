@@ -81,7 +81,7 @@ export default function Sidebar() {
   useEffect(() => {
     if (!user?.isSuperAdmin) return;
     apiClient
-      .get<{ id: number; name: string; slug: string; plan: string; currencyCode?: string; currencySymbol?: string; exchangeRate?: number; rateUpdatedAt?: string | null }[]>('/tenants/organizations-all')
+      .get<{ id: number; name: string; slug: string; plan: string; currencyCode?: string; currencySymbol?: string; exchangeRate?: number; rateUpdatedAt?: string | null; concertModuleEnabled?: boolean }[]>('/tenants/organizations-all')
       .then((res) => {
         const orgs = (res.data || []).map((o) => ({
           id: o.id,
@@ -93,6 +93,7 @@ export default function Sidebar() {
           currencySymbol: o.currencySymbol ?? '$',
           exchangeRate: o.exchangeRate ?? 1,
           rateUpdatedAt: o.rateUpdatedAt ?? null,
+          concertModuleEnabled: o.concertModuleEnabled,
         }));
         setSuperAdminOrganizations(orgs);
         const currentId = useAuthStore.getState().selectedOrganizationId || useAuthStore.getState().selectedCompanyId;

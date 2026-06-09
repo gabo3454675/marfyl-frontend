@@ -135,37 +135,8 @@ export default function BottomNav() {
             </div>
 
             <div className="mt-4 space-y-1">
-              <ThemeToggle variant="full" className="mb-2" />
-              {permissions.canManageFiscal && (
-                <div className="pt-3 mt-3 border-t border-border">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-2">
-                    Fiscal MARFYL
-                  </p>
-                  <div className="space-y-0.5 pl-1 border-l-2 border-primary/25 ml-1">
-                  {FISCAL_NAV_ITEMS.map((item) => {
-                    const isActive = pathname.startsWith(item.href) && (item.href !== '/fiscal' || pathname === '/fiscal');
-                    return (
-                      <Button
-                        key={item.id}
-                        variant="ghost"
-                        className={cn(
-                          'w-full justify-start gap-3 h-11 pl-6',
-                          isActive
-                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                            : 'text-foreground hover:bg-secondary',
-                        )}
-                        onClick={() => handleMenuItemClick(item.href)}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        <span className="text-sm">{item.label}</span>
-                      </Button>
-                    );
-                  })}
-                  </div>
-                </div>
-              )}
               {concertNavItems.length > 0 && (
-                <div className="pt-3 mt-3 border-t border-border">
+                <div className="pb-3 mb-3 border-b border-border">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-2">
                     Evento Monddy (temporal)
                   </p>
@@ -197,6 +168,35 @@ export default function BottomNav() {
                       <ExternalLink className="h-4 w-4" />
                       <span className="text-sm">Página pública de entradas</span>
                     </Button>
+                  </div>
+                </div>
+              )}
+              <ThemeToggle variant="full" className="mb-2" />
+              {permissions.canManageFiscal && (
+                <div className="pt-3 mt-3 border-t border-border">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-2">
+                    Fiscal MARFYL
+                  </p>
+                  <div className="space-y-0.5 pl-1 border-l-2 border-primary/25 ml-1">
+                  {FISCAL_NAV_ITEMS.map((item) => {
+                    const isActive = pathname.startsWith(item.href) && (item.href !== '/fiscal' || pathname === '/fiscal');
+                    return (
+                      <Button
+                        key={item.id}
+                        variant="ghost"
+                        className={cn(
+                          'w-full justify-start gap-3 h-11 pl-6',
+                          isActive
+                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                            : 'text-foreground hover:bg-secondary',
+                        )}
+                        onClick={() => handleMenuItemClick(item.href)}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span className="text-sm">{item.label}</span>
+                      </Button>
+                    );
+                  })}
                   </div>
                 </div>
               )}
