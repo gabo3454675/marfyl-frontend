@@ -3,6 +3,8 @@ import { ArrowRight, CheckCircle2, Shield, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MarketingCtaBand } from '@/components/marketing/marketing-cta-band';
 import { MarketingFaq } from '@/components/marketing/marketing-faq';
+import { MarketingHeroGlow } from '@/components/marketing/marketing-hero-glow';
+import { MarketingStatsBand } from '@/components/marketing/marketing-stats-band';
 import { MARKETING_FAQ_HOME, MARKETING_HOME } from '@/lib/content/marketing-pages';
 
 export default function EmpresaPage() {
@@ -10,13 +12,15 @@ export default function EmpresaPage() {
 
   return (
     <>
-      <section className="marketing-hero marketing-container">
-        <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-wider bg-primary/10 text-primary border border-primary/25 inline-flex items-center gap-2 px-4 py-1.5 rounded-full">
+      <section className="marketing-hero">
+        <MarketingHeroGlow />
+        <div className="marketing-container marketing-hero__content">
+          <div className="max-w-3xl">
+          <p className="marketing-hero-eyebrow text-sm font-semibold uppercase tracking-wider inline-flex items-center gap-2 px-4 py-1.5 rounded-full">
             {hero.eyebrow}
           </p>
-          <h1 className="marketing-hero-title mt-4 text-foreground">{hero.title}</h1>
-          <p className="text-lg text-muted-foreground mt-6 leading-relaxed max-w-2xl">{hero.subtitle}</p>
+          <h1 className="marketing-hero-title mt-4">{hero.title}</h1>
+          <p className="marketing-hero-subtitle text-lg mt-6 leading-relaxed max-w-2xl">{hero.subtitle}</p>
           <div className="flex flex-wrap gap-3 mt-8">
             <Button size="lg" className="marketing-cta border-0" asChild>
               <Link href={hero.primaryCta.href}>
@@ -27,6 +31,7 @@ export default function EmpresaPage() {
             <Button size="lg" variant="outline" className="marketing-outline-btn" asChild>
               <a href={hero.secondaryCta.href}>{hero.secondaryCta.label}</a>
             </Button>
+          </div>
           </div>
         </div>
       </section>
@@ -80,6 +85,8 @@ export default function EmpresaPage() {
           </div>
         </div>
       </section>
+
+      <MarketingStatsBand />
 
       <MarketingFaq items={MARKETING_FAQ_HOME} />
       <MarketingCtaBand

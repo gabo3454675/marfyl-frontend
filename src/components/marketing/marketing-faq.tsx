@@ -20,17 +20,22 @@ export function MarketingFaq({
         {items.map((item) => {
           const open = openId === item.id;
           return (
-            <div key={item.id} className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+            <div key={item.id} className="marketing-faq-item">
               <button
                 type="button"
-                className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left text-sm font-medium"
+                className="marketing-faq-trigger"
                 onClick={() => setOpenId(open ? null : item.id)}
                 aria-expanded={open}
               >
                 {item.question}
-                <ChevronDown className={cn('h-4 w-4 shrink-0 transition-transform text-blue-600', open && 'rotate-180')} />
+                <ChevronDown
+                  className={cn(
+                    'h-4 w-4 shrink-0 transition-transform text-[hsl(var(--marketing-accent))]',
+                    open && 'rotate-180',
+                  )}
+                />
               </button>
-              {open && <p className="px-5 pb-4 text-sm text-slate-600 leading-relaxed">{item.answer}</p>}
+              {open && <p className="marketing-faq-answer">{item.answer}</p>}
             </div>
           );
         })}

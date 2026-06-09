@@ -1,5 +1,55 @@
 import { MARFYL_BRAND, PRICING_TEASER } from './marketing-copy';
 
+/** Colores de gradiente alineados al acento marketing (#0284C7 / hsl 210 100% 56%). */
+export const MARFYL_GRADIENT_COLORS = ['#7DD3FC', '#0284C7', '#0C4A6E'] as const;
+
+/** Organizaciones fundadoras — datos reales, no inventados. */
+export const FOUNDING_CLIENTS = [
+  {
+    slug: 'el-rancho-de-german',
+    name: 'El Rancho de Germán',
+    sector: 'Restaurante, bar y club campestre multideportes',
+  },
+  {
+    slug: 'monddy',
+    name: 'Monddy Corp',
+    sector: 'Bodegón y eventos',
+  },
+  {
+    slug: 'davean',
+    name: 'Davean',
+    sector: 'Taller automotriz',
+  },
+] as const;
+
+export const MARKETING_STATS = {
+  tags: [
+    { label: '¿Por qué MARFYL?', icon: 'chat' as const },
+    { label: 'Producto', icon: 'wand' as const },
+  ],
+  title: 'Que hablen los números',
+  subtitle:
+    'Tres negocios reales operando ventas, inventario y cumplimiento fiscal en la misma plataforma.',
+  cta: { label: 'Explorar características', href: '/caracteristicas' },
+  items: [
+    {
+      value: '3',
+      label: 'Negocios activos',
+      detail: 'Restauración, bodegón, eventos y taller automotriz en Venezuela',
+    },
+    {
+      value: '7',
+      label: 'Módulos integrados',
+      detail: 'POS, inventario, fiscal SENIAT, finanzas e IA',
+    },
+    {
+      value: '100%',
+      label: 'Datos por organización',
+      detail: 'Multi-tenant con permisos por rol',
+    },
+  ],
+} as const;
+
 export const MARKETING_NAV = [
   { label: 'Inicio', href: '/empresa' },
   { label: 'Características', href: '/caracteristicas' },

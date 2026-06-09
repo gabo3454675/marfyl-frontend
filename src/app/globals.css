@@ -1355,7 +1355,91 @@
 }
 
 .marketing-hero {
-  @apply relative pt-10 pb-14 sm:pt-14 sm:pb-16 md:pt-16 md:pb-20 lg:pt-20 lg:pb-24;
+  @apply relative isolate overflow-hidden;
+  min-height: min(88vh, 760px);
+  padding-top: 2.5rem;
+  padding-bottom: 3.5rem;
+}
+
+@media (min-width: 640px) {
+  .marketing-hero {
+    padding-top: 3.5rem;
+    padding-bottom: 4rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .marketing-hero {
+    padding-top: 4rem;
+    padding-bottom: 5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .marketing-hero {
+    padding-top: 5rem;
+    padding-bottom: 6rem;
+  }
+}
+
+.marketing-hero__content {
+  @apply relative z-[3] pointer-events-none;
+}
+
+.marketing-hero__content a,
+.marketing-hero__content button {
+  pointer-events: auto;
+}
+
+.marketing-hero-fx {
+  @apply absolute inset-0;
+}
+
+.marketing-hero-fx--blinds {
+  z-index: 0;
+}
+
+.marketing-hero-fade {
+  @apply pointer-events-none absolute inset-x-0 bottom-0 z-[2];
+  height: 9rem;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    hsl(var(--background) / 0.55) 45%,
+    hsl(var(--background)) 100%
+  );
+}
+
+.dark .marketing-hero {
+  background: hsl(222 47% 6%);
+}
+
+.dark .marketing-hero-fade {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    hsl(222 47% 6% / 0.55) 45%,
+    hsl(222 47% 6%) 100%
+  );
+}
+
+.dark .marketing-hero__content,
+.dark .marketing-hero__content .marketing-hero-title {
+  color: hsl(210 40% 98%);
+}
+
+.marketing-hero-eyebrow {
+  color: hsl(210 100% 72%);
+  background: hsl(210 100% 56% / 0.12);
+  border: 1px solid hsl(210 100% 56% / 0.28);
+}
+
+.marketing-hero-subtitle {
+  color: hsl(215 20% 78%);
+}
+
+.dark .marketing-hero-subtitle {
+  color: hsl(215 20% 82%);
 }
 
 .marketing-hero::after {
@@ -1428,6 +1512,197 @@
 
 .marketing-page-header {
   @apply pt-12 pb-8 md:pt-16 text-center max-w-3xl mx-auto;
+}
+
+/* Stats band — estilo referencia con acento azul MARFYL */
+.marketing-stats-band {
+  @apply relative overflow-hidden py-16 sm:py-20 md:py-24;
+  background: hsl(222 47% 6%);
+  color: hsl(210 40% 98%);
+}
+
+.marketing-stats-band__fx {
+  @apply absolute inset-0 opacity-70;
+  z-index: 0;
+}
+
+.marketing-stats-band__veil {
+  @apply pointer-events-none absolute inset-0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 100%, hsl(210 100% 56% / 0.18), transparent 70%),
+    linear-gradient(180deg, hsl(222 47% 6% / 0.35) 0%, hsl(222 47% 6% / 0.82) 55%, hsl(222 47% 6%) 100%);
+}
+
+.marketing-stats-band__content {
+  @apply relative z-[2] pointer-events-none;
+}
+
+.marketing-stats-band__content a,
+.marketing-stats-band__content button {
+  pointer-events: auto;
+}
+
+.marketing-stats-clients {
+  @apply flex flex-wrap items-center justify-center gap-x-8 gap-y-4 pb-10 sm:pb-12 md:pb-14;
+  border-bottom: 1px solid hsl(210 100% 56% / 0.12);
+}
+
+.marketing-stats-client {
+  @apply flex flex-col items-center text-center gap-0.5 min-w-[9rem];
+}
+
+.marketing-stats-client__name {
+  @apply text-sm sm:text-base font-semibold tracking-tight text-white/90;
+}
+
+.marketing-stats-client__sector {
+  @apply text-[11px] sm:text-xs uppercase tracking-wider;
+  color: hsl(0 0% 100% / 0.62);
+}
+
+.marketing-stats-layout {
+  @apply grid gap-10 lg:gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-center pt-10 sm:pt-12;
+}
+
+.marketing-stats-tags {
+  @apply flex flex-wrap gap-2;
+}
+
+.marketing-stats-tag {
+  @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium;
+  border-color: hsl(210 100% 56% / 0.28);
+  background: hsl(210 100% 56% / 0.08);
+  color: hsl(210 100% 76%);
+}
+
+.marketing-stats-title {
+  @apply mt-5 text-3xl sm:text-4xl md:text-[2.75rem] font-bold tracking-tight leading-tight;
+}
+
+.marketing-stats-subtitle {
+  @apply mt-4 max-w-lg text-sm sm:text-base leading-relaxed;
+  color: hsl(0 0% 100% / 0.78);
+}
+
+.marketing-stats-cta {
+  @apply mt-8 border-white/10 bg-white/10 text-white hover:bg-white/15 hover:text-white;
+}
+
+.marketing-stats-grid {
+  @apply grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-5;
+}
+
+.marketing-stats-card {
+  @apply rounded-2xl border p-5 sm:p-6 transition-colors duration-300;
+  border-color: hsl(210 100% 56% / 0.14);
+  background: hsl(210 100% 56% / 0.06);
+}
+
+.marketing-stats-card:hover {
+  border-color: hsl(210 100% 56% / 0.28);
+  background: hsl(210 100% 56% / 0.1);
+}
+
+.marketing-stats-card__value {
+  @apply text-4xl sm:text-5xl font-bold tracking-tight text-white;
+}
+
+.marketing-stats-card__label {
+  @apply mt-2 text-sm font-semibold;
+  color: hsl(0 0% 100% / 0.95);
+}
+
+.marketing-stats-card__detail {
+  @apply mt-2 text-xs sm:text-sm leading-relaxed;
+  color: hsl(0 0% 100% / 0.72);
+}
+
+/* Planes — orbe de fondo */
+.marketing-pricing-section {
+  @apply relative isolate overflow-hidden;
+}
+
+.marketing-pricing-fx {
+  @apply absolute inset-0 pointer-events-auto;
+  z-index: 0;
+  left: 50%;
+  top: 42%;
+  width: min(88vw, 820px);
+  height: min(88vw, 820px);
+  transform: translate(-50%, -50%);
+  opacity: 0.72;
+}
+
+@media (max-width: 767px) {
+  .marketing-pricing-fx {
+    top: 38%;
+    width: min(110vw, 520px);
+    height: min(110vw, 520px);
+    opacity: 0.5;
+  }
+}
+
+.marketing-pricing-section__content {
+  @apply relative z-[2] pointer-events-none;
+}
+
+.marketing-pricing-section__content > * {
+  pointer-events: auto;
+}
+
+/* Tarjetas de precios */
+.marketing-pricing-card {
+  @apply rounded-2xl border p-6 transition-colors duration-200;
+  border-color: hsl(var(--border));
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+}
+
+.marketing-pricing-card--highlighted {
+  border-color: hsl(210 100% 56% / 0.55);
+  background: hsl(210 100% 56% / 0.08);
+  box-shadow: 0 8px 32px hsl(210 100% 56% / 0.12);
+}
+
+.dark .marketing-pricing-card--highlighted {
+  border-color: hsl(210 100% 63% / 0.6);
+  background: hsl(210 100% 56% / 0.1);
+  box-shadow: 0 8px 40px hsl(0 0% 0% / 0.35);
+}
+
+.marketing-pricing-badge {
+  @apply text-[10px] font-bold uppercase tracking-wider mb-2;
+  color: hsl(var(--marketing-accent));
+}
+
+.marketing-pricing-muted {
+  color: hsl(var(--muted-foreground));
+}
+
+/* FAQ */
+.marketing-faq-item {
+  @apply rounded-xl border overflow-hidden;
+  border-color: hsl(var(--border));
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+}
+
+.marketing-faq-trigger {
+  @apply flex w-full items-center justify-between gap-3 px-5 py-4 text-left text-sm font-medium;
+  color: hsl(var(--card-foreground));
+}
+
+.marketing-faq-answer {
+  @apply px-5 pb-4 text-sm leading-relaxed;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Tabla comparativa */
+.marketing-comparison-table {
+  @apply rounded-xl border;
+  border-color: hsl(var(--border));
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
 }
 
 /* Mobile-first responsive utilities */

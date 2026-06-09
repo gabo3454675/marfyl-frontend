@@ -1,5 +1,6 @@
 import { MarketingCtaBand } from '@/components/marketing/marketing-cta-band';
 import { MarketingFaq } from '@/components/marketing/marketing-faq';
+import { MarketingPricingGlow } from '@/components/marketing/marketing-pricing-glow';
 import { PricingCards, PricingComparison } from '@/components/marketing/pricing-table';
 import { MARKETING_HOME, PRICING_PAGE } from '@/lib/content/marketing-pages';
 import { GENERAL_FAQ } from '@/lib/content/faq-content';
@@ -30,8 +31,11 @@ export default function PreciosPage() {
         <p className="text-muted-foreground mt-4 text-lg max-w-2xl mx-auto">{header.subtitle}</p>
       </header>
 
-      <section className="marketing-container pb-12">
-        <PricingCards plans={[...plans]} />
+      <section className="marketing-pricing-section">
+        <MarketingPricingGlow />
+        <div className="marketing-container marketing-pricing-section__content pb-12">
+          <PricingCards plans={[...plans]} />
+        </div>
       </section>
 
       <section className="marketing-container pb-20">

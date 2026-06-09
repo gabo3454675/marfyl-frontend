@@ -9,25 +9,21 @@ export function PricingCards({ plans }: { plans: PricingPlan[] }) {
         <div
           key={plan.id}
           className={cn(
-            'rounded-2xl border p-6 flex flex-col',
-            plan.highlighted
-              ? 'border-blue-600 bg-blue-50 shadow-lg ring-1 ring-blue-200 scale-[1.02]'
-              : 'border-slate-200 bg-white',
+            'marketing-pricing-card flex flex-col',
+            plan.highlighted && 'marketing-pricing-card--highlighted',
           )}
         >
           {plan.highlighted && (
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 mb-2">
-              Recomendado
-            </span>
+            <span className="marketing-pricing-badge">Recomendado</span>
           )}
           <h3 className="text-xl font-bold">{plan.name}</h3>
-          <p className="text-sm text-muted-foreground mt-2">{plan.description}</p>
+          <p className="text-sm marketing-pricing-muted mt-2">{plan.description}</p>
           <p className="mt-6 text-3xl font-bold">{plan.priceUsd}</p>
-          <p className="text-xs text-muted-foreground">{plan.priceNote}</p>
+          <p className="text-xs marketing-pricing-muted">{plan.priceNote}</p>
           <ul className="mt-6 space-y-2 flex-1">
             {plan.features.map((f) => (
               <li key={f} className="flex gap-2 text-sm">
-                <Check className="h-4 w-4 shrink-0 text-blue-600" />
+                <Check className="h-4 w-4 shrink-0 text-[hsl(var(--marketing-accent))]" />
                 {f}
               </li>
             ))}
@@ -49,10 +45,10 @@ export function PricingComparison({
   }[];
 }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200">
+    <div className="marketing-comparison-table overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b bg-muted/40">
+          <tr className="border-b border-[hsl(var(--border))] bg-[hsl(var(--muted)/0.45)]">
             <th className="text-left p-4 font-semibold">Característica</th>
             <th className="p-4 text-center font-semibold">Operación</th>
             <th className="p-4 text-center font-semibold">Cumplimiento</th>
@@ -61,7 +57,7 @@ export function PricingComparison({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.feature} className="border-b border-border/50 last:border-0">
+            <tr key={row.feature} className="border-b border-[hsl(var(--border)/0.6)] last:border-0">
               <td className="p-4">{row.feature}</td>
               <td className="p-4 text-center">
                 <CellIcon value={row.starter} />
@@ -82,8 +78,8 @@ export function PricingComparison({
 
 function CellIcon({ value }: { value: boolean }) {
   return value ? (
-    <Check className="h-4 w-4 mx-auto text-blue-600" />
+    <Check className="h-4 w-4 mx-auto text-[hsl(var(--marketing-accent))]" />
   ) : (
-    <X className="h-4 w-4 mx-auto text-muted-foreground/50" />
+    <X className="h-4 w-4 mx-auto text-[hsl(var(--muted-foreground)/0.45)]" />
   );
 }
