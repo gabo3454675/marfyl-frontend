@@ -20,8 +20,7 @@ import { concertService } from '@/lib/api';
 import { getApiErrorMessage, isNetworkFailure } from '@/lib/api/get-error-message';
 import { CONCERT_MOCK_ENABLED, getMockEvent, mockHold } from '@/lib/concert/mock-data';
 import { CONCERT_TICKET_DISPLAY } from '@/lib/concert/ticket-display.constants';
-import { usdToBsForConcert } from '@/lib/concert/pricing';
-
+import { concertBsPaymentAmount } from '@/lib/concert/pricing';
 const PAYMENT_LABELS: Record<ConcertPaymentMethod, string> = {
   CASH_USD: 'Efectivo USD en local',
   PAGO_MOVIL: 'Pago móvil',
@@ -102,10 +101,11 @@ export default function ConcertEventPage() {
       selectedSeats.reduce(
         (sum, seat) =>
           sum +
-          usdToBsForConcert(
-            seat.priceUsd ?? event?.priceUsdStandard ?? 0,
-            event?.exchangeRate ?? 1,
-          ),
+          (seat.priceBs ??
+            concertBsPaymentAmount(
+              seat.priceUsdBolivares ?? seat.priceUsd ?? event?.priceUsdStandard ?? 0,
+              event?.exchangeRate ?? 1,
+            )),
         0,
       ),
     [selectedSeats, event?.priceUsdStandard, event?.exchangeRate],
@@ -271,7 +271,7 @@ export default function ConcertEventPage() {
 
           <ConcertVenueMap
             seats={salonSeats}
-            exchangeRate={event?.exchangeRate ?? 1}
+            exchangeRate={event.exchangeRate}
             mode="buy"
             selectedIds={selected}
             activeMesa={activeMesa}
@@ -308,7 +308,35 @@ export default function ConcertEventPage() {
               })}
             </p>
             <p className="mt-2">
-              Total: <strong>USD {hold.amountUsd.toFixed(2)}</strong> · Bs{' '}
+              {paymentMethod === 'CASH_USD' ? (
+                <>
+                  Total a pagar: <strong>USD {hold.amountUsd.toFixed(2)}</strong>
+                  <span className="text-white/50">
+                    {' '}
+                    (efectivo en divisas)
+                  </span>
+                </>
+              ) : (
+                <>
+                  Total a pagar:{' '}
+                  <strong>
+                    Bs{' '}
+                    {hold.amountBs.toLocaleString('es-VE', {
+                      minimumFractionDigits: 2,
+                    })}
+                  </strong>
+                  <span className="text-white/50">
+                    {' '}
+                    (USD {hold.amountUsdBolivares.toFixed(2)} al cambio BCV)
+                  </span>
+                </>
+              )}
+            </p>
+            <p className="mt-1 text-xs text-white/45">
+              Tasa BCV: Bs {event.exchangeRate.toLocaleString('es-VE', { minimumFractionDigits: 2 })} / USD
+              {' · '}
+              Efectivo: USD {hold.amountUsd.toFixed(2)} · Bolívares: USD{' '}
+              {hold.amountUsdBolivares.toFixed(2)} al cambio = Bs{' '}
               {hold.amountBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
             </p>
           </div>
@@ -480,10 +508,15 @@ export default function ConcertEventPage() {
                 {selected.size !== 1 ? 's' : ''}
               </p>
               {selected.size > 0 && (
-                <p className="text-lg font-semibold">
-                  USD {estimatedUsd.toFixed(2)} · Bs{' '}
-                  {estimatedBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
-                </p>
+                <>
+                  <p className="text-lg font-semibold">
+                    Efectivo: USD {estimatedUsd.toFixed(2)}
+                  </p>
+                  <p className="text-sm text-white/70">
+                    Pago en Bs: Bs{' '}
+                    {estimatedBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                  </p>
+                </>
               )}
             </div>
             <Button

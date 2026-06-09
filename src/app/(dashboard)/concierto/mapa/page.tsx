@@ -96,6 +96,7 @@ export default function ConciertoMapaPage() {
         <div className="concert-root rounded-xl bg-[hsl(0_0%_8%)] p-3 sm:p-5">
           <ConcertVenueMap
             seats={salonSeats}
+            exchangeRate={event?.exchangeRate ?? 1}
             mode="monitor"
             activeMesa={activeMesa}
             onZoneClick={setActiveMesa}

@@ -1,6 +1,6 @@
 import type { ConcertMesaPublic, ConcertSeatPublic } from '@/lib/concert/types';
+import { concertBsPaymentAmount } from '@/lib/concert/pricing';
 import { SALON_MESA_SEATS, SALON_ZONE_DEFS, getZoneDef } from '@/lib/concert/venue-layout';
-
 /** Genera mesas + asientos del salón (demo o tests). */
 export function buildSalonMesasFromLayout(
   statusForSeat?: (displayNumber: number, mesa: number) => ConcertSeatPublic['status'],
@@ -25,7 +25,8 @@ export function buildSalonMesasFromLayout(
         mesaNumber: def.mesaNumber,
         displayNumber,
         priceUsd: def.priceUsd,
-        priceBs: def.priceBs,
+        priceUsdBolivares: def.priceBs,
+        priceBs: concertBsPaymentAmount(def.priceBs, 40.5),
         tierCode: def.tier,
         tierLabel: def.tierLabel,
         status,
@@ -36,7 +37,8 @@ export function buildSalonMesasFromLayout(
       tierCode: def.tier,
       tierLabel: def.tierLabel,
       priceUsd: def.priceUsd,
-      priceBs: def.priceBs,
+      priceUsdBolivares: def.priceBs,
+      priceBs: concertBsPaymentAmount(def.priceBs, 40.5),
       seats,
     });
   }

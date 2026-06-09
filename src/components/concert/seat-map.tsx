@@ -70,7 +70,13 @@ export function SeatMap({ sectionLabel, mesas, selectedIds, onToggle, disabled }
               )}
               {mesa.priceUsd != null && (
                 <span className="ml-auto text-xs text-[hsl(var(--dm-a-accent))]">
-                  USD {mesa.priceUsd} · Bs {mesa.priceBs}
+                  USD {mesa.priceUsd} efectivo
+                  {mesa.priceUsdBolivares != null && (
+                    <> · USD {mesa.priceUsdBolivares} al cambio</>
+                  )}
+                  {mesa.priceBs != null && (
+                    <> (Bs {mesa.priceBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })})</>
+                  )}
                 </span>
               )}
             </div>

@@ -11,6 +11,9 @@ export interface ConcertSeatPublic {
   mesaNumber?: number | null;
   displayNumber?: number | null;
   priceUsd?: number | null;
+  /** USD al cambio (flyer) para pago móvil / transferencia */
+  priceUsdBolivares?: number | null;
+  /** Monto en Bs = priceUsdBolivares × tasa BCV */
   priceBs?: number | null;
   tierCode?: string | null;
   tierLabel?: string | null;
@@ -22,6 +25,9 @@ export interface ConcertMesaPublic {
   tierCode?: string | null;
   tierLabel?: string | null;
   priceUsd?: number | null;
+  /** USD al cambio (flyer) para pago móvil / transferencia */
+  priceUsdBolivares?: number | null;
+  /** Monto en Bs = priceUsdBolivares × tasa BCV */
   priceBs?: number | null;
   seats: ConcertSeatPublic[];
 }
@@ -57,7 +63,11 @@ export interface HoldSeatsResponse {
   holdToken: string;
   heldUntil: string;
   seatIds: number[];
+  /** Total efectivo USD (flyer) */
   amountUsd: number;
+  /** Total USD al cambio para pago en bolívares (flyer) */
+  amountUsdBolivares: number;
+  /** Monto en Bs = amountUsdBolivares × tasa BCV */
   amountBs: number;
   exchangeRate: number;
 }

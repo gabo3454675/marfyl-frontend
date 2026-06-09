@@ -94,7 +94,8 @@ interface TicketSummary {
 }
 
 export default function POSPage() {
-  const { selectedCompanyId, getCurrentOrganization } = useAuthStore();
+  const { selectedOrganizationId, selectedCompanyId, getCurrentOrganization } = useAuthStore();
+  const selectedId = selectedOrganizationId || selectedCompanyId;
   const { canManageCustomers, canManageFiscal } = usePermission();
   const rawRate = useExchangeRate();
   const tasaBcv = Number.isFinite(rawRate) && rawRate > 0 ? rawRate : 1;
@@ -129,9 +130,10 @@ export default function POSPage() {
 
   // Cargar productos
   const fetchProducts = useCallback(async () => {
-    if (!selectedCompanyId) return;
+    if (!selectedId) return;
 
     try {
+      setLoading(true);
       const response = await apiClient.get<Product[]>('/products');
       setProducts(response.data);
     } catch (error) {
@@ -139,11 +141,11 @@ export default function POSPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedCompanyId]);
+  }, [selectedId]);
 
   // Cargar clientes
   const fetchCustomers = useCallback(async () => {
-    if (!selectedCompanyId) return;
+    if (!selectedId) return;
 
     try {
       const response = await apiClient.get<Customer[]>('/customers');
@@ -151,7 +153,7 @@ export default function POSPage() {
     } catch (error) {
       console.error('Error fetching customers:', error);
     }
-  }, [selectedCompanyId]);
+  }, [selectedId]);
 
   useEffect(() => {
     fetchProducts();
@@ -561,12 +563,12 @@ export default function POSPage() {
           {canManageFiscal && (
             <FiscalIntegrationStrip variant="pos" className="mb-2 hidden sm:block md:mb-3" />
           )}
-          <span className="block text-sm md:text-base">Procesa ventas rápidamente</span>
+          <span className="hidden text-sm md:text-base sm:block">Procesa ventas rápidamente</span>
         </>
       }
-      className="admin-pos-shell admin-pos-mobile-pad flex h-full flex-col"
-      contentClassName="flex min-h-0 flex-1 flex-col !space-y-0"
-      headerClassName="mb-3 sm:mb-5 md:mb-6"
+      className="admin-pos-shell admin-pos-mobile-pad flex min-h-0 flex-1 flex-col"
+      contentClassName="admin-pos-page-body flex min-h-0 flex-1 flex-col gap-0 !space-y-0"
+      headerClassName="admin-pos-page-header mb-2 sm:mb-5 md:mb-6 shrink-0"
     >
 
       {/* Barra fija móvil/tablet: carrito + COBRAR sobre bottom nav */}
@@ -666,15 +668,16 @@ export default function POSPage() {
 
       <div className="admin-pos-grid grid min-h-0 flex-1 grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-3 lg:gap-6">
         {/* Catálogo — pantalla completa en móvil */}
-        <div className="admin-pos-catalog order-1 flex min-h-0 flex-col lg:col-span-2">
+        <div className="admin-pos-catalog order-1 flex min-h-0 flex-1 flex-col lg:col-span-2">
           <AdminCard
             title="Catálogo de Productos"
-            className="admin-pos-panel min-h-0 flex-1"
-            bodyClassName="flex min-h-0 flex-1 flex-col"
+            className="admin-pos-panel admin-pos-catalog-card min-h-0 flex-1"
+            bodyClassName="flex min-h-0 flex-1 flex-col overflow-hidden"
+            headerClassName="shrink-0 py-3 sm:py-4"
             elevation="sm"
           >
               {/* Filtro rápido + búsqueda */}
-              <div className="mb-4 space-y-3 shrink-0">
+              <div className="mb-3 space-y-2 shrink-0 sm:mb-4 sm:space-y-3">
                 <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"

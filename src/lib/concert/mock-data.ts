@@ -7,6 +7,7 @@ import type {
 } from '@/lib/concert/types';
 import { CONCERT_DEFAULT_SLUG } from '@/lib/concert/feature';
 import { buildSalonMesasFromLayout } from '@/lib/concert/build-salon-seats';
+import { concertBsPaymentAmount } from '@/lib/concert/pricing';
 
 /** Datos demo cuando no hay PostgreSQL (sin login, sin API). */
 export const CONCERT_MOCK_ENABLED =
@@ -34,7 +35,7 @@ function buildMockEvent(): ConcertEventPublic {
     cashInstructions: 'Efectivo USD en taquilla.',
     publicNotes: 'Modo demo local. Con Docker: pnpm db:docker && pnpm db:setup',
     paymentMethods: ['CASH_USD', 'PAGO_MOVIL', 'BANK_TRANSFER'],
-    stats: { total: 66 + 32, available: available + 32, sold },
+    stats: { total: available + sold, available, sold },
     sections: [
       {
         code: 'SALON',
@@ -42,33 +43,6 @@ function buildMockEvent(): ConcertEventPublic {
         tiers: ['VIP', 'PREFERENCIAL', 'MEDIA', 'GENERAL'],
         mesas,
         seats: allSeats,
-      },
-      {
-        code: 'VIP',
-        label: 'Salón VIP',
-        tiers: ['VIP'],
-        mesas: [
-          {
-            mesaNumber: 1,
-            tierCode: 'VIP_SALON',
-            tierLabel: 'Salón VIP',
-            priceUsd: 70,
-            priceBs: 85,
-            seats: [1, 2, 3, 4].map((n, idx) => ({
-              id: 100 + idx,
-              rowLabel: 'M1',
-              seatNumber: n,
-              mesaNumber: 1,
-              displayNumber: n,
-              priceUsd: 70,
-              priceBs: 85,
-              tierCode: 'VIP',
-              tierLabel: 'Silla VIP',
-              status: 'AVAILABLE' as const,
-            })),
-          },
-        ],
-        seats: [],
       },
     ],
   };
@@ -89,12 +63,12 @@ export function getMockOverview(): ConcertAdminOverview {
       publicUrl: `/evento/${CONCERT_DEFAULT_SLUG}`,
     },
     stats: {
-      available: 82,
+      available: 50,
       held: 2,
       sold: 14,
       pendingOrders: 3,
       paidOrders: 11,
-      totalSeats: 98,
+      totalSeats: 66,
     },
   };
 }
@@ -144,12 +118,26 @@ export function mockHold(seatIds: number[]): HoldSeatsResponse {
   const event = buildMockEvent();
   const seats = event.sections.flatMap((s) => s.seats).filter((s) => seatIds.includes(s.id));
   const amountUsd = seats.reduce((a, s) => a + (s.priceUsd ?? 0), 0);
-  const amountBs = seats.reduce((a, s) => a + (s.priceBs ?? 0), 0);
+  const amountUsdBolivares = seats.reduce(
+    (a, s) => a + (s.priceUsdBolivares ?? s.priceUsd ?? 0),
+    0,
+  );
+  const amountBs = seats.reduce(
+    (a, s) =>
+      a +
+      (s.priceBs ??
+        concertBsPaymentAmount(
+          s.priceUsdBolivares ?? s.priceUsd ?? 0,
+          event.exchangeRate,
+        )),
+    0,
+  );
   return {
     holdToken: 'demo-hold-token',
     heldUntil: new Date(Date.now() + 12 * 60 * 1000).toISOString(),
     seatIds,
     amountUsd,
+    amountUsdBolivares,
     amountBs,
     exchangeRate: event.exchangeRate,
   };

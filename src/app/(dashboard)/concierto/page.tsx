@@ -113,7 +113,7 @@ export default function ConciertoAdminPage() {
             </div>
             <h2 className="text-lg font-semibold">Configurar evento</h2>
             <p className="text-sm text-muted-foreground">
-              Crea el salón (66 asientos) y VIP (32 asientos) para Inversiones Hemenegilda
+              Crea el salón principal (66 asientos) para Inversiones Hemenegilda
               Capacidad. Podrá ajustar precios y fechas después en base de datos o una
               futura pantalla de ajustes.
             </p>

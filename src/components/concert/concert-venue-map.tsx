@@ -11,6 +11,7 @@ import { formatBsAmount, usdToBsForConcert } from '@/lib/concert/pricing';
 
 type Props = {
   seats: ConcertSeatPublic[];
+  /** Tasa BCV para calcular Bs = USD al cambio × tasa */
   exchangeRate?: number;
   mode: 'buy' | 'monitor';
   selectedIds?: Set<number>;
@@ -48,7 +49,6 @@ function ZoneBlock({
   onClick: () => void;
   exchangeRate: number;
 }) {
-  const priceBs = usdToBsForConcert(def.priceUsd, exchangeRate);
   const occupancy = buildMesaOccupancy(seats, def.mesaNumber);
   const soldOut = occupancy.total > 0 && occupancy.available === 0;
 
@@ -69,7 +69,7 @@ function ZoneBlock({
       <span className="venue-zone-tier">{TIER_SHORT[def.tier]}</span>
       <span className="venue-zone-num">Mesa {def.zoneLabel}</span>
       <span className="venue-zone-price">
-        ${def.priceUsd} · Bs {formatBsAmount(priceBs)}
+        ${def.priceUsd} efectivo · ${def.priceBs} al cambio
       </span>
       <span className="venue-zone-meta">
         {soldOut ? (
@@ -162,32 +162,36 @@ export function ConcertVenueMap({
         <div className="venue-legend-item venue-zone--vip venue-legend-swatch">
           <strong>Silla VIP</strong>
           <span>
-            Mesas 03, 04, 07, 08 · $60 / Bs {formatBsAmount(usdToBsForConcert(60, exchangeRate))}
+            Mesas 03, 04, 07, 08 · $60 efectivo · $70 al cambio (Bs{' '}
+            {formatBsAmount(usdToBsForConcert(70, exchangeRate))})
           </span>
         </div>
         <div className="venue-legend-item venue-zone--preferencial venue-legend-swatch">
           <strong>Silla preferencial</strong>
           <span>
-            Mesas 01, 02, 05, 06 · $50 / Bs {formatBsAmount(usdToBsForConcert(50, exchangeRate))}
+            Mesas 01, 02, 05, 06 · $50 efectivo · $60 al cambio (Bs{' '}
+            {formatBsAmount(usdToBsForConcert(60, exchangeRate))})
           </span>
         </div>
         <div className="venue-legend-item venue-zone--media venue-legend-swatch">
           <strong>Silla media</strong>
           <span>
-            Mesas 09–14 · $45 / Bs {formatBsAmount(usdToBsForConcert(45, exchangeRate))}
+            Mesas 09–14 · $45 efectivo · $55 al cambio (Bs{' '}
+            {formatBsAmount(usdToBsForConcert(55, exchangeRate))})
           </span>
         </div>
         <div className="venue-legend-item venue-zone--general venue-legend-swatch">
           <strong>Silla general</strong>
           <span>
-            Mesas 15–20 · $40 / Bs {formatBsAmount(usdToBsForConcert(40, exchangeRate))}
+            Mesas 15–20 · $40 efectivo · $50 al cambio (Bs{' '}
+            {formatBsAmount(usdToBsForConcert(50, exchangeRate))})
           </span>
         </div>
       </div>
 
       <p className="venue-map-hint">
         {mode === 'buy'
-          ? 'Toque la mesa que desea. Los colores coinciden con el flyer del evento.'
+          ? 'Efectivo: precio USD del flyer. Bolívares: el otro monto USD del flyer × tasa BCV.'
           : 'Vista del organizador: ocupación por mesa en tiempo real.'}
       </p>
 
@@ -234,8 +238,8 @@ export function ConcertVenueMap({
             <p className="venue-mesa-panel-tier">{TIER_SHORT[activeDef.tier]} · {activeDef.tierLabel}</p>
             <h3>Mesa {activeDef.zoneLabel}</h3>
             <p className="text-sm opacity-90">
-              USD {activeDef.priceUsd} · Bs{' '}
-              {formatBsAmount(usdToBsForConcert(activeDef.priceUsd, exchangeRate))}
+              Efectivo USD {activeDef.priceUsd} · Pago Bs: USD {activeDef.priceBs} al cambio (Bs{' '}
+              {formatBsAmount(usdToBsForConcert(activeDef.priceBs, exchangeRate))})
               {' · '}
               {zoneStatusLabel(buildMesaOccupancy(seats, activeMesa!))}
             </p>

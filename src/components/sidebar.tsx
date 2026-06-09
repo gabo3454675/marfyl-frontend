@@ -6,11 +6,8 @@ import { usePathname } from 'next/navigation';
 import { ChevronLeft, ChevronDown, LogOut, Check, Download } from 'lucide-react';
 import { FISCAL_NAV_ITEMS, isFiscalRoute, resolveFiscalNavId } from '@/config/fiscal-nav';
 import { APP_NAV_ITEMS, APP_NAV_SECTIONS, getNavItem, resolveAppNavId } from '@/config/app-nav';
-import { CONCERT_NAV_ITEMS, resolveConcertNavId } from '@/config/concert-nav';
-import {
-  isConcertAdminEnabledForOrganization,
-  isConcertFeatureEnabled,
-} from '@/lib/concert/feature';
+import { resolveConcertNavId } from '@/config/concert-nav';
+import { useConcertNavItems } from '@/hooks/useConcertNavItems';
 import { FiscalNavCollapsible, NavSection, SidebarNavLink } from '@/components/layout/sidebar-nav-parts';
 import { MarfylLogo } from '@/components/brand/marfyl-logo';
 import { Button } from '@/components/ui/button';
@@ -110,7 +107,8 @@ export default function Sidebar() {
   // Obtener permisos del usuario actual
   const permissions = usePermission();
   const { isInstallable, install } = usePWAInstall();
-  
+  const concertNavItems = useConcertNavItems();
+
   const getActiveItem = () => {
     const cid = resolveConcertNavId(pathname ?? '');
     if (cid) return cid;
@@ -165,15 +163,6 @@ export default function Sidebar() {
 
   // Obtener organización/empresa actual y tasa global (reactiva al guardar en Configuración)
   const currentOrg = getCurrentOrganization();
-  const concertNavItems =
-    isConcertFeatureEnabled() &&
-    isConcertAdminEnabledForOrganization(
-      currentOrg && 'slug' in currentOrg
-        ? (currentOrg as { slug: string; concertModuleEnabled?: boolean })
-        : null,
-    )
-      ? CONCERT_NAV_ITEMS.filter((item) => canShowNavItem(item as NavItem, permissions))
-      : [];
   const organizations = getOrganizations();
   // Super Admin: selector SIEMPRE visible (carga todas las orgs desde API, no solo membresías)
   const hasMultipleOrganizations = user?.isSuperAdmin === true
@@ -419,7 +408,7 @@ export default function Sidebar() {
             )}
 
             {concertNavItems.length > 0 && (
-              <NavSection label="Evento (temporal)">
+              <NavSection label="Evento Monddy (temporal)">
                 {concertNavItems.map((item) => (
                   <SidebarNavLink
                     key={item.id}

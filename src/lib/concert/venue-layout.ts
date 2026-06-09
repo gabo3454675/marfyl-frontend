@@ -7,7 +7,7 @@
  * - Media (naranja): 09, 10, 11, 12, 13, 14
  * - General (teal):   15, 16, 17, 18, 19, 20
  *
- * Salón VIP aparte (32 sillas): sección VIP en otro espacio físico.
+ * Salón principal: 66 sillas en mesas 1–20 (tiers VIP/PREFERENCIAL/MEDIA/GENERAL).
  */
 
 export type SalonZoneTier = 'VIP' | 'PREFERENCIAL' | 'MEDIA' | 'GENERAL';
@@ -18,7 +18,9 @@ export type SalonZoneDef = {
   tier: SalonZoneTier;
   tierLabel: string;
   mapLabel: string;
+  /** Efectivo USD */
   priceUsd: number;
+  /** USD al cambio para pago en bolívares */
   priceBs: number;
 };
 

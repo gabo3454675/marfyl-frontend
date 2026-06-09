@@ -2,8 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Grid2x2, ShoppingCart, Box, MoreVertical, Users, FileText, CreditCard, DollarSign, Settings, LogOut, PackageMinus, History, BarChart3, Wallet, AlertTriangle, TrendingUp, Truck, Landmark } from 'lucide-react';
+import { Grid2x2, ShoppingCart, Box, MoreVertical, Users, FileText, CreditCard, DollarSign, Settings, LogOut, PackageMinus, History, BarChart3, Wallet, AlertTriangle, TrendingUp, Truck, Landmark, ExternalLink } from 'lucide-react';
 import { FISCAL_NAV_ITEMS } from '@/config/fiscal-nav';
+import { resolveConcertNavId } from '@/config/concert-nav';
+import { CONCERT_DEFAULT_SLUG } from '@/lib/concert/feature';
+import { useConcertNavItems } from '@/hooks/useConcertNavItems';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { OrganizationSwitcher } from '@/components/organization-switcher';
@@ -49,8 +52,10 @@ export default function BottomNav() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const permissions = usePermission();
   const { clearAuth } = useAuthStore();
+  const concertNavItems = useConcertNavItems();
 
   const getActiveItem = () => {
+    if (resolveConcertNavId(pathname ?? '')) return 'more';
     if (pathname === '/') return 'dashboard';
     if (pathname.startsWith('/pos')) return 'pos';
     if (pathname.startsWith('/products')) return 'products';
@@ -113,7 +118,7 @@ export default function BottomNav() {
           </SheetTrigger>
           <SheetContent
             side="bottom"
-            className="h-auto max-h-[min(80dvh,32rem)] pb-[calc(var(--app-bottom-chrome)+0.75rem)] overflow-y-auto"
+            className="h-auto max-h-[min(85dvh,36rem)] pb-[calc(var(--app-bottom-chrome)+0.75rem)] overflow-y-auto"
           >
             <SheetHeader>
               <SheetTitle>Menú</SheetTitle>
@@ -156,6 +161,42 @@ export default function BottomNav() {
                       </Button>
                     );
                   })}
+                  </div>
+                </div>
+              )}
+              {concertNavItems.length > 0 && (
+                <div className="pt-3 mt-3 border-t border-border">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-2">
+                    Evento Monddy (temporal)
+                  </p>
+                  <div className="space-y-0.5 pl-1 border-l-2 border-amber-500/40 ml-1">
+                    {concertNavItems.map((item) => {
+                      const isActive = resolveConcertNavId(pathname ?? '') === item.id;
+                      return (
+                        <Button
+                          key={item.id}
+                          variant="ghost"
+                          className={cn(
+                            'w-full justify-start gap-3 h-11 pl-6',
+                            isActive
+                              ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                              : 'text-foreground hover:bg-secondary',
+                          )}
+                          onClick={() => handleMenuItemClick(item.href)}
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span className="text-sm">{item.label}</span>
+                        </Button>
+                      );
+                    })}
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-3 h-11 pl-6 text-foreground hover:bg-secondary"
+                      onClick={() => handleMenuItemClick(`/evento/${CONCERT_DEFAULT_SLUG}`)}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      <span className="text-sm">Página pública de entradas</span>
+                    </Button>
                   </div>
                 </div>
               )}
