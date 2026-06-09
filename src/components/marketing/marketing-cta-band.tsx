@@ -1,6 +1,9 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
+import { MarketingReveal } from '@/components/marketing/marketing-reveal';
 
 export function MarketingCtaBand({
   title,
@@ -17,7 +20,8 @@ export function MarketingCtaBand({
 
   return (
     <section className="marketing-section marketing-container pb-4 sm:pb-6">
-      <div className="rounded-2xl bg-blue-600 px-6 py-10 sm:py-12 md:px-12 text-center">
+      <MarketingReveal variant="scale">
+        <div className="rounded-2xl bg-blue-600 px-6 py-10 sm:py-12 md:px-12 text-center">
         <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white">{title}</h2>
         <p className="text-blue-100 mt-3 max-w-xl mx-auto">{subtitle}</p>
         <div className="flex flex-wrap justify-center gap-3 mt-8">
@@ -38,6 +42,7 @@ export function MarketingCtaBand({
           )}
         </div>
       </div>
+      </MarketingReveal>
     </section>
   );
 }

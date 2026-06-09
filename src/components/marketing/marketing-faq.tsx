@@ -3,6 +3,11 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  MarketingReveal,
+  MarketingStagger,
+  MarketingStaggerItem,
+} from '@/components/marketing/marketing-reveal';
 
 export function MarketingFaq({
   title = 'Preguntas frecuentes',
@@ -15,12 +20,15 @@ export function MarketingFaq({
 
   return (
     <section className="marketing-section marketing-container">
-      <h2 className="marketing-section-title text-center mb-8 sm:mb-10">{title}</h2>
-      <div className="max-w-2xl mx-auto space-y-3">
+      <MarketingReveal variant="fade-up">
+        <h2 className="marketing-section-title text-center mb-8 sm:mb-10">{title}</h2>
+      </MarketingReveal>
+      <MarketingStagger className="max-w-2xl mx-auto space-y-3">
         {items.map((item) => {
           const open = openId === item.id;
           return (
-            <div key={item.id} className="marketing-faq-item">
+            <MarketingStaggerItem key={item.id}>
+              <div className="marketing-faq-item">
               <button
                 type="button"
                 className="marketing-faq-trigger"
@@ -36,10 +44,11 @@ export function MarketingFaq({
                 />
               </button>
               {open && <p className="marketing-faq-answer">{item.answer}</p>}
-            </div>
+              </div>
+            </MarketingStaggerItem>
           );
         })}
-      </div>
+      </MarketingStagger>
     </section>
   );
 }

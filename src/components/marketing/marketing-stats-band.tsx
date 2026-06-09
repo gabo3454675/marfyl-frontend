@@ -3,6 +3,11 @@
 import Link from 'next/link';
 import { MessageCircle, Sparkles, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  MarketingReveal,
+  MarketingStagger,
+  MarketingStaggerItem,
+} from '@/components/marketing/marketing-reveal';
 import GradientBlinds from '@/components/marketing/gradient-blinds/GradientBlinds';
 import {
   FOUNDING_CLIENTS,
@@ -38,17 +43,19 @@ export function MarketingStatsBand() {
       </div>
       <div className="marketing-stats-band__veil" aria-hidden />
       <div className="marketing-container marketing-stats-band__content">
-        <div className="marketing-stats-clients">
+        <MarketingStagger className="marketing-stats-clients">
           {FOUNDING_CLIENTS.map((client) => (
-            <div key={client.slug} className="marketing-stats-client">
-              <span className="marketing-stats-client__name">{client.name}</span>
-              <span className="marketing-stats-client__sector">{client.sector}</span>
-            </div>
+            <MarketingStaggerItem key={client.slug}>
+              <div className="marketing-stats-client">
+                <span className="marketing-stats-client__name">{client.name}</span>
+                <span className="marketing-stats-client__sector">{client.sector}</span>
+              </div>
+            </MarketingStaggerItem>
           ))}
-        </div>
+        </MarketingStagger>
 
         <div className="marketing-stats-layout">
-          <div className="marketing-stats-copy">
+          <MarketingReveal variant="slide-right" className="marketing-stats-copy">
             <div className="marketing-stats-tags">
               {tags.map((tag) => {
                 const Icon = TAG_ICONS[tag.icon];
@@ -68,17 +75,19 @@ export function MarketingStatsBand() {
                 <Zap className="ml-2 h-4 w-4" />
               </Link>
             </Button>
-          </div>
+          </MarketingReveal>
 
-          <div className="marketing-stats-grid">
+          <MarketingStagger className="marketing-stats-grid">
             {items.map((item) => (
-              <div key={item.label} className="marketing-stats-card">
-                <p className="marketing-stats-card__value">{item.value}</p>
-                <p className="marketing-stats-card__label">{item.label}</p>
-                <p className="marketing-stats-card__detail">{item.detail}</p>
-              </div>
+              <MarketingStaggerItem key={item.label}>
+                <div className="marketing-stats-card h-full">
+                  <p className="marketing-stats-card__value">{item.value}</p>
+                  <p className="marketing-stats-card__label">{item.label}</p>
+                  <p className="marketing-stats-card__detail">{item.detail}</p>
+                </div>
+              </MarketingStaggerItem>
             ))}
-          </div>
+          </MarketingStagger>
         </div>
       </div>
     </section>
