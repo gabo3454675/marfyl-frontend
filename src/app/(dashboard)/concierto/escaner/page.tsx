@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useCallback, useRef, useState } from 'react';
-import { Loader2, ScanLine } from 'lucide-react';
+import { Loader2, ScanLine, XCircle } from 'lucide-react';
 import { concertService } from '@/lib/api';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard } from '@/components/admin/admin-card';
@@ -158,7 +158,25 @@ export default function ConciertoEscanerPage() {
           </p>
         )}
 
-        {result && (
+        {result?.cancelled && (
+          <div className="rounded-lg border border-red-500 bg-red-500/20 p-4">
+            <div className="flex items-center gap-2 text-red-400">
+              <XCircle className="h-5 w-5" />
+              <span className="font-semibold">Entrada Cancelada</span>
+            </div>
+            <p className="mt-2 text-sm text-red-300">
+              Esta entrada fue cancelada y no es válida para ingreso.
+            </p>
+            <p className="mt-1 text-sm text-white/70">
+              {result.buyerName} - {result.seatLabel}
+            </p>
+            {result.eventTitle && (
+              <p className="mt-1 text-xs text-red-300/60">{result.eventTitle}</p>
+            )}
+          </div>
+        )}
+
+        {result && !result.cancelled && (
           <div
             className={cn(
               'concert-scanner-result',

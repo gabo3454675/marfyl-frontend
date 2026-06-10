@@ -181,6 +181,7 @@ export interface ConcertAdminOrder {
 
 export interface ScanTicketResult {
   ok: boolean;
+  cancelled?: boolean;
   alreadyUsed: boolean;
   checkedInAt?: string | null;
   buyerName: string;
