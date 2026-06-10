@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -9,6 +9,9 @@ import { Label } from '@/components/ui/label';
 import { ConcertVenueMap } from '@/components/concert/concert-venue-map';
 import { ConcertPaymentDetails } from '@/components/concert/concert-payment-details';
 import { SeatMap } from '@/components/concert/seat-map';
+import { ConcertCheckoutConfirmationModal } from '@/components/concert/concert-checkout-confirmation-modal';
+import { ConcertCheckoutSuccessModal } from '@/components/concert/concert-checkout-success-modal';
+import { ConcertCheckoutErrorModal } from '@/components/concert/concert-checkout-error-modal';
 import { isConcertFeatureEnabled } from '@/lib/concert/feature';
 import type {
   ConcertEventPublic,
@@ -51,6 +54,12 @@ export default function ConcertEventPage() {
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
   const [paymentProofPreview, setPaymentProofPreview] = useState<string | null>(null);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
+
+  // Modal states
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [orderToken, setOrderToken] = useState<string>('');
 
   const loadEvent = useCallback(async () => {
     if (!slug) return;
@@ -161,6 +170,7 @@ export default function ConcertEventPage() {
     if (!hold) return;
     if (!buyerEmail.trim()) {
       setError('El correo electrónico es obligatorio para recibir sus entradas');
+      setShowConfirmationModal(false);
       return;
     }
     setSubmitting(true);
@@ -177,18 +187,40 @@ export default function ConcertEventPage() {
       if (paymentProofFile) form.append('paymentProof', paymentProofFile);
 
       const data = await concertService.checkout(slug, form);
-      setCheckoutSuccess(true);
-      router.push(`/evento/${slug}/entrada/${data.orderPublicToken}`);
+      setOrderToken(data.orderPublicToken);
+      setShowConfirmationModal(false);
+      setShowSuccessModal(true);
     } catch (err) {
       if (CONCERT_MOCK_ENABLED && isNetworkFailure(err)) {
-        router.push(`/evento/${slug}/entrada/demo-pending-token`);
+        setOrderToken('demo-pending-token');
+        setShowConfirmationModal(false);
+        setShowSuccessModal(true);
       } else {
+        setShowConfirmationModal(false);
+        setShowErrorModal(true);
         setError(getApiErrorMessage(err, 'No se pudo registrar la compra'));
       }
     } finally {
       setSubmitting(false);
     }
   };
+
+  // Build selectedSeats data for confirmation modal
+  const confirmationSeatsData = useMemo(() => {
+    return selectedSeats.map((seat) => {
+      const section = event?.sections.find((s) => s.seats.some((s2) => s2.id === seat.id));
+      return {
+        id: seat.id,
+        label: seat.mesaNumber ? `Mesa ${seat.mesaNumber}, Asiento ${seat.seatNumber}` : `Asiento ${seat.seatNumber}`,
+        sectionName: section?.label ?? 'General',
+        priceUsd: seat.priceUsd ?? event?.priceUsdStandard ?? 0,
+        priceBs: seat.priceBs ?? concertBsPaymentAmount(
+          seat.priceUsdBolivares ?? seat.priceUsd ?? event?.priceUsdStandard ?? 0,
+          event?.exchangeRate ?? 1,
+        ),
+      };
+    });
+  }, [selectedSeats, event]);
 
   if (!isConcertFeatureEnabled()) {
     return (
@@ -225,6 +257,10 @@ export default function ConcertEventPage() {
 
   const needsReference =
     paymentMethod === 'PAGO_MOVIL' || paymentMethod === 'BANK_TRANSFER';
+
+  const isFormValid = buyerName && buyerIdDocument && buyerPhone && buyerEmail;
+  const isReferenceValid = needsReference ? paymentReference?.trim() : true;
+  const canSubmit = isFormValid && isReferenceValid && !submitting;
 
   return (
     <div className="concert-shell pb-32">
@@ -419,6 +455,11 @@ export default function ConcertEventPage() {
                   placeholder="Referencia del pago móvil o transferencia"
                   className="bg-white/5 border-white/15"
                 />
+                {!paymentReference?.trim() && (
+                  <p className="text-sm text-red-400 mt-1">
+                    El numero de referencia es obligatorio para este método de pago
+                  </p>
+                )}
               </div>
 
               <div className="concert-proof-upload">
@@ -450,7 +491,7 @@ export default function ConcertEventPage() {
                   <label className="concert-proof-upload-label">
                     <Upload className="h-8 w-8 text-[hsl(var(--dm-a-accent))]" aria-hidden />
                     <span className="text-sm font-medium">Toque para subir captura</span>
-                    <span className="text-xs text-white/50">JPG, PNG o WebP · máx. 5 MB</span>
+                    <span className="text-xs text-white/50">JPG, PNG o WebP · max. 5 MB</span>
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp,image/jpg"
@@ -478,8 +519,8 @@ export default function ConcertEventPage() {
             <Button
               type="button"
               className="flex-1 bg-[hsl(var(--dm-a-accent))] text-[hsl(0_0%_12%)] hover:brightness-105"
-              disabled={submitting || !buyerName || !buyerIdDocument || !buyerPhone || !buyerEmail}
-              onClick={handleCheckout}
+              disabled={!canSubmit}
+              onClick={() => setShowConfirmationModal(true)}
             >
               {submitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -537,6 +578,50 @@ export default function ConcertEventPage() {
           </div>
         </div>
       )}
+
+      {/* Modal de confirmación */}
+      <ConcertCheckoutConfirmationModal
+        open={showConfirmationModal}
+        onOpenChange={setShowConfirmationModal}
+        onConfirm={handleCheckout}
+        selectedSeats={confirmationSeatsData}
+        paymentMethod={paymentMethod}
+        paymentReference={paymentReference}
+        buyerName={buyerName}
+        buyerIdDocument={buyerIdDocument}
+        buyerPhone={buyerPhone}
+        buyerEmail={buyerEmail}
+        estimatedUsd={estimatedUsd}
+        estimatedBs={estimatedBs}
+        submitting={submitting}
+      />
+
+      {/* Modal de éxito */}
+      <ConcertCheckoutSuccessModal
+        open={showSuccessModal}
+        onOpenChange={setShowSuccessModal}
+        orderToken={orderToken}
+        eventSlug={slug}
+      />
+
+      {/* Modal de error */}
+      <ConcertCheckoutErrorModal
+        open={showErrorModal}
+        onOpenChange={setShowErrorModal}
+        error={error || ''}
+        onRetry={() => {
+          setShowErrorModal(false);
+          setError(null);
+        }}
+        onBackToSeats={() => {
+          setShowErrorModal(false);
+          setError(null);
+          setSelected(new Set());
+          setStep('seats');
+          setHold(null);
+        }}
+      />
     </div>
   );
 }
+

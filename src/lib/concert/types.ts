@@ -115,6 +115,7 @@ export interface ConcertOrderPublicView {
   id: number;
   status: ConcertOrderStatus;
   paid: boolean;
+  createdAt: string;
   emailSentAt?: string | null;
   buyerName?: string;
   amountUsd?: number;

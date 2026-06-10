@@ -4,6 +4,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Loader2, Mail, RefreshCw } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ConcertTicketCard } from '@/components/concert/concert-ticket-card';
@@ -15,6 +23,12 @@ import { concertService } from '@/lib/api';
 import { getApiErrorMessage, isNetworkFailure } from '@/lib/api/get-error-message';
 import { CONCERT_MOCK_ENABLED, getMockOrder } from '@/lib/concert/mock-data';
 
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  CASH_USD: 'Efectivo USD',
+  PAGO_MOVIL: 'Pago movil',
+  BANK_TRANSFER: 'Transferencia',
+};
+
 export default function ConcertTicketPage() {
   const params = useParams();
   const slug = params?.slug as string;
@@ -24,6 +38,7 @@ export default function ConcertTicketPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   const load = useCallback(async () => {
     if (!slug || !orderToken) return;
@@ -46,7 +61,7 @@ export default function ConcertTicketPage() {
 
   useEffect(() => {
     if (!isConcertFeatureEnabled()) {
-      setError('Módulo no disponible');
+      setError('Modulo no disponible');
       setLoading(false);
       return;
     }
@@ -59,6 +74,9 @@ export default function ConcertTicketPage() {
     return () => clearInterval(t);
   }, [load, order?.paid]);
 
+  const getPaymentMethodLabel = (method?: ConcertPaymentMethod) =>
+    PAYMENT_METHOD_LABEL[method ?? ''] ?? method ?? 'N/A';
+
   const handleResendEmail = async () => {
     if (!order) return;
     setResending(true);
@@ -70,6 +88,31 @@ export default function ConcertTicketPage() {
     } finally {
       setResending(false);
     }
+  };
+
+  const handleCancelViaWhatsApp = () => {
+    if (!order) return;
+    const seats = order.tickets?.map((t) => t.seatLabel).join(', ') ?? '';
+    const method = getPaymentMethodLabel(order.paymentMethod);
+    const ref = order.paymentReference ?? 'N/A';
+    const amountUsd = order.amountUsd ?? 0;
+    const amountBs = order.amountBs ?? 0;
+    const date = new Date(order.createdAt).toLocaleString('es-VE');
+    const lines = [
+      '*Solicitud de Cancelacion \u2014 MARFYL*',
+      '',
+      '\uD83D\uDCCB Evento: ' + (order.event?.title ?? ''),
+      '\uD83E\uDEE1 Asiento(s): ' + seats,
+      '\uD83D\uDCB3 Metodo de pago: ' + method,
+      '\uD83D\uDD22 Referencia: ' + ref,
+      '\uD83D\uDCB0 Monto: USD ' + amountUsd + ' / Bs ' + amountBs,
+      '\uD83D\uDCC5 Fecha de compra: ' + date,
+      '',
+      '\u274C Motivo de cancelacion: ',
+    ];
+    const message = lines.join('\n');
+    window.open('https://wa.me/?text=' + encodeURIComponent(message), '_blank');
+    setShowCancelModal(false);
   };
 
   if (loading && !order) {
@@ -108,11 +151,11 @@ export default function ConcertTicketPage() {
     return (
       <div className="concert-shell mx-auto max-w-md space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">Pago en revisión</h1>
+          <h1 className="text-2xl font-bold">Pago en revision</h1>
           <p className="mt-3 text-white/70">{order.message}</p>
           <p className="mt-2 text-sm text-white/50">
             Hola {order.buyerName}. Cuando el organizador confirme su pago, sus entradas
-            aparecerán aquí automáticamente.
+            apareceran aqui automaticamente.
           </p>
           {order.amountUsd != null && (
             <p className="mt-4 text-lg font-medium">
@@ -133,17 +176,47 @@ export default function ConcertTicketPage() {
           <ConcertPaymentDetails event={paymentEvent} method={payMethod} />
         ) : null}
 
-        <div className="text-center">
+        <div className="text-center space-y-4">
           <Button className="gap-2" variant="outline" onClick={load}>
             <RefreshCw className="h-4 w-4" />
             Actualizar estado
           </Button>
+
+          {(order.status === 'PENDING_PAYMENT' || order.status === 'PAID') && (
+            <Button
+              variant="outline"
+              className="text-red-500 border-red-500 hover:bg-red-500/10"
+              onClick={() => setShowCancelModal(true)}
+            >
+              Cancelar Pedido
+            </Button>
+          )}
+
           <p className="mt-6">
-            <Link href={`/evento/${slug}`} className="text-sm text-[hsl(var(--dm-a-accent))] underline">
+            <Link href={'/evento/' + slug} className="text-sm text-[hsl(var(--dm-a-accent))] underline">
               Volver al evento
             </Link>
           </p>
         </div>
+
+        <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cancelar pedido</DialogTitle>
+              <DialogDescription>
+                Se abrira WhatsApp con los datos de tu pedido para que puedas comunicarte con soporte.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCancelModal(false)}>
+                Volver
+              </Button>
+              <Button variant="destructive" onClick={handleCancelViaWhatsApp}>
+                Abrir WhatsApp
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -175,7 +248,7 @@ return (
       ) : (
         <div className="mx-auto max-w-md rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-center">
           <p className="text-sm text-amber-200/80">
-            Tus entradas aún no han sido enviadas. El organizador confirmará tu pago pronto.
+            Tus entradas aun no han sido enviadas. El organizador confirmara tu pago pronto.
           </p>
         </div>
       )}
@@ -192,7 +265,7 @@ return (
           Ingreso {CONCERT_TICKET_DISPLAY.entryTimeLabel}
         </p>
         <p className="mt-3 text-sm text-white/50">
-          Presente el código QR en el acceso. Guarde o capture esta pantalla.
+          Presente el codigo QR en el acceso. Guarde o capture esta pantalla.
         </p>
       </header>
       <div className="mx-auto flex max-w-md flex-col gap-6">
@@ -208,6 +281,37 @@ return (
           />
         ))}
       </div>
+
+      {(order.status === 'PENDING_PAYMENT' || order.status === 'PAID') && (
+        <div className="mx-auto max-w-md text-center">
+          <Button
+            variant="outline"
+            className="text-red-500 border-red-500 hover:bg-red-500/10"
+            onClick={() => setShowCancelModal(true)}
+          >
+            Cancelar Pedido
+          </Button>
+        </div>
+      )}
+
+      <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancelar pedido</DialogTitle>
+            <DialogDescription>
+              Se abrira WhatsApp con los datos de tu pedido para que puedas comunicarte con soporte.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCancelModal(false)}>
+              Volver
+            </Button>
+            <Button variant="destructive" onClick={handleCancelViaWhatsApp}>
+              Abrir WhatsApp
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

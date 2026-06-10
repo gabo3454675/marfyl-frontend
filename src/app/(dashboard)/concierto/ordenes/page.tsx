@@ -299,6 +299,20 @@ export default function ConciertoOrdenesPage() {
                               )}
                               Reenviar email
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1"
+                              disabled={cancellingId === o.id}
+                              onClick={() => setCancelConfirmId(o.id)}
+                            >
+                              {cancellingId === o.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <X className="h-3 w-3" />
+                              )}
+                              Cancelar
+                            </Button>
                             <Button asChild size="sm" variant="outline" className="gap-1">
                               <Link
                                 href={`/evento/${CONCERT_DEFAULT_SLUG}/entrada/${o.publicToken}`}
