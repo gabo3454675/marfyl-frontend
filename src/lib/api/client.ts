@@ -60,6 +60,10 @@ apiClient.interceptors.request.use(
         }
       }
     }
+    // Remove Content-Type for FormData so Axios auto-sets multipart/form-data with boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
     return config;
   },
   (error) => Promise.reject(error)
