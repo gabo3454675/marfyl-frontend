@@ -24,6 +24,7 @@ import { getApiErrorMessage, isNetworkFailure } from '@/lib/api/get-error-messag
 import { CONCERT_MOCK_ENABLED, getMockEvent, mockHold } from '@/lib/concert/mock-data';
 import { CONCERT_TICKET_DISPLAY } from '@/lib/concert/ticket-display.constants';
 import { concertBsPaymentAmount } from '@/lib/concert/pricing';
+import { SALON_MESA_SEAT_COUNTS } from '@/lib/concert/venue-layout';
 const PAYMENT_LABELS: Record<ConcertPaymentMethod, string> = {
   CASH_USD: 'Efectivo USD en local',
   PAGO_MOVIL: 'Pago móvil',
@@ -122,10 +123,31 @@ export default function ConcertEventPage() {
 
   const toggleSeat = (seat: ConcertSeatPublic) => {
     if (seat.status !== 'AVAILABLE') return;
+
+    // Si ya está seleccionado, permitir deseleccionar
+    if (selected.has(seat.id)) {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        next.delete(seat.id);
+        return next;
+      });
+      setHold(null);
+      return;
+    }
+
+    // Verificar no exceder asientos de la mesa
+    if (seat.mesaNumber) {
+      const maxSeats = SALON_MESA_SEAT_COUNTS[seat.mesaNumber];
+      const currentCount = selectedSeats.filter((s) => s.mesaNumber === seat.mesaNumber).length;
+
+      if (maxSeats && currentCount >= maxSeats) {
+        return;
+      }
+    }
+
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(seat.id)) next.delete(seat.id);
-      else next.add(seat.id);
+      next.add(seat.id);
       return next;
     });
     setHold(null);
@@ -616,7 +638,7 @@ export default function ConcertEventPage() {
         onBackToSeats={() => {
           setShowErrorModal(false);
           setError(null);
-          setSelected(new Set());
+          // No limpiar selected — preservar asientos previamente seleccionados
           setStep('seats');
           setHold(null);
         }}

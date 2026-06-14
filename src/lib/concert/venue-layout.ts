@@ -24,6 +24,21 @@ export type SalonZoneDef = {
   priceBs: number;
 };
 
+export type GridPosition = {
+  gridRow: number;
+  gridCol: number;
+  colSpan: number;
+};
+
+export type NonMesaItem = {
+  id: string;
+  label: string;
+  gridRow: number;
+  gridCol: number;
+  colSpan: number;
+  className?: string;
+};
+
 export const SALON_ZONE_DEFS: SalonZoneDef[] = [
   { mesaNumber: 1, zoneLabel: '01', tier: 'PREFERENCIAL', tierLabel: 'Silla preferencial', mapLabel: 'Preferencial', priceUsd: 50, priceBs: 60 },
   { mesaNumber: 2, zoneLabel: '02', tier: 'PREFERENCIAL', tierLabel: 'Silla preferencial', mapLabel: 'Preferencial', priceUsd: 50, priceBs: 60 },
@@ -92,6 +107,35 @@ export const TIER_SHORT: Record<SalonZoneTier, string> = {
   MEDIA: 'Media',
   GENERAL: 'General',
 };
+
+export const SALON_GRID_POSITIONS: Record<number, GridPosition> = {
+  1:  { gridRow: 1, gridCol: 1, colSpan: 2 },
+  2:  { gridRow: 2, gridCol: 1, colSpan: 2 },
+  3:  { gridRow: 2, gridCol: 3, colSpan: 2 },
+  4:  { gridRow: 2, gridCol: 5, colSpan: 1 },
+  5:  { gridRow: 2, gridCol: 6, colSpan: 1 },
+  6:  { gridRow: 3, gridCol: 6, colSpan: 1 },
+  7:  { gridRow: 3, gridCol: 4, colSpan: 2 },
+  8:  { gridRow: 3, gridCol: 3, colSpan: 1 },
+  9:  { gridRow: 3, gridCol: 1, colSpan: 2 },
+  10: { gridRow: 4, gridCol: 3, colSpan: 1 },
+  11: { gridRow: 4, gridCol: 6, colSpan: 1 },
+  12: { gridRow: 4, gridCol: 4, colSpan: 2 },
+  13: { gridRow: 5, gridCol: 3, colSpan: 1 },
+  14: { gridRow: 4, gridCol: 1, colSpan: 2 },
+  15: { gridRow: 5, gridCol: 1, colSpan: 2 },
+  16: { gridRow: 5, gridCol: 4, colSpan: 1 },
+  17: { gridRow: 5, gridCol: 5, colSpan: 1 },
+  18: { gridRow: 5, gridCol: 6, colSpan: 1 },
+  19: { gridRow: 6, gridCol: 6, colSpan: 1 },
+  20: { gridRow: 6, gridCol: 1, colSpan: 2 },
+};
+
+export const SALON_NON_MESA_ITEMS: NonMesaItem[] = [
+  { id: 'tarima', label: 'TARIMA', gridRow: 1, gridCol: 3, colSpan: 2, className: 'venue-stage-cell' },
+  { id: 'bodega', label: 'BODEGA', gridRow: 1, gridCol: 5, colSpan: 2, className: 'venue-service-cell' },
+  { id: 'servicio', label: 'SERVICIO', gridRow: 6, gridCol: 3, colSpan: 3, className: 'venue-service-cell' },
+];
 
 export function getZoneDef(mesaNumber: number) {
   return SALON_ZONE_DEFS.find((z) => z.mesaNumber === mesaNumber);

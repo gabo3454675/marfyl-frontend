@@ -2085,6 +2085,8 @@ html {
 /* Plano interactivo (flyer Monddy) — Blue Horizon premium */
 .venue-map-wrap {
   @apply mx-auto max-w-4xl;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .venue-legend {
@@ -2092,7 +2094,12 @@ html {
 }
 
 .venue-map {
-  @apply rounded-2xl border border-blue-500/20 bg-slate-900/50 p-5 sm:p-7;
+  @apply rounded-2xl border border-blue-500/20 bg-slate-900/50 p-4 sm:p-6;
+  display: grid;
+  grid-template-columns: 1.2fr 0.9fr 1.1fr 1.1fr 0.9fr 1.2fr;
+  grid-template-rows: auto auto auto auto auto auto;
+  gap: 0.5rem;
+  min-width: 580px;
 }
 
 .venue-stage {
@@ -2102,40 +2109,8 @@ html {
   color: hsl(210 80% 70%);
 }
 
-.venue-row {
-  @apply flex flex-wrap items-stretch justify-center gap-3 mb-5;
-}
-
-.venue-row--top {
-  @apply gap-2.5 sm:gap-3;
-}
-
-.venue-row--vip {
-  @apply justify-center gap-3 py-2;
-}
-
-.venue-row--media {
-  @apply flex flex-wrap justify-center gap-2.5 sm:gap-3;
-}
-
-.venue-row--general {
-  @apply flex flex-wrap justify-center gap-2.5 sm:gap-3 max-w-2xl mx-auto;
-}
-
-.venue-row--back {
-  @apply items-center gap-3 mt-1;
-}
-
-.venue-gap {
-  @apply w-3 sm:w-8;
-}
-
-.venue-service {
-  @apply flex-1 min-w-[4rem] max-w-[8rem] rounded-lg border border-dashed border-cyan-500/30 py-2 text-center text-[10px] uppercase text-cyan-400/60;
-}
-
 .venue-zone {
-  @apply relative flex min-h-[5.5rem] min-w-[5rem] sm:min-w-[5.5rem] flex-col items-center justify-center gap-0.5 rounded-lg border-2 px-2 py-2.5 text-center transition-all duration-200;
+  @apply relative flex min-h-[5rem] flex-col items-center justify-center gap-0.5 rounded-lg border-2 px-1.5 py-2 text-center transition-all duration-200;
   @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500;
 }
 
@@ -2146,14 +2121,14 @@ html {
 }
 
 .venue-zone--preferencial {
-  background: linear-gradient(165deg, #0369a1 0%, #075985 100%);
-  border-color: #67e8f9;
+  background: linear-gradient(165deg, #059669 0%, #047857 100%);
+  border-color: #6ee7b7;
   color: #fff;
 }
 
 .venue-zone--media {
-  background: linear-gradient(165deg, #0891b2 0%, #0e7490 100%);
-  border-color: #a5f3fc;
+  background: linear-gradient(165deg, #d97706 0%, #b45309 100%);
+  border-color: #fcd34d;
   color: #fff;
 }
 
@@ -2188,6 +2163,18 @@ html {
     0 8px 24px rgba(0, 0, 0, 0.45);
 }
 
+/* Celdas decorativas del grid (no interactivas) */
+.venue-stage-cell {
+  @apply flex items-center justify-center rounded-lg py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em];
+  background: linear-gradient(180deg, #1e3a5f 0%, #0f2744 100%);
+  border: 1px solid hsl(210 100% 50% / 0.3);
+  color: hsl(210 80% 70%);
+}
+
+.venue-service-cell {
+  @apply flex items-center justify-center rounded-lg border border-dashed border-cyan-500/30 py-2 text-center text-[10px] uppercase text-cyan-400/60;
+}
+
 .venue-zone-tier {
   @apply text-[9px] font-bold uppercase tracking-wider opacity-90;
 }
@@ -2220,8 +2207,61 @@ html {
   @apply bg-black/40 text-red-200;
 }
 
-.venue-row-label {
-  @apply mb-2.5 mt-6 w-full text-center text-[10px] font-semibold uppercase tracking-widest text-slate-500;
+/* === MOBILE: tighter spacing, hide secondary info === */
+@media (max-width: 640px) {
+  .venue-map {
+    min-width: 520px;
+    gap: 0.25rem;
+    padding: 0.5rem;
+    border-radius: 1rem;
+  }
+
+  .venue-zone {
+    min-height: 4rem;
+    @apply px-1 py-1.5;
+  }
+
+  .venue-zone-price,
+  .venue-zone-seats {
+    @apply hidden;
+  }
+
+  .venue-zone-num {
+    @apply text-xs;
+  }
+
+  .venue-zone-tier {
+    @apply text-[8px];
+  }
+
+  .venue-zone-badge {
+    @apply text-[8px] px-1 py-0;
+  }
+
+  .venue-stage-cell,
+  .venue-service-cell {
+    @apply text-[8px] py-1.5;
+  }
+
+  .venue-legend {
+    @apply text-[9px] gap-2;
+  }
+
+  .venue-legend--rich {
+    @apply gap-2;
+  }
+
+  .venue-legend-swatch {
+    @apply px-2 py-1.5 text-[9px];
+  }
+
+  .venue-legend-swatch strong {
+    @apply text-[10px];
+  }
+
+  .venue-mesa-panel {
+    @apply mt-4 p-3;
+  }
 }
 
 .venue-map-hint {

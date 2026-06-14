@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { SALON_ZONE_DEFS, TIER_SHORT, type SalonZoneTier } from '@/lib/concert/venue-layout';
+import { SALON_ZONE_DEFS, SALON_GRID_POSITIONS, SALON_NON_MESA_ITEMS, TIER_SHORT, type SalonZoneTier } from '@/lib/concert/venue-layout';
 import {
   buildMesaOccupancy,
   zoneStatusLabel,
@@ -122,10 +122,6 @@ function SeatChip({
   );
 }
 
-function RowLabel({ children }: { children: React.ReactNode }) {
-  return <p className="venue-row-label">{children}</p>;
-}
-
 export function ConcertVenueMap({
   seats,
   exchangeRate = 1,
@@ -140,21 +136,6 @@ export function ConcertVenueMap({
   const activeSeats = activeMesa
     ? seats.filter((s) => s.mesaNumber === activeMesa).sort((a, b) => (a.displayNumber ?? 0) - (b.displayNumber ?? 0))
     : [];
-
-  const renderZone = (mesa: number) => {
-    const def = SALON_ZONE_DEFS.find((z) => z.mesaNumber === mesa)!;
-    return (
-      <ZoneBlock
-        key={mesa}
-        def={def}
-        seats={seats}
-        mode={mode}
-        isActive={activeMesa === mesa}
-        exchangeRate={exchangeRate}
-        onClick={() => onZoneClick?.(mesa)}
-      />
-    );
-  };
 
   return (
     <div className={cn('venue-map-wrap', className)}>
@@ -196,41 +177,49 @@ export function ConcertVenueMap({
       </p>
 
       <div className="venue-map">
-        <div className="venue-stage">TARIMA — escenario</div>
+        {/* Elementos decorativos del grid */}
+        {SALON_NON_MESA_ITEMS.map((item) => (
+          <div
+            key={item.id}
+            className={item.className}
+            style={{
+              gridRow: item.gridRow,
+              gridColumn: `${item.gridCol} / span ${item.colSpan}`,
+            }}
+          >
+            {item.label}
+          </div>
+        ))}
 
-        <RowLabel>VIP 03·04·07·08 (azul) y preferencial 01·02·05·06 (verde)</RowLabel>
-        <div className="venue-row venue-row--top">
-          {renderZone(1)}
-          {renderZone(2)}
-          <div className="venue-gap" aria-hidden />
-          {renderZone(3)}
-          {renderZone(4)}
-          <div className="venue-gap" aria-hidden />
-          {renderZone(5)}
-          {renderZone(6)}
-        </div>
-
-        <div className="venue-row venue-row--vip">
-          {renderZone(7)}
-          {renderZone(8)}
-        </div>
-
-        <RowLabel>Silla media — mesas 09 a 14</RowLabel>
-        <div className="venue-row venue-row--media">
-          {[9, 10, 11, 12, 13, 14].map(renderZone)}
-        </div>
-
-        <RowLabel>Silla general — mesas 15 a 20</RowLabel>
-        <div className="venue-row venue-row--general">
-          {[15, 16, 17, 18].map(renderZone)}
-        </div>
-
-        <div className="venue-row venue-row--back">
-          {renderZone(19)}
-          <div className="venue-service">Servicio</div>
-          {renderZone(20)}
-        </div>
+        {/* Mesas */}
+        {SALON_ZONE_DEFS.map((def) => {
+          const pos = SALON_GRID_POSITIONS[def.mesaNumber];
+          if (!pos) return null;
+          return (
+            <div
+              key={def.mesaNumber}
+              style={{
+                gridRow: pos.gridRow,
+                gridColumn: `${pos.gridCol} / span ${pos.colSpan}`,
+              }}
+            >
+              <ZoneBlock
+                def={def}
+                seats={seats}
+                mode={mode}
+                isActive={activeMesa === def.mesaNumber}
+                exchangeRate={exchangeRate}
+                onClick={() => onZoneClick?.(def.mesaNumber)}
+              />
+            </div>
+          );
+        })}
       </div>
+
+      {/* BAÑOS — posición exterior derecha */}
+      <p className="mt-1 text-right text-[10px] uppercase tracking-wider text-slate-500 sm:text-xs">
+        BAÑOS →
+      </p>
 
       {activeDef && activeSeats.length > 0 && (
         <div className="venue-mesa-panel" id="mesa-panel">
