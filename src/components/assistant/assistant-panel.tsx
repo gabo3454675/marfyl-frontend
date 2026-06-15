@@ -18,6 +18,7 @@ import {
   type AssistantConversation,
 } from './assistant-chat-storage';
 import { ChatBubble, StreamBubble, TypingIndicator } from './chat-bubble';
+import { AssistantAuditWarnings } from './assistant-audit-warnings';
 import { AssistantSummaryCard } from './assistant-summary-card';
 import { AssistantComposer } from './assistant-composer';
 import { formatAssistantError } from './format-assistant-error';
@@ -137,17 +138,24 @@ export function AssistantPanel({
     setStreamingText('');
     scrollToBottom('smooth');
     try {
-      let res: { reply: string; model: string; switchOrganization?: { access_token: string; organizationId: number } };
+      let res: {
+        reply: string;
+        model: string;
+        switchOrganization?: { access_token: string; organizationId: number };
+      };
+      let auditWarnings: ChatMessage['auditWarnings'];
       try {
         const advisor = await sendFiscalAdvisorStream(trimmed, {
           onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
         });
         res = { reply: advisor.reply, model: advisor.model };
+        auditWarnings = advisor.warnings.length > 0 ? advisor.warnings : undefined;
       } catch {
         res = await sendAssistantMessageStream(trimmed, history, buildContext(pathname), {
           onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
           onToolRound: () => setStreamingText(''),
         });
+        auditWarnings = undefined;
       }
       if (res.switchOrganization?.access_token) {
         setToken(res.switchOrganization.access_token);
@@ -155,7 +163,14 @@ export function AssistantPanel({
         window.dispatchEvent(new Event('organization-changed'));
       }
       setAuroraActivity('receiving');
-      setMessages((prev) => [...prev, { role: 'assistant', content: res.reply }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: res.reply,
+          auditWarnings,
+        },
+      ]);
       setStreamingText('');
       setTimeout(() => setAuroraActivity('idle'), 1200);
     } catch (e: unknown) {
@@ -224,17 +239,24 @@ export function AssistantPanel({
     setLoading(true);
     setStreamingText('');
     try {
-      let res: { reply: string; model: string; switchOrganization?: { access_token: string; organizationId: number } };
+      let res: {
+        reply: string;
+        model: string;
+        switchOrganization?: { access_token: string; organizationId: number };
+      };
+      let auditWarnings: ChatMessage['auditWarnings'];
       try {
         const advisor = await sendFiscalAdvisorStream(lastUser.content, {
           onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
         });
         res = { reply: advisor.reply, model: advisor.model };
+        auditWarnings = advisor.warnings.length > 0 ? advisor.warnings : undefined;
       } catch {
         res = await sendAssistantMessageStream(lastUser.content, history, buildContext(pathname), {
           onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
           onToolRound: () => setStreamingText(''),
         });
+        auditWarnings = undefined;
       }
       if (res.switchOrganization?.access_token) {
         setToken(res.switchOrganization.access_token);
@@ -244,7 +266,11 @@ export function AssistantPanel({
       setAuroraActivity('receiving');
       setMessages((prev) => [
         ...prev.slice(0, lastUserIdx + 1),
-        { role: 'assistant', content: res.reply },
+        {
+          role: 'assistant',
+          content: res.reply,
+          auditWarnings,
+        },
       ]);
       setStreamingText('');
       setTimeout(() => setAuroraActivity('idle'), 1200);
@@ -338,11 +364,15 @@ export function AssistantPanel({
               )}
               {!onlyStarter &&
                 messages.map((m, i) => (
-                  <ChatBubble
+                  <div
                     key={`${activeConversationId ?? 'local'}-${i}-${m.content.slice(0, 16)}`}
-                    content={m.content}
-                    isUser={m.role === 'user'}
-                  />
+                    className="flex flex-col gap-2"
+                  >
+                    {m.role === 'assistant' && m.auditWarnings && m.auditWarnings.length > 0 && (
+                      <AssistantAuditWarnings warnings={m.auditWarnings} />
+                    )}
+                    <ChatBubble content={m.content} isUser={m.role === 'user'} />
+                  </div>
                 ))}
               {loading && streamingText && <StreamBubble content={streamingText} />}
               {loading && !streamingText && <TypingIndicator />}

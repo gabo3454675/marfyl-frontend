@@ -6,6 +6,7 @@ import apiClient from './client';
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  auditWarnings?: AuditWarning[];
 }
 
 export interface AssistantSwitchOrganization {
