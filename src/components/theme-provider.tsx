@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useThemeStore } from '@/store/useThemeStore';
 import {
   applyThemeClass,
+  isConcertTicketPath,
   readPersistedTheme,
   resolveThemeForPath,
 } from '@/lib/theme-storage';
@@ -47,7 +48,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!hydrated) return;
-    if (readPersistedTheme()) return;
+    if (isConcertTicketPath(pathname)) {
+      applyThemeClass('dark');
+      return;
+    }
+    if (readPersistedTheme()) {
+      applyThemeClass(useThemeStore.getState().theme);
+      return;
+    }
     const next = resolveThemeForPath(pathname);
     if (useThemeStore.getState().theme !== next) {
       setTheme(next);

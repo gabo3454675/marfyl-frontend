@@ -12,7 +12,8 @@ import { SeatMap } from '@/components/concert/seat-map';
 import { ConcertCheckoutConfirmationModal } from '@/components/concert/concert-checkout-confirmation-modal';
 import { ConcertCheckoutSuccessModal } from '@/components/concert/concert-checkout-success-modal';
 import { ConcertCheckoutErrorModal } from '@/components/concert/concert-checkout-error-modal';
-import { isConcertFeatureEnabled } from '@/lib/concert/feature';
+import { ConcertSupportLink } from '@/components/concert/concert-support-link';
+import { isConcertFeatureEnabled, CONCERT_HOLD_MINUTES } from '@/lib/concert/feature';
 import type {
   ConcertEventPublic,
   ConcertPaymentMethod,
@@ -25,6 +26,14 @@ import { CONCERT_MOCK_ENABLED, getMockEvent, mockHold } from '@/lib/concert/mock
 import { CONCERT_TICKET_DISPLAY } from '@/lib/concert/ticket-display.constants';
 import { concertBsPaymentAmount } from '@/lib/concert/pricing';
 import { SALON_MESA_SEAT_COUNTS } from '@/lib/concert/venue-layout';
+import {
+  clearConcertCheckoutSession,
+  readConcertCheckoutSession,
+  writeConcertCheckoutSession,
+} from '@/lib/concert/checkout-session';
+import { useHoldCountdown } from '@/hooks/useHoldCountdown';
+
+const HOLD_EXTEND_INTERVAL_MS = 4 * 60 * 1000;
 const PAYMENT_LABELS: Record<ConcertPaymentMethod, string> = {
   CASH_USD: 'Efectivo USD en local',
   PAGO_MOVIL: 'Pago móvil',
@@ -61,6 +70,12 @@ export default function ConcertEventPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [orderToken, setOrderToken] = useState<string>('');
+  const [sessionRestored, setSessionRestored] = useState(false);
+
+  const holdMinutes = hold?.holdMinutes ?? CONCERT_HOLD_MINUTES;
+  const { label: holdCountdown, expired: holdExpired } = useHoldCountdown(
+    hold?.heldUntil ?? null,
+  );
 
   const loadEvent = useCallback(async () => {
     if (!slug) return;
@@ -89,6 +104,67 @@ export default function ConcertEventPage() {
     }
     loadEvent();
   }, [loadEvent]);
+
+  useEffect(() => {
+    if (!slug || loading || sessionRestored) return;
+    const saved = readConcertCheckoutSession(slug);
+    if (!saved) {
+      setSessionRestored(true);
+      return;
+    }
+    setHold(saved.hold);
+    setSelected(new Set(saved.selectedSeatIds));
+    setStep(saved.step);
+    setBuyerName(saved.buyerName);
+    setBuyerIdDocument(saved.buyerIdDocument);
+    setBuyerPhone(saved.buyerPhone);
+    setBuyerEmail(saved.buyerEmail);
+    setPaymentMethod(saved.paymentMethod);
+    setPaymentReference(saved.paymentReference);
+    setSessionRestored(true);
+  }, [slug, loading, sessionRestored]);
+
+  useEffect(() => {
+    if (!slug || !hold || selected.size === 0 || step !== 'checkout') return;
+    writeConcertCheckoutSession({
+      slug,
+      hold,
+      selectedSeatIds: [...selected],
+      step,
+      buyerName,
+      buyerIdDocument,
+      buyerPhone,
+      buyerEmail,
+      paymentMethod,
+      paymentReference,
+      savedAt: new Date().toISOString(),
+    });
+  }, [
+    slug,
+    hold,
+    selected,
+    step,
+    buyerName,
+    buyerIdDocument,
+    buyerPhone,
+    buyerEmail,
+    paymentMethod,
+    paymentReference,
+  ]);
+
+  useEffect(() => {
+    if (step !== 'checkout' || !hold?.holdToken || holdExpired) return;
+    const extend = async () => {
+      try {
+        const updated = await concertService.extendHold(slug, hold.holdToken);
+        setHold(updated);
+      } catch {
+        /* reserva expirada — el countdown lo indicará */
+      }
+    };
+    const id = window.setInterval(extend, HOLD_EXTEND_INTERVAL_MS);
+    return () => window.clearInterval(id);
+  }, [step, hold?.holdToken, holdExpired, slug]);
 
   const selectedSeats = useMemo(() => {
     if (!event) return [];
@@ -132,6 +208,7 @@ export default function ConcertEventPage() {
         return next;
       });
       setHold(null);
+      clearConcertCheckoutSession();
       return;
     }
 
@@ -151,6 +228,7 @@ export default function ConcertEventPage() {
       return next;
     });
     setHold(null);
+    clearConcertCheckoutSession();
   };
 
   const handleHoldAndCheckout = async () => {
@@ -158,7 +236,7 @@ export default function ConcertEventPage() {
     setHolding(true);
     setError(null);
     try {
-      const data = await concertService.holdSeats(slug, [...selected]);
+      const data = await concertService.holdSeats(slug, [...selected], hold?.holdToken);
       setHold(data);
       setStep('checkout');
     } catch (err) {
@@ -195,6 +273,11 @@ export default function ConcertEventPage() {
       setShowConfirmationModal(false);
       return;
     }
+    if (paymentMethod === 'CASH_USD' && !paymentProofFile) {
+      setError('Suba una foto de los billetes en efectivo para continuar');
+      setShowConfirmationModal(false);
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -210,6 +293,7 @@ export default function ConcertEventPage() {
 
       const data = await concertService.checkout(slug, form);
       setOrderToken(data.orderPublicToken);
+      clearConcertCheckoutSession();
       setShowConfirmationModal(false);
       setShowSuccessModal(true);
     } catch (err) {
@@ -279,13 +363,15 @@ export default function ConcertEventPage() {
 
   const needsReference =
     paymentMethod === 'PAGO_MOVIL' || paymentMethod === 'BANK_TRANSFER';
+  const needsCashProof = paymentMethod === 'CASH_USD';
 
   const isFormValid = buyerName && buyerIdDocument && buyerPhone && buyerEmail;
   const isReferenceValid = needsReference ? paymentReference?.trim() : true;
-  const canSubmit = isFormValid && isReferenceValid && !submitting;
+  const isProofValid = needsCashProof ? !!paymentProofFile : true;
+  const canSubmit = isFormValid && isReferenceValid && isProofValid && !submitting;
 
   return (
-    <div className="concert-shell pb-32">
+    <div className="concert-shell pb-28 sm:pb-32 md:pb-36">
       <header className="concert-hero">
         <p className="concert-hero-eyebrow">Venta digital · MARFYL</p>
         <h1 className="concert-hero-title">{CONCERT_TICKET_DISPLAY.mainArtist}</h1>
@@ -321,6 +407,8 @@ export default function ConcertEventPage() {
             Comparta este enlace por WhatsApp o redes. Toque una <strong>mesa (01–20)</strong> en el
             plano, elija asientos libres y complete el pago.
           </div>
+
+          <ConcertSupportLink variant="banner" className="mb-6" />
 
           <h2 className="mb-3 text-center text-lg font-semibold">Salón de eventos — plano</h2>
           <p className="mb-4 text-center text-sm text-white/60">
@@ -364,7 +452,22 @@ export default function ConcertEventPage() {
                 hour: '2-digit',
                 minute: '2-digit',
               })}
+              {holdCountdown ? (
+                <>
+                  {' '}
+                  · tiempo restante <strong className="text-teal-300">{holdCountdown}</strong>
+                </>
+              ) : null}
             </p>
+            <p className="mt-1 text-xs text-white/50">
+              Sus asientos quedan reservados {holdMinutes} minutos mientras completa el pago. Si
+              falla la conexión, puede reintentar sin perder la reserva hasta que venza el tiempo.
+            </p>
+            {holdExpired && (
+              <p className="mt-2 text-sm text-amber-400">
+                La reserva expiró. Vuelva a asientos y pulse «Continuar al pago» de nuevo.
+              </p>
+            )}
             <p className="mt-2">
               {paymentMethod === 'CASH_USD' ? (
                 <>
@@ -467,62 +570,74 @@ export default function ConcertEventPage() {
           )}
 
           {needsReference && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="ref">Número de referencia</Label>
-                <Input
-                  id="ref"
-                  value={paymentReference}
-                  onChange={(e) => setPaymentReference(e.target.value)}
-                  placeholder="Referencia del pago móvil o transferencia"
-                  className="bg-white/5 border-white/15"
-                />
-                {!paymentReference?.trim() && (
-                  <p className="text-sm text-red-400 mt-1">
-                    El numero de referencia es obligatorio para este método de pago
-                  </p>
-                )}
-              </div>
-
-              <div className="concert-proof-upload">
-                <Label>Captura del comprobante (opcional)</Label>
-                <p className="text-xs text-white/55">
-                  Suba la captura de pantalla del pago móvil o transferencia para que el
-                  organizador confirme más rápido.
+            <div className="space-y-2">
+              <Label htmlFor="ref">Número de referencia</Label>
+              <Input
+                id="ref"
+                value={paymentReference}
+                onChange={(e) => setPaymentReference(e.target.value)}
+                placeholder="Referencia del pago móvil o transferencia"
+                className="bg-white/5 border-white/15"
+              />
+              {!paymentReference?.trim() && (
+                <p className="text-sm text-red-400 mt-1">
+                  El número de referencia es obligatorio para este método de pago
                 </p>
-                {paymentProofPreview ? (
-                  <div className="relative flex flex-col items-center gap-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={paymentProofPreview}
-                      alt="Vista previa del comprobante"
-                      className="concert-proof-preview"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="gap-2 border-white/20"
-                      onClick={clearProofFile}
-                    >
-                      <X className="h-4 w-4" />
-                      Quitar imagen
-                    </Button>
-                  </div>
-                ) : (
-                  <label className="concert-proof-upload-label">
-                    <Upload className="h-8 w-8 text-[hsl(var(--dm-a-accent))]" aria-hidden />
-                    <span className="text-sm font-medium">Toque para subir captura</span>
-                    <span className="text-xs text-white/50">JPG, PNG o WebP · max. 5 MB</span>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/jpg"
-                      className="sr-only"
-                      onChange={(e) => handleProofFile(e.target.files?.[0] ?? null)}
-                    />
-                  </label>
-                )}
-              </div>
+              )}
+            </div>
+          )}
+
+          {(needsReference || needsCashProof) && (
+            <div className="concert-proof-upload">
+              <Label>
+                {needsCashProof
+                  ? 'Foto de los billetes en efectivo (divisa) *'
+                  : 'Captura del comprobante (opcional)'}
+              </Label>
+              <p className="text-xs text-white/55">
+                {needsCashProof
+                  ? 'Tome una foto clara de los billetes en dólares que entregará en taquilla. El organizador la usará para confirmar su venta en divisa.'
+                  : 'Suba la captura de pantalla del pago móvil o transferencia para que el organizador confirme más rápido.'}
+              </p>
+              {paymentProofPreview ? (
+                <div className="relative flex flex-col items-center gap-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={paymentProofPreview}
+                    alt={needsCashProof ? 'Vista previa de billetes' : 'Vista previa del comprobante'}
+                    className="concert-proof-preview"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 border-white/20"
+                    onClick={clearProofFile}
+                  >
+                    <X className="h-4 w-4" />
+                    Quitar imagen
+                  </Button>
+                </div>
+              ) : (
+                <label className="concert-proof-upload-label">
+                  <Upload className="h-8 w-8 text-[hsl(var(--dm-a-accent))]" aria-hidden />
+                  <span className="text-sm font-medium">
+                    {needsCashProof ? 'Toque para subir foto de billetes' : 'Toque para subir captura'}
+                  </span>
+                  <span className="text-xs text-white/50">JPG, PNG o WebP · máx. 5 MB</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/jpg"
+                    className="sr-only"
+                    onChange={(e) => handleProofFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+              )}
+              {needsCashProof && !paymentProofFile && (
+                <p className="text-sm text-red-400">
+                  La foto de los billetes es obligatoria para pago en efectivo USD
+                </p>
+              )}
             </div>
           )}
 
@@ -534,6 +649,7 @@ export default function ConcertEventPage() {
               onClick={() => {
                 setStep('seats');
                 setHold(null);
+                clearConcertCheckoutSession();
               }}
             >
               Volver a asientos
@@ -541,7 +657,7 @@ export default function ConcertEventPage() {
             <Button
               type="button"
               className="flex-1 bg-[hsl(var(--dm-a-accent))] text-[hsl(0_0%_12%)] hover:brightness-105"
-              disabled={!canSubmit}
+              disabled={!canSubmit || holdExpired}
               onClick={() => setShowConfirmationModal(true)}
             >
               {submitting ? (
@@ -551,6 +667,7 @@ export default function ConcertEventPage() {
               )}
             </Button>
           </div>
+          <ConcertSupportLink variant="inline" className="mt-4 flex justify-center" />
         </div>
       )}
 
@@ -609,6 +726,7 @@ export default function ConcertEventPage() {
         selectedSeats={confirmationSeatsData}
         paymentMethod={paymentMethod}
         paymentReference={paymentReference}
+        hasPaymentProof={!!paymentProofFile}
         buyerName={buyerName}
         buyerIdDocument={buyerIdDocument}
         buyerPhone={buyerPhone}
@@ -634,13 +752,16 @@ export default function ConcertEventPage() {
         onRetry={() => {
           setShowErrorModal(false);
           setError(null);
+          if (hold && !holdExpired) {
+            setShowConfirmationModal(true);
+          }
         }}
         onBackToSeats={() => {
           setShowErrorModal(false);
           setError(null);
-          // No limpiar selected — preservar asientos previamente seleccionados
           setStep('seats');
           setHold(null);
+          clearConcertCheckoutSession();
         }}
       />
     </div>

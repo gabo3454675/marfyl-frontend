@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ExternalLink, Loader2, RefreshCw } from 'lucide-react';
+import { ExternalLink, Loader2, RefreshCw, Unlock } from 'lucide-react';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard } from '@/components/admin/admin-card';
 import { Button } from '@/components/ui/button';
@@ -12,12 +12,15 @@ import type { ConcertEventPublic } from '@/lib/concert/types';
 import { concertService } from '@/lib/api';
 import { getApiErrorMessage, isNetworkFailure } from '@/lib/api/get-error-message';
 import { CONCERT_MOCK_ENABLED, getMockEvent } from '@/lib/concert/mock-data';
+import { ConcertSupportLink } from '@/components/concert/concert-support-link';
+import { toast } from 'sonner';
 
 export default function ConciertoMapaPage() {
   const [event, setEvent] = useState<ConcertEventPublic | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeMesa, setActiveMesa] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [releasingMesa, setReleasingMesa] = useState(false);
 
   const load = useCallback(async () => {
     if (!isConcertFeatureEnabled()) return;
@@ -46,11 +49,26 @@ export default function ConciertoMapaPage() {
   const salonSeats = event?.sections.find((s) => s.code === 'SALON')?.seats ?? [];
   const stats = event?.stats;
 
+  const handleReleaseMesa = async () => {
+    if (activeMesa == null) return;
+    setReleasingMesa(true);
+    try {
+      const result = await concertService.releaseMesa(activeMesa);
+      toast.success(result.message);
+      await load();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'No se pudo liberar la mesa'));
+    } finally {
+      setReleasingMesa(false);
+    }
+  };
+
   return (
     <AdminPageShell
       eyebrow="Concierto"
       title="Plano del salón — ocupación"
       subtitle="Vista del dueño: mesas 01–20 como en el flyer. Gris = llena; colores = disponibilidad parcial."
+      maxWidth="wide"
       loading={loading}
       actions={
         <div className="flex flex-wrap gap-2">
@@ -58,12 +76,29 @@ export default function ConciertoMapaPage() {
             <RefreshCw className="h-4 w-4" />
             Actualizar
           </Button>
+          {activeMesa != null && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              disabled={releasingMesa}
+              onClick={handleReleaseMesa}
+            >
+              {releasingMesa ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Unlock className="h-4 w-4" />
+              )}
+              Liberar mesa {String(activeMesa).padStart(2, '0')}
+            </Button>
+          )}
           <Button asChild variant="outline" size="sm" className="gap-2">
             <Link href={`/evento/${CONCERT_DEFAULT_SLUG}`} target="_blank">
               <ExternalLink className="h-4 w-4" />
               Ver como comprador
             </Link>
           </Button>
+          <ConcertSupportLink variant="button" />
         </div>
       }
     >
@@ -92,8 +127,8 @@ export default function ConciertoMapaPage() {
         </div>
       )}
 
-      <AdminCard className="overflow-hidden p-4 sm:p-6">
-        <div className="concert-root rounded-xl bg-[hsl(0_0%_8%)] p-3 sm:p-5">
+      <AdminCard className="overflow-visible p-3 sm:p-4 md:p-5">
+        <div className="concert-root rounded-xl bg-[hsl(0_0%_8%)] p-2 sm:p-4 md:p-5">
           <ConcertVenueMap
             seats={salonSeats}
             exchangeRate={event?.exchangeRate ?? 1}

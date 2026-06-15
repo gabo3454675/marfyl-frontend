@@ -72,22 +72,22 @@ export const ZONE_MESAS: Record<SalonZoneTier, number[]> = {
 
 /** Capacidad por mesa (flyer Monddy — total 66) */
 export const SALON_MESA_SEAT_COUNTS: Record<number, number> = {
-  1: 4, 2: 2, 3: 4, 4: 3, 5: 4, 6: 4, 7: 4, 8: 4,
-  9: 2, 10: 2, 11: 4, 12: 4, 13: 2, 14: 4,
+  1: 4, 2: 4, 3: 2, 4: 3, 5: 4, 6: 4, 7: 4, 8: 2,
+  9: 4, 10: 2, 11: 4, 12: 4, 13: 2, 14: 4,
   15: 4, 16: 2, 17: 2, 18: 3, 19: 4, 20: 4,
 };
 
 /** Asientos globales (planilla 1–66) por mesa — sincronizado con backend/hemenegilda-seat-catalog */
 export const SALON_MESA_SEATS: Record<number, number[]> = {
-  3: [1, 2, 3, 4],
+  3: [1, 2],
   4: [5, 6, 7],
   7: [8, 9, 10, 11],
-  8: [12, 13, 14, 15],
+  8: [12, 13],
   1: [16, 17, 18, 19],
-  2: [20, 21],
+  2: [3, 4, 20, 21],
   5: [22, 23, 24, 25],
   6: [26, 27, 28, 29],
-  9: [30, 31],
+  9: [14, 15, 30, 31],
   10: [32, 33],
   11: [34, 35, 36, 37],
   12: [38, 39, 40, 41],

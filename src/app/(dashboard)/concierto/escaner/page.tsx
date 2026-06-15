@@ -22,7 +22,7 @@ const ConcertQrScanner = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex aspect-[3/4] items-center justify-center rounded-xl border border-border bg-muted/20">
+      <div className="flex aspect-[3/4] max-h-[min(55dvh,28rem)] items-center justify-center rounded-xl border border-border bg-muted/20 md:aspect-video md:max-h-[min(50dvh,24rem)]">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     ),
@@ -102,7 +102,7 @@ export default function ConciertoEscanerPage() {
       title="Escáner de acceso"
       subtitle="Valide entradas QR en la puerta del evento. Evita doble ingreso."
     >
-      <div className="mx-auto max-w-lg space-y-6">
+      <div className="mx-auto w-full max-w-lg space-y-4 sm:space-y-6 md:max-w-xl lg:max-w-2xl">
         <AdminCard>
           <div className="space-y-4 p-2 sm:p-4">
             <ConcertQrScanner

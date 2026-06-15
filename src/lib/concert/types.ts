@@ -63,6 +63,7 @@ export interface HoldSeatsResponse {
   holdToken: string;
   heldUntil: string;
   seatIds: number[];
+  holdMinutes?: number;
   /** Total efectivo USD (flyer) */
   amountUsd: number;
   /** Total USD al cambio para pago en bolívares (flyer) */

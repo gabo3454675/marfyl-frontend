@@ -518,9 +518,11 @@
 
   /* Asistente IA — Paleta B (Sunset Coral + Black Granite) */
   .ai-panel {
-    background:
-      radial-gradient(ellipse 90% 60% at 50% -10%, hsl(210 100% 50% / 0.22), transparent 55%),
-      linear-gradient(180deg, hsl(0 0% 16%) 0%, hsl(var(--dm-b-base)) 38%, hsl(0 0% 8%) 100%);
+    background: transparent;
+  }
+  .ai-history-sheet > button.absolute {
+    @apply text-white/70 hover:text-white border border-white/10 rounded-full h-8 w-8 p-0 top-4 right-4;
+    background: rgba(0, 0, 0, 0.35);
   }
   .ai-sheet {
     @apply bg-transparent p-0 sm:max-w-none border-0;
@@ -1891,7 +1893,7 @@ html {
 }
 
 .concert-shell {
-  @apply mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10;
+  @apply mx-auto w-full min-w-0 max-w-5xl px-4 py-6 sm:px-6 sm:py-8 md:py-10;
 }
 
 .concert-hero {
@@ -2084,7 +2086,7 @@ html {
 
 /* Plano interactivo (flyer Monddy) — Blue Horizon premium */
 .venue-map-wrap {
-  @apply mx-auto max-w-4xl;
+  @apply mx-auto w-full max-w-4xl min-w-0;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -2093,8 +2095,21 @@ html {
   @apply mb-5 flex flex-wrap justify-center gap-3 text-[10px] sm:text-xs text-slate-400;
 }
 
+/* Scroll horizontal seguro en laptop/tablet cuando el plano no cabe (p. ej. con sidebar) */
+.venue-map-scroll {
+  @apply -mx-1 overflow-x-auto overflow-y-visible overscroll-x-contain pb-1;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 1440px) {
+  .venue-map-scroll {
+    @apply overflow-x-visible mx-0;
+  }
+}
+
 .venue-map {
-  @apply rounded-2xl border border-blue-500/20 bg-slate-900/50 p-4 sm:p-6;
+  @apply w-full rounded-2xl border border-blue-500/20 bg-slate-900/50 p-4 sm:p-6;
   display: grid;
   grid-template-columns: 1.2fr 0.9fr 1.1fr 1.1fr 0.9fr 1.2fr;
   grid-template-rows: auto auto auto auto auto auto;
@@ -2112,6 +2127,28 @@ html {
 .venue-zone {
   @apply relative flex min-h-[5rem] flex-col items-center justify-center gap-0.5 rounded-lg border-2 px-1.5 py-2 text-center transition-all duration-200;
   @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500;
+  max-width: 7.5rem;
+}
+
+@media (min-width: 640px) {
+  .venue-zone {
+    @apply min-h-[5rem] min-w-[4.75rem] px-2 py-2.5;
+    max-width: 8rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .venue-zone {
+    @apply min-h-[5.25rem] min-w-[5rem];
+    max-width: 8.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .venue-zone {
+    @apply min-h-[5.5rem] min-w-[5.5rem] flex-none px-2;
+    max-width: none;
+  }
 }
 
 .venue-zone--vip {
@@ -2184,7 +2221,7 @@ html {
 }
 
 .venue-zone-price {
-  @apply text-[9px] font-medium opacity-95 sm:text-[10px];
+  @apply text-[8px] font-medium leading-tight opacity-95 sm:text-[9px] lg:text-[10px];
 }
 
 .venue-zone-seats {
@@ -2269,18 +2306,36 @@ html {
 }
 
 .venue-legend--rich {
-  @apply grid gap-3 sm:grid-cols-2 sm:gap-4;
+  @apply grid gap-2.5 sm:gap-3;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 768px) {
+  .venue-legend--rich {
+    @apply gap-3;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .venue-legend--rich {
+    @apply gap-4;
+  }
 }
 
 .venue-legend-swatch {
-  @apply rounded-lg border-2 px-3 py-2 text-left text-[10px] sm:text-xs;
+  @apply min-w-0 rounded-lg border-2 px-2.5 py-2 text-left text-[10px] sm:px-3 sm:text-xs;
+}
+
+.venue-legend-swatch span {
+  @apply block break-words;
 }
 
 .venue-legend-swatch strong {
   @apply block text-xs sm:text-sm;
 }
 
-.venue-legend-swatch span {
+.venue-legend-swatch span:not(:first-child) {
   @apply opacity-90;
 }
 

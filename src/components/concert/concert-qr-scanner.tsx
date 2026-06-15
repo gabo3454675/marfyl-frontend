@@ -141,7 +141,8 @@ export function ConcertQrScanner({
         <video
           ref={videoRef}
           className={cn(
-            'aspect-[3/4] w-full max-h-[min(70dvh,32rem)] object-cover',
+            'aspect-[3/4] w-full max-h-[min(55dvh,28rem)] object-contain bg-black',
+            'md:aspect-video md:max-h-[min(50dvh,24rem)] md:object-cover',
             !active && !starting && 'hidden',
           )}
           muted
@@ -149,7 +150,7 @@ export function ConcertQrScanner({
           autoPlay
         />
         {!active && !starting && (
-          <div className="flex aspect-[3/4] max-h-[min(70dvh,32rem)] items-center justify-center bg-muted/30 px-6">
+          <div className="flex aspect-[3/4] max-h-[min(55dvh,28rem)] items-center justify-center bg-muted/30 px-4 sm:px-6 md:aspect-video md:max-h-[min(50dvh,24rem)]">
             <p className="text-center text-sm text-muted-foreground">
               Use la cámara <strong>trasera</strong> para escanear el QR de la entrada.
               Funciona en Android e iPhone (Safari/Chrome).
@@ -166,7 +167,7 @@ export function ConcertQrScanner({
             className="pointer-events-none absolute inset-0 flex items-center justify-center"
             aria-hidden
           >
-            <div className="h-52 w-52 rounded-xl border-2 border-amber-400 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
+            <div className="h-36 w-36 rounded-xl border-2 border-amber-400 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)] sm:h-44 sm:w-44 md:h-40 md:w-40" />
           </div>
         )}
       </div>

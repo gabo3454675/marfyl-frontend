@@ -11,6 +11,7 @@ interface ConfirmationModalProps {
   selectedSeats: Array<{ id: number; label: string; sectionName: string; priceUsd: number; priceBs: number }>;
   paymentMethod: string;
   paymentReference?: string;
+  hasPaymentProof?: boolean;
   buyerName: string;
   buyerIdDocument: string;
   buyerPhone: string;
@@ -33,6 +34,7 @@ export function ConcertCheckoutConfirmationModal({
   selectedSeats,
   paymentMethod,
   paymentReference,
+  hasPaymentProof,
   buyerName,
   buyerIdDocument,
   buyerPhone,
@@ -75,6 +77,11 @@ export function ConcertCheckoutConfirmationModal({
             <p className="font-medium">{PAYMENT_METHOD_LABELS[paymentMethod] || paymentMethod}</p>
             {paymentReference && (
               <p className="text-muted-foreground">🔢 Referencia: {paymentReference}</p>
+            )}
+            {hasPaymentProof && (
+              <p className="text-muted-foreground">
+                📎 {paymentMethod === 'CASH_USD' ? 'Foto de billetes adjunta' : 'Comprobante adjunto'}
+              </p>
             )}
           </div>
 

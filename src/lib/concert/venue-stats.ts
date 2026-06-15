@@ -29,6 +29,7 @@ export function zoneFillRatio(o: MesaOccupancy): number {
 
 export function zoneStatusLabel(o: MesaOccupancy): string {
   if (o.total === 0) return '—';
+  if (o.available === 0 && o.held > 0 && o.sold === 0) return 'En reserva';
   if (o.available === 0) return 'Llena';
   if (o.sold > 0 || o.held > 0) return `${o.available} libre`;
   return 'Disponible';

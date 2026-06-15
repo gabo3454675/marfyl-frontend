@@ -27,6 +27,7 @@ import { getApiErrorMessage, isNetworkFailure } from '@/lib/api/get-error-messag
 import { CONCERT_MOCK_ENABLED, getMockOrders } from '@/lib/concert/mock-data';
 import { CONCERT_DEFAULT_SLUG } from '@/lib/concert/feature';
 import { resolveConcertAssetUrl } from '@/lib/concert/asset-url';
+import { ConcertSupportLink } from '@/components/concert/concert-support-link';
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING_PAYMENT: 'Pendiente',
@@ -149,10 +150,13 @@ export default function ConciertoOrdenesPage() {
       subtitle="Confirme pagos móvil, transferencia o efectivo para emitir los QR al comprador."
       loading={loading}
       actions={
-        <Button variant="outline" size="sm" className="gap-2" onClick={load}>
-          <RefreshCw className="h-4 w-4" />
-          Actualizar
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" className="gap-2" onClick={load}>
+            <RefreshCw className="h-4 w-4" />
+            Actualizar
+          </Button>
+          <ConcertSupportLink variant="button" />
+        </div>
       }
     >
       <div className="mb-4 flex flex-wrap gap-2">
@@ -167,6 +171,18 @@ export default function ConciertoOrdenesPage() {
           </Button>
         ))}
       </div>
+
+      <AdminCard className="mb-4 border-amber-500/35 bg-amber-500/5 p-4">
+        <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+          Antes de confirmar un pago
+        </p>
+        <ul className="mt-2 list-inside list-disc space-y-1 text-xs text-muted-foreground">
+          <li>Revise la referencia bancaria o pago móvil.</li>
+          <li>Abra el comprobante o la foto de billetes en efectivo USD.</li>
+          <li>No confirme si el monto o los asientos no coinciden con la orden.</li>
+          <li>Si una mesa quedó bloqueada sin venta, libérela desde el plano del salón.</li>
+        </ul>
+      </AdminCard>
 
       {error && (
         <p className="mb-4 text-sm text-destructive" role="alert">
@@ -229,7 +245,7 @@ export default function ConciertoOrdenesPage() {
                           }
                         >
                           <ImageIcon className="h-3 w-3" />
-                          Ver comprobante
+                          {o.paymentMethod === 'CASH_USD' ? 'Ver billetes' : 'Ver comprobante'}
                         </Button>
                       )}
                     </TableCell>

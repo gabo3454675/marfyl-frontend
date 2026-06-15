@@ -51,6 +51,8 @@ function ZoneBlock({
 }) {
   const occupancy = buildMesaOccupancy(seats, def.mesaNumber);
   const soldOut = occupancy.total > 0 && occupancy.available === 0;
+  const heldOnly =
+    soldOut && occupancy.held > 0 && occupancy.sold === 0;
 
   return (
     <button
@@ -72,7 +74,9 @@ function ZoneBlock({
         ${def.priceUsd} efectivo · ${def.priceBs} al cambio
       </span>
       <span className="venue-zone-meta">
-        {soldOut ? (
+        {heldOnly ? (
+          <span className="venue-zone-badge venue-zone-badge--partial">EN RESERVA</span>
+        ) : soldOut ? (
           <span className="venue-zone-badge venue-zone-badge--full">LLENA</span>
         ) : occupancy.available === occupancy.total ? (
           <span className="venue-zone-badge venue-zone-badge--ok">Disponible</span>
@@ -176,6 +180,7 @@ export function ConcertVenueMap({
           : 'Vista del organizador: ocupación por mesa en tiempo real.'}
       </p>
 
+      <div className="venue-map-scroll">
       <div className="venue-map">
         {/* Elementos decorativos del grid */}
         {SALON_NON_MESA_ITEMS.map((item) => (
@@ -214,6 +219,7 @@ export function ConcertVenueMap({
             </div>
           );
         })}
+      </div>
       </div>
 
       {/* BAÑOS — posición exterior derecha */}

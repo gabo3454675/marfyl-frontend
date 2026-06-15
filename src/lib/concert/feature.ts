@@ -18,3 +18,8 @@ export function isConcertAdminEnabledForOrganization(
 
 export const CONCERT_DEFAULT_SLUG =
   process.env.NEXT_PUBLIC_CONCERT_SLUG || 'hemenegilda-capacidad';
+
+/** Minutos que dura la reserva temporal al ir al checkout (debe coincidir con backend). */
+export const CONCERT_HOLD_MINUTES = Number(
+  process.env.NEXT_PUBLIC_CONCERT_HOLD_MINUTES ?? 20,
+);

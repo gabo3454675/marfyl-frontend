@@ -16,6 +16,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import type { ConcertAdminOverview } from '@/lib/concert/types';
 import { getApiErrorMessage, isNetworkFailure } from '@/lib/api/get-error-message';
 import { CONCERT_MOCK_ENABLED, getMockOverview } from '@/lib/concert/mock-data';
+import { ConcertSupportLink } from '@/components/concert/concert-support-link';
 
 export default function ConciertoAdminPage() {
   const getCurrentOrganization = useAuthStore((s) => s.getCurrentOrganization);
@@ -92,11 +93,14 @@ export default function ConciertoAdminPage() {
       subtitle="Venta digital, confirmación de pagos y control de acceso con QR."
       loading={loading}
       actions={
-        overview?.configured ? (
-          <Button asChild variant="outline" size="sm" className="gap-2">
-            <Link href="/concierto/ordenes">Ver órdenes</Link>
-          </Button>
-        ) : undefined
+        <div className="flex flex-wrap gap-2">
+          {overview?.configured ? (
+            <Button asChild variant="outline" size="sm" className="gap-2">
+              <Link href="/concierto/ordenes">Ver órdenes</Link>
+            </Button>
+          ) : null}
+          <ConcertSupportLink variant="button" />
+        </div>
       }
     >
       {error && (

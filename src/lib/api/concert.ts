@@ -60,10 +60,26 @@ export const concertService = {
       .then((res) => res.data);
   },
 
-  /** Reservar asientos temporalmente (hold). */
-  holdSeats(slug: string, seatIds: number[]): Promise<HoldSeatsResponse> {
+  /** Reservar asientos temporalmente (hold). Reenvía holdToken para extender la misma reserva. */
+  holdSeats(
+    slug: string,
+    seatIds: number[],
+    holdToken?: string,
+  ): Promise<HoldSeatsResponse> {
     return apiClient
-      .post<HoldSeatsResponse>(`/concert/public/${slug}/hold`, { seatIds })
+      .post<HoldSeatsResponse>(`/concert/public/${slug}/hold`, {
+        seatIds,
+        ...(holdToken ? { holdToken } : {}),
+      })
+      .then((res) => res.data);
+  },
+
+  /** Extiende una reserva activa mientras el comprador completa el pago. */
+  extendHold(slug: string, holdToken: string): Promise<HoldSeatsResponse> {
+    return apiClient
+      .post<HoldSeatsResponse>(`/concert/public/${slug}/hold/extend`, {
+        holdToken,
+      })
       .then((res) => res.data);
   },
 
@@ -111,6 +127,13 @@ export const concertService = {
   syncCatalog(): Promise<SyncCatalogResult> {
     return apiClient
       .post<SyncCatalogResult>('/concert/admin/sync-catalog')
+      .then((res) => res.data);
+  },
+
+  /** Liberar asientos bloqueados de una mesa (holds u órdenes pendientes). */
+  releaseMesa(mesaNumber: number): Promise<SyncCatalogResult & { mesaNumber: number; released: number; cancelledOrders: number }> {
+    return apiClient
+      .post(`/concert/admin/release-mesa/${mesaNumber}`)
       .then((res) => res.data);
   },
 
