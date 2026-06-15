@@ -54,7 +54,7 @@ export function MarfylAssistant({ hideOnMobile = false }: { hideOnMobile?: boole
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="right"
-          className="ai-sheet z-[100] flex h-[100dvh] max-h-[100dvh] w-full flex-col p-0 border-l border-white/10 overflow-hidden sm:max-w-md"
+          className="ai-sheet z-[100] flex h-[100dvh] max-h-[100dvh] w-full flex-col overflow-hidden border-l border-white/10 bg-[#070b12] p-0 sm:max-w-md"
         >
           {open ? <AssistantPanel variant="sheet" className="h-full min-h-0" /> : null}
         </SheetContent>

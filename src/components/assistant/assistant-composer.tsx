@@ -71,7 +71,7 @@ export function AssistantComposer({
       </div>
       <p className="mt-2 text-center text-[10px] text-white/35 flex items-center justify-center gap-1">
         <span className="inline-block w-1 h-1 rounded-full bg-emerald-400/80" />
-        Información procesada de forma segura · Gemini
+        Información procesada de forma segura · Groq
       </p>
     </div>
   );

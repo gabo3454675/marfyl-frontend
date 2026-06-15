@@ -520,6 +520,105 @@
   .ai-panel {
     background: transparent;
   }
+  .ai-aurora-scene {
+    isolation: isolate;
+  }
+  .ai-aurora-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(56px);
+    will-change: transform, opacity;
+    opacity: 0.38;
+    transition:
+      opacity 1.6s ease,
+      transform 1.8s ease;
+  }
+  .ai-aurora-blob--blue {
+    width: 72%;
+    height: 52%;
+    left: -8%;
+    top: 8%;
+    background: radial-gradient(
+      ellipse at 40% 45%,
+      hsl(210 72% 38% / 0.7) 0%,
+      hsl(210 60% 22% / 0.35) 45%,
+      transparent 72%
+    );
+    animation: ai-aurora-drift-blue 18s ease-in-out infinite;
+  }
+  .ai-aurora-blob--green {
+    width: 64%;
+    height: 48%;
+    right: -12%;
+    top: 22%;
+    background: radial-gradient(
+      ellipse at 55% 40%,
+      hsl(152 55% 32% / 0.55) 0%,
+      hsl(152 45% 18% / 0.28) 50%,
+      transparent 74%
+    );
+    animation: ai-aurora-drift-green 22s ease-in-out infinite;
+  }
+  .ai-aurora-blob--violet {
+    width: 78%;
+    height: 56%;
+    left: 10%;
+    bottom: -6%;
+    background: radial-gradient(
+      ellipse at 50% 50%,
+      hsl(258 52% 36% / 0.5) 0%,
+      hsl(258 40% 20% / 0.25) 48%,
+      transparent 70%
+    );
+    animation: ai-aurora-drift-violet 20s ease-in-out infinite;
+  }
+  .ai-aurora-scene--sending .ai-aurora-blob {
+    opacity: 0.52;
+  }
+  .ai-aurora-scene--sending .ai-aurora-blob--blue {
+    animation-duration: 9s;
+  }
+  .ai-aurora-scene--sending .ai-aurora-blob--green {
+    animation-duration: 11s;
+  }
+  .ai-aurora-scene--receiving .ai-aurora-blob {
+    opacity: 0.46;
+  }
+  .ai-aurora-scene--receiving .ai-aurora-blob--violet {
+    animation-duration: 13s;
+  }
+  @keyframes ai-aurora-drift-blue {
+    0%,
+    100% {
+      transform: translate(0%, 0%) scale(1);
+    }
+    50% {
+      transform: translate(6%, -4%) scale(1.06);
+    }
+  }
+  @keyframes ai-aurora-drift-green {
+    0%,
+    100% {
+      transform: translate(0%, 0%) scale(1);
+    }
+    50% {
+      transform: translate(-5%, 5%) scale(1.04);
+    }
+  }
+  @keyframes ai-aurora-drift-violet {
+    0%,
+    100% {
+      transform: translate(0%, 0%) scale(1);
+    }
+    50% {
+      transform: translate(4%, -3%) scale(1.05);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ai-aurora-blob {
+      animation: none !important;
+    }
+  }
   .ai-history-sheet > button.absolute {
     @apply text-white/70 hover:text-white border border-white/10 rounded-full h-8 w-8 p-0 top-4 right-4;
     background: rgba(0, 0, 0, 0.35);

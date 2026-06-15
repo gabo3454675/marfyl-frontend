@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Bot, ChevronDown, History, MoreHorizontal, Sparkles } from 'lucide-react';
-import { sendAssistantMessage, type ChatMessage } from '@/lib/api/assistant';
+import { sendAssistantMessageStream, type ChatMessage } from '@/lib/api/assistant';
 import { useAuthStore } from '@/store/useAuthStore';
 import { ASSISTANT_QUICK_PROMPTS } from './assistant-tokens';
 import {
@@ -17,7 +17,7 @@ import {
   switchAssistantConversation,
   type AssistantConversation,
 } from './assistant-chat-storage';
-import { ChatBubble, TypingIndicator } from './chat-bubble';
+import { ChatBubble, StreamBubble, TypingIndicator } from './chat-bubble';
 import { AssistantSummaryCard } from './assistant-summary-card';
 import { AssistantComposer } from './assistant-composer';
 import { formatAssistantError } from './format-assistant-error';
@@ -54,6 +54,7 @@ export function AssistantPanel({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [streamingText, setStreamingText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [auroraActivity, setAuroraActivity] = useState<AuroraActivity>('idle');
   const [showScrollDown, setShowScrollDown] = useState(false);
@@ -116,6 +117,12 @@ export function AssistantPanel({
     if (loading) setAuroraActivity('receiving');
   }, [loading]);
 
+  useEffect(() => {
+    if (stickToBottomRef.current && streamingText) {
+      scrollToBottom('auto');
+    }
+  }, [streamingText, scrollToBottom]);
+
   const sendText = async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || loading) return;
@@ -127,9 +134,13 @@ export function AssistantPanel({
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setLoading(true);
+    setStreamingText('');
     scrollToBottom('smooth');
     try {
-      const res = await sendAssistantMessage(trimmed, history, buildContext(pathname));
+      const res = await sendAssistantMessageStream(trimmed, history, buildContext(pathname), {
+        onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
+        onToolRound: () => setStreamingText(''),
+      });
       if (res.switchOrganization?.access_token) {
         setToken(res.switchOrganization.access_token);
         selectOrganization(res.switchOrganization.organizationId);
@@ -137,8 +148,11 @@ export function AssistantPanel({
       }
       setAuroraActivity('receiving');
       setMessages((prev) => [...prev, { role: 'assistant', content: res.reply }]);
+      setStreamingText('');
+      setTimeout(() => setAuroraActivity('idle'), 1200);
     } catch (e: unknown) {
       setError(formatAssistantError(e));
+      setStreamingText('');
       setAuroraActivity('idle');
     } finally {
       setLoading(false);
@@ -200,8 +214,12 @@ export function AssistantPanel({
     setError(null);
     setAuroraActivity('sending');
     setLoading(true);
+    setStreamingText('');
     try {
-      const res = await sendAssistantMessage(lastUser.content, history, buildContext(pathname));
+      const res = await sendAssistantMessageStream(lastUser.content, history, buildContext(pathname), {
+        onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
+        onToolRound: () => setStreamingText(''),
+      });
       if (res.switchOrganization?.access_token) {
         setToken(res.switchOrganization.access_token);
         selectOrganization(res.switchOrganization.organizationId);
@@ -212,8 +230,11 @@ export function AssistantPanel({
         ...prev.slice(0, lastUserIdx + 1),
         { role: 'assistant', content: res.reply },
       ]);
+      setStreamingText('');
+      setTimeout(() => setAuroraActivity('idle'), 1200);
     } catch (e: unknown) {
       setError(formatAssistantError(e));
+      setStreamingText('');
       setAuroraActivity('idle');
     } finally {
       setLoading(false);
@@ -307,7 +328,8 @@ export function AssistantPanel({
                     isUser={m.role === 'user'}
                   />
                 ))}
-              {loading && <TypingIndicator />}
+              {loading && streamingText && <StreamBubble content={streamingText} />}
+              {loading && !streamingText && <TypingIndicator />}
               {error && (
                 <div className="space-y-2 rounded-xl border border-red-400/35 bg-red-950/50 px-3 py-2.5 text-sm text-red-100">
                   <p>{error}</p>

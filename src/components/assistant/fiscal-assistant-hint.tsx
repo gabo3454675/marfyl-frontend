@@ -24,7 +24,7 @@ export function FiscalAssistantHint() {
         </div>
         <div>
           <p className="font-semibold text-sm">Asistente Fiscal</p>
-          <p className="text-xs text-muted-foreground">Gemini · validaciones SENIAT</p>
+          <p className="text-xs text-muted-foreground">Groq · validaciones SENIAT</p>
         </div>
       </div>
       <p className="text-sm text-muted-foreground leading-relaxed">
