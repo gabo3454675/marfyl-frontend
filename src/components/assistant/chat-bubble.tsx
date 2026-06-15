@@ -31,10 +31,19 @@ export function ChatBubble({
   );
 }
 
-export function TypingIndicator() {
+export function TypingIndicator({ label = 'Pensando…' }: { label?: string }) {
   return (
     <div className="flex justify-start px-1">
-      <div className="ai-typing-pill px-3.5 py-2 text-sm text-white/60">Escribiendo…</div>
+      <div className="ai-typing-pill flex items-center gap-2 px-3.5 py-2 text-sm text-white/65">
+        <span key={label} className="ai-loading-label">
+          {label}
+        </span>
+        <span className="ai-typing-dots" aria-hidden>
+          <span />
+          <span />
+          <span />
+        </span>
+      </div>
     </div>
   );
 }

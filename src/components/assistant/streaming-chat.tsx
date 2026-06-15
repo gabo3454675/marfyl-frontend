@@ -12,6 +12,7 @@ import { usePathname } from 'next/navigation';
 import { Bot, MoreHorizontal, Sparkles, Wifi, WifiOff, Loader2 } from 'lucide-react';
 import { useGeminiChat } from '@/hooks/useGeminiChat';
 import { ChatBubble, TypingIndicator, StreamBubble } from './chat-bubble';
+import { useAssistantLoadingLabel } from './assistant-loading-phases';
 import { AssistantSummaryCard } from './assistant-summary-card';
 import { AssistantComposer } from './assistant-composer';
 import { cn } from '@/lib/utils';
@@ -94,6 +95,8 @@ export function StreamingChat({
       console.error('Chat error:', err);
     },
   });
+
+  const { loadingLabel } = useAssistantLoadingLabel(isLoading, Boolean(streamingText));
 
   // Initialize with starter message if empty
   const displayMessages = messages.length === 0 ? [STARTER_MESSAGE] : messages;
@@ -221,7 +224,7 @@ export function StreamingChat({
             )}
 
             {/* Typing indicator */}
-            {(isLoading && !streamingText) && <TypingIndicator />}
+            {(isLoading && !streamingText) && <TypingIndicator label={loadingLabel} />}
             
             {/* Connection status typing */}
             {isTyping && !isLoading && (

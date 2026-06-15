@@ -90,6 +90,7 @@ export interface AuditWarning {
 }
 
 type AdvisorStreamEvent =
+  | { type: 'status'; phase: 'thinking' | 'analyzing' | 'searching' | 'generating' }
   | { type: 'audit_warnings'; warnings: AuditWarning[] }
   | {
       type: 'knowledge';
@@ -128,6 +129,7 @@ export async function sendFiscalAdvisorStream(
     onDelta?: (text: string) => void;
     onWarnings?: (warnings: AuditWarning[]) => void;
     onKnowledge?: (count: number) => void;
+    onStatus?: (phase: 'thinking' | 'analyzing' | 'searching' | 'generating') => void;
   } = {},
 ): Promise<{ reply: string; model: string; warnings: AuditWarning[] }> {
   const response = await fetch(`${getApiUrl()}/assistant/advisor/stream`, {
@@ -168,7 +170,9 @@ export async function sendFiscalAdvisorStream(
     buffer = parsed.rest;
 
     for (const event of parsed.events) {
-      if (event.type === 'audit_warnings') {
+      if (event.type === 'status') {
+        handlers.onStatus?.(event.phase);
+      } else if (event.type === 'audit_warnings') {
         warnings = event.warnings;
         handlers.onWarnings?.(event.warnings);
       } else if (event.type === 'knowledge') {

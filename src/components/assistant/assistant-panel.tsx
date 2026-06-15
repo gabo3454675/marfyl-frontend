@@ -24,6 +24,7 @@ import { AssistantComposer } from './assistant-composer';
 import { formatAssistantError } from './format-assistant-error';
 import { AssistantAuroraBackground, type AuroraActivity } from './assistant-aurora-bg';
 import { AssistantHistoryPanel } from './assistant-history-panel';
+import { useAssistantLoadingLabel } from './assistant-loading-phases';
 import { cn } from '@/lib/utils';
 
 function buildContext(pathname: string) {
@@ -59,6 +60,7 @@ export function AssistantPanel({
   const [error, setError] = useState<string | null>(null);
   const [auroraActivity, setAuroraActivity] = useState<AuroraActivity>('idle');
   const [showScrollDown, setShowScrollDown] = useState(false);
+  const { loadingLabel, setStatusPhase } = useAssistantLoadingLabel(loading, Boolean(streamingText));
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
@@ -147,6 +149,7 @@ export function AssistantPanel({
       try {
         const advisor = await sendFiscalAdvisorStream(trimmed, {
           onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
+          onStatus: setStatusPhase,
         });
         res = { reply: advisor.reply, model: advisor.model };
         auditWarnings = advisor.warnings.length > 0 ? advisor.warnings : undefined;
@@ -248,6 +251,7 @@ export function AssistantPanel({
       try {
         const advisor = await sendFiscalAdvisorStream(lastUser.content, {
           onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
+          onStatus: setStatusPhase,
         });
         res = { reply: advisor.reply, model: advisor.model };
         auditWarnings = advisor.warnings.length > 0 ? advisor.warnings : undefined;
@@ -375,7 +379,7 @@ export function AssistantPanel({
                   </div>
                 ))}
               {loading && streamingText && <StreamBubble content={streamingText} />}
-              {loading && !streamingText && <TypingIndicator />}
+              {loading && !streamingText && <TypingIndicator label={loadingLabel} />}
               {error && (
                 <div className="space-y-2 rounded-xl border border-red-400/35 bg-red-950/50 px-3 py-2.5 text-sm text-red-100">
                   <p>{error}</p>
