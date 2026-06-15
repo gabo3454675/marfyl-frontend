@@ -8,6 +8,7 @@ export function AssistantComposer({
   onChange,
   onSend,
   onReset,
+  onNewConversation,
   disabled,
   sending,
 }: {
@@ -15,6 +16,7 @@ export function AssistantComposer({
   onChange: (v: string) => void;
   onSend: () => void;
   onReset: () => void;
+  onNewConversation?: () => void;
   disabled?: boolean;
   sending?: boolean;
 }) {
@@ -24,8 +26,9 @@ export function AssistantComposer({
         <button
           type="button"
           className="ai-icon-btn shrink-0"
-          aria-label="Nueva acción"
+          aria-label="Nueva conversación"
           disabled={disabled}
+          onClick={onNewConversation}
         >
           <Plus className="h-5 w-5 text-white/70" />
         </button>
