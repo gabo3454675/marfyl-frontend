@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Bot, ChevronDown, History, MoreHorizontal, Sparkles } from 'lucide-react';
-import { sendAssistantMessageStream, type ChatMessage } from '@/lib/api/assistant';
+import { sendFiscalAdvisorStream, sendAssistantMessageStream, type ChatMessage } from '@/lib/api/assistant';
 import { useAuthStore } from '@/store/useAuthStore';
 import { ASSISTANT_QUICK_PROMPTS } from './assistant-tokens';
 import {
@@ -137,10 +137,18 @@ export function AssistantPanel({
     setStreamingText('');
     scrollToBottom('smooth');
     try {
-      const res = await sendAssistantMessageStream(trimmed, history, buildContext(pathname), {
-        onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
-        onToolRound: () => setStreamingText(''),
-      });
+      let res: { reply: string; model: string; switchOrganization?: { access_token: string; organizationId: number } };
+      try {
+        const advisor = await sendFiscalAdvisorStream(trimmed, {
+          onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
+        });
+        res = { reply: advisor.reply, model: advisor.model };
+      } catch {
+        res = await sendAssistantMessageStream(trimmed, history, buildContext(pathname), {
+          onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
+          onToolRound: () => setStreamingText(''),
+        });
+      }
       if (res.switchOrganization?.access_token) {
         setToken(res.switchOrganization.access_token);
         selectOrganization(res.switchOrganization.organizationId);
@@ -216,10 +224,18 @@ export function AssistantPanel({
     setLoading(true);
     setStreamingText('');
     try {
-      const res = await sendAssistantMessageStream(lastUser.content, history, buildContext(pathname), {
-        onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
-        onToolRound: () => setStreamingText(''),
-      });
+      let res: { reply: string; model: string; switchOrganization?: { access_token: string; organizationId: number } };
+      try {
+        const advisor = await sendFiscalAdvisorStream(lastUser.content, {
+          onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
+        });
+        res = { reply: advisor.reply, model: advisor.model };
+      } catch {
+        res = await sendAssistantMessageStream(lastUser.content, history, buildContext(pathname), {
+          onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
+          onToolRound: () => setStreamingText(''),
+        });
+      }
       if (res.switchOrganization?.access_token) {
         setToken(res.switchOrganization.access_token);
         selectOrganization(res.switchOrganization.organizationId);
