@@ -94,12 +94,13 @@ export function CashboxModal({
   const difference = summary ? totalPhysicalBs - summary.total : 0
   const differencePercent = summary ? ((difference / summary.total) * 100).toFixed(1) : "0"
 
-  const totalExpectedPercent = summary ? ([
-    { label: 'Efectivo Bs', value: summary.cashBs, percent: summary.total > 0 ? (summary.cashBs / summary.total) * 100 : 0, color: 'from-emerald-500 to-emerald-400' },
-    { label: 'Efectivo USD', value: summary.cashUsd, percent: summary.total > 0 ? (summary.cashUsd / summary.total) * 100 : 0, color: 'from-blue-500 to-blue-400' },
-    { label: 'Pago Móvil', value: summary.pagoMovil, percent: summary.total > 0 ? (summary.pagoMovil / summary.total) * 100 : 0, color: 'from-purple-500 to-purple-400' },
-    { label: 'Zelle', value: summary.zelle, percent: summary.total > 0 ? (summary.zelle / summary.total) * 100 : 0, color: 'from-amber-500 to-amber-400' },
-  ] as const).filter(item => item.value > 0) : []
+  const totalExpectedPercent: Array<{ label: string; value: number; percent: number; color: string }> = []
+  if (summary && summary.total > 0) {
+    if (summary.cashBs > 0) totalExpectedPercent.push({ label: 'Efectivo Bs', value: summary.cashBs, percent: (summary.cashBs / summary.total) * 100, color: 'from-emerald-500 to-emerald-400' })
+    if (summary.cashUsd > 0) totalExpectedPercent.push({ label: 'Efectivo USD', value: summary.cashUsd, percent: (summary.cashUsd / summary.total) * 100, color: 'from-blue-500 to-blue-400' })
+    if (summary.pagoMovil > 0) totalExpectedPercent.push({ label: 'Pago Móvil', value: summary.pagoMovil, percent: (summary.pagoMovil / summary.total) * 100, color: 'from-purple-500 to-purple-400' })
+    if (summary.zelle > 0) totalExpectedPercent.push({ label: 'Zelle', value: summary.zelle, percent: (summary.zelle / summary.total) * 100, color: 'from-amber-500 to-amber-400' })
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
