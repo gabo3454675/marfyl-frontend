@@ -288,7 +288,7 @@ export function CashboxModal({
                   rows={2}
                   className="w-full px-4 py-3 rounded-xl resize-none bg-slate-800/50 border border-slate-700/50 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-red-500/30 transition-all" />
               </div>
-            </>
+            </div>
           )}
         </div>
 

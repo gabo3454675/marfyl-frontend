@@ -18,7 +18,12 @@ interface CashboxSwitchProps {
   isBoxOpen: boolean
   boxOpenedAt: Date | null
   initialAmount: number
-  onToggle: (open: boolean) => void
+  onOpenBox: (amount: number) => Promise<void>
+  onCloseBox: (data: {
+    physicalAmountBs: number
+    physicalAmountUsd: number
+    observations: string
+  }) => Promise<void>
   summary?: BoxSummary
 }
 
@@ -38,25 +43,12 @@ export function CashboxSwitch({
   isBoxOpen,
   boxOpenedAt,
   initialAmount,
-  onToggle,
+  onOpenBox,
+  onCloseBox,
   summary,
 }: CashboxSwitchProps) {
   const [showOpenModal, setShowOpenModal] = useState(false)
   const [showCloseModal, setShowCloseModal] = useState(false)
-
-  const handleOpenBox = async (amount: number) => {
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    onToggle(true)
-  }
-
-  const handleCloseBox = async (data: {
-    physicalAmountBs: number
-    physicalAmountUsd: number
-    observations: string
-  }) => {
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    onToggle(false)
-  }
 
   const handleSwitchClick = () => {
     if (isBoxOpen) {
@@ -69,6 +61,7 @@ export function CashboxSwitch({
   return (
     <>
       <button
+        type="button"
         onClick={handleSwitchClick}
         className={cn(
           "flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-2.5 rounded-xl",
@@ -127,7 +120,7 @@ export function CashboxSwitch({
         type="open"
         isOpen={showOpenModal}
         onClose={() => setShowOpenModal(false)}
-        onOpenBox={handleOpenBox}
+        onOpenBox={onOpenBox}
         onCloseBox={async () => {}}
       />
 
@@ -136,7 +129,7 @@ export function CashboxSwitch({
         isOpen={showCloseModal}
         onClose={() => setShowCloseModal(false)}
         onOpenBox={async () => {}}
-        onCloseBox={handleCloseBox}
+        onCloseBox={onCloseBox}
         summary={summary}
       />
     </>

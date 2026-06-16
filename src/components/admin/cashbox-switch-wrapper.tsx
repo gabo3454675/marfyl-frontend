@@ -3,11 +3,16 @@
 import { useState, useEffect, useCallback } from "react"
 import { CashboxSwitch } from "./cashbox-switch"
 import { apiClient } from "@/lib/api"
+import { useAuthStore } from "@/store/useAuthStore"
 
-interface BoxState {
-  isBoxOpen: boolean
-  boxOpenedAt: Date | null
-  initialAmount: number
+interface CierreAbierto {
+  id: number
+  fechaApertura: string
+  montoInicial: number
+  ventasEfectivoUsd?: number
+  ventasEfectivoBs?: number
+  ventasPagoMovil?: number
+  ventasPos?: number
 }
 
 interface BoxSummary {
@@ -19,83 +24,82 @@ interface BoxSummary {
   exchangeRate: number
 }
 
+function buildSummary(cierre: CierreAbierto, exchangeRate: number): BoxSummary {
+  const cashBs = Number(cierre.ventasEfectivoBs ?? 0)
+  const cashUsd = Number(cierre.ventasEfectivoUsd ?? 0)
+  const pagoMovil = Number(cierre.ventasPagoMovil ?? 0)
+  const zelle = Number(cierre.ventasPos ?? 0)
+  const total = cashBs + cashUsd * exchangeRate + pagoMovil + zelle * exchangeRate
+  return { cashBs, cashUsd, pagoMovil, zelle, total, exchangeRate }
+}
+
 export function CashboxSwitchWrapper() {
-  const [boxState, setBoxState] = useState<BoxState>({
-    isBoxOpen: false,
-    boxOpenedAt: null,
-    initialAmount: 0,
-  })
-  const [summary, setSummary] = useState<BoxSummary | undefined>(undefined)
+  const [abierto, setAbierto] = useState<CierreAbierto | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const selectedId =
+    useAuthStore((s) => s.selectedOrganizationId || s.selectedCompanyId)
+  const exchangeRate =
+    useAuthStore((s) => {
+      const id = s.selectedOrganizationId || s.selectedCompanyId
+      const org = s.user?.organizations?.find((o) => o.id === id)
+      return Number(org?.exchangeRate ?? 36.5)
+    }) || 36.5
 
   const fetchBoxState = useCallback(async () => {
     try {
-      const res = await apiClient.get<{
-        isOpen: boolean
-        openedAt?: string
-        initialAmount?: number
-      }>("/cierre-caja/status")
-      if (res.data) {
-        setBoxState({
-          isBoxOpen: res.data.isOpen,
-          boxOpenedAt: res.data.openedAt ? new Date(res.data.openedAt) : null,
-          initialAmount: res.data.initialAmount || 0,
-        })
-      }
+      const res = await apiClient.get<CierreAbierto | null>("/cierre-caja/abierto")
+      setAbierto(res.data ?? null)
     } catch {
-      // caja cerrada por defecto
+      setAbierto(null)
     } finally {
       setLoading(false)
     }
   }, [])
 
-  const fetchSummary = useCallback(async () => {
-    try {
-      const res = await apiClient.get<BoxSummary>("/cierre-caja/summary")
-      if (res.data) {
-        setSummary(res.data)
-      }
-    } catch {
-      // ignore
-    }
-  }, [])
-
   useEffect(() => {
-    fetchBoxState()
-    fetchSummary()
-  }, [fetchBoxState, fetchSummary])
+    setLoading(true)
+    void fetchBoxState()
+  }, [fetchBoxState, selectedId])
 
-  const handleToggle = useCallback(
-    async (open: boolean) => {
-      if (open) {
-        setBoxState((prev) => ({
-          ...prev,
-          isBoxOpen: true,
-          boxOpenedAt: new Date(),
-          initialAmount: 0,
-        }))
-      } else {
-        setBoxState({
-          isBoxOpen: false,
-          boxOpenedAt: null,
-          initialAmount: 0,
-        })
-        setSummary(undefined)
-      }
+  const handleOpenBox = useCallback(
+    async (amount: number) => {
+      await apiClient.post("/cierre-caja/apertura", { montoInicial: amount })
+      await fetchBoxState()
     },
-    []
+    [fetchBoxState],
+  )
+
+  const handleCloseBox = useCallback(
+    async (data: {
+      physicalAmountBs: number
+      physicalAmountUsd: number
+      observations: string
+    }) => {
+      await apiClient.post("/cierre-caja/cerrar", {
+        montoFisicoUsd: data.physicalAmountUsd,
+        montoFisicoVes: data.physicalAmountBs,
+        observaciones: data.observations || undefined,
+      })
+      setAbierto(null)
+      await fetchBoxState()
+    },
+    [fetchBoxState],
   )
 
   if (loading) {
     return null
   }
 
+  const summary = abierto ? buildSummary(abierto, exchangeRate) : undefined
+
   return (
     <CashboxSwitch
-      isBoxOpen={boxState.isBoxOpen}
-      boxOpenedAt={boxState.boxOpenedAt}
-      initialAmount={boxState.initialAmount}
-      onToggle={handleToggle}
+      isBoxOpen={!!abierto}
+      boxOpenedAt={abierto ? new Date(abierto.fechaApertura) : null}
+      initialAmount={abierto?.montoInicial ?? 0}
+      onOpenBox={handleOpenBox}
+      onCloseBox={handleCloseBox}
       summary={summary}
     />
   )

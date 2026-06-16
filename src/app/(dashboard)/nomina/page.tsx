@@ -209,7 +209,6 @@ export default function NominaPage() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList
-            variant="default"
             className="bg-slate-800/50 border border-slate-700/50 p-1 rounded-xl"
           >
             <TabsTrigger
