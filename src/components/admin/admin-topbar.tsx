@@ -4,6 +4,7 @@ import { ExchangeRateIndicator } from '@/components/exchange-rate-indicator';
 import { DisplayCurrencyToggle } from '@/components/display-currency-toggle';
 import { TasksNotificationBell } from '@/components/tasks-notification-bell';
 import { OrganizationSwitcher } from '@/components/organization-switcher';
+import { CashboxSwitchWrapper } from './cashbox-switch-wrapper';
 import { cn } from '@/lib/utils';
 
 export function AdminTopbar({
@@ -25,6 +26,7 @@ export function AdminTopbar({
       </div>
 
       <div className="ml-auto flex flex-wrap items-center justify-end gap-3 sm:gap-4">
+        <CashboxSwitchWrapper />
         <TasksNotificationBell />
         <DisplayCurrencyToggle className="shrink-0" short />
         <ExchangeRateIndicator

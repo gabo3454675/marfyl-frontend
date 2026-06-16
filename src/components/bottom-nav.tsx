@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Grid2x2, ShoppingCart, Box, MoreVertical, Users, FileText, CreditCard, DollarSign, Settings, LogOut, PackageMinus, History, BarChart3, Wallet, AlertTriangle, TrendingUp, Truck, Landmark, ExternalLink } from 'lucide-react';
+import { Grid2x2, ShoppingCart, Box, MoreVertical, Users, FileText, CreditCard, DollarSign, Settings, LogOut, PackageMinus, History, BarChart3, Wallet, AlertTriangle, TrendingUp, Truck, Landmark, ExternalLink, UsersRound } from 'lucide-react';
 import { FISCAL_NAV_ITEMS } from '@/config/fiscal-nav';
 import { resolveConcertNavId } from '@/config/concert-nav';
 import { CONCERT_DEFAULT_SLUG } from '@/lib/concert/feature';
@@ -34,7 +34,6 @@ const additionalMenuItems = [
   { id: 'customers', label: 'Clientes', icon: Users, href: '/customers', permission: 'canManageCustomers' as const },
   { id: 'invoices', label: 'Facturas', icon: FileText, href: '/invoices', permission: 'canManageCustomers' as const },
   { id: 'history', label: 'Historial de Ventas', icon: History, href: '/history', permission: 'canManageCustomers' as const },
-  { id: 'cierre-caja', label: 'Cierre de caja', icon: Wallet, href: '/cierre-caja', permission: 'canManageCustomers' as const },
   { id: 'credits', label: 'Cuentas por Cobrar', icon: CreditCard, href: '/credits', permission: 'canManageCustomers' as const },
   { id: 'expenses', label: 'Gastos', icon: DollarSign, href: '/expenses', permission: 'canManageExpenses' as const },
   { id: 'suppliers', label: 'Proveedores', icon: Truck, href: '/suppliers', permission: 'canManageExpenses' as const },
@@ -43,6 +42,7 @@ const additionalMenuItems = [
   { id: 'tasas', label: 'Tasas BCV / Diferencial', icon: TrendingUp, href: '/tasas', permission: 'canManageExpenses' as const },
   { id: 'movements', label: 'Movimientos inventario', icon: PackageMinus, href: '/inventory/movements', permission: 'canManageInventory' as const },
   { id: 'autoconsumo', label: 'Autoconsumo', icon: BarChart3, href: '/autoconsumo', permission: 'canManageInventory' as const },
+  { id: 'nomina', label: 'Nómina', icon: UsersRound, href: '/nomina', permission: 'canManageTeam' as const },
   { id: 'settings', label: 'Configuración', icon: Settings, href: '/settings', permission: 'canManageTeam' as const },
 ];
 

@@ -2603,8 +2603,68 @@ html {
 
 /* Grid pattern for backgrounds */
 .grid-pattern {
-  background-image: 
+  background-image:
     linear-gradient(hsla(210, 40%, 80%, 0.1) 1px, transparent 1px),
     linear-gradient(90deg, hsla(210, 40%, 80%, 0.1) 1px, transparent 1px);
   background-size: 40px 40px;
+}
+
+/* Aurora Animations */
+@keyframes breathing {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+.animate-breathing {
+  animation: breathing 3s ease-in-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+@keyframes typing-dot {
+  0%, 60%, 100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-typing-dot {
+  animation: typing-dot 1.4s ease-in-out infinite;
+}
+
+/* Chat bubble styles */
+.chat-bubble-user {
+  background: linear-gradient(135deg, hsl(210, 100%, 56%) 0%, hsl(210, 83%, 53%) 100%);
+  color: white;
+  border-radius: 18px 18px 4px 18px;
+  box-shadow: 0 4px 12px hsla(210, 100%, 56%, 0.3);
+}
+
+.chat-bubble-assistant {
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 18px 18px 18px 4px;
+  box-shadow: 0 1px 3px hsla(0, 0%, 0%, 0.1);
 }

@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   TrendingUp,
   Settings,
+  UsersRound,
 } from 'lucide-react';
 
 export type NavPermission =
@@ -53,20 +54,20 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
   { id: 'customers', label: 'Clientes', icon: Users, href: '/customers', permission: 'canManageCustomers' },
   { id: 'invoices', label: 'Facturas', icon: FileText, href: '/invoices', permission: 'canManageCustomers' },
   { id: 'history', label: 'Historial de ventas', icon: History, href: '/history', permission: 'canManageCustomers' },
-  { id: 'cierre-caja', label: 'Cierre de caja', icon: Wallet, href: '/cierre-caja', permission: 'canManageCustomers' },
   { id: 'credits', label: 'Cuentas por cobar', icon: CreditCard, href: '/credits', permission: 'canManageCustomers' },
   { id: 'expenses', label: 'Gastos', icon: DollarSign, href: '/expenses', permission: 'canManageExpenses' },
   { id: 'suppliers', label: 'Proveedores', icon: Truck, href: '/suppliers', permission: 'canManageExpenses' },
   { id: 'accounts-payable', label: 'Cuentas por pagar', icon: Landmark, href: '/accounts-payable', permission: 'canManageExpenses' },
   { id: 'tasas', label: 'Tasas BCV / Diferencial', icon: TrendingUp, href: '/tasas', permission: 'canManageExpenses' },
   { id: 'settings', label: 'Configuración', icon: Settings, href: '/settings', permission: 'canManageTeam' },
+  { id: 'nomina', label: 'Nómina', icon: UsersRound, href: '/nomina', permission: 'canManageTeam' },
 ];
 
 export const APP_NAV_SECTIONS: AppNavSection[] = [
   {
     id: 'ventas',
     label: 'Ventas y caja',
-    itemIds: ['dashboard', 'pos', 'invoices', 'history', 'cierre-caja'],
+    itemIds: ['dashboard', 'pos', 'invoices', 'history'],
   },
   {
     id: 'inventario',
@@ -83,6 +84,11 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     label: 'Configuración',
     itemIds: ['tasas', 'settings'],
   },
+  {
+    id: 'rrhh',
+    label: 'Recursos Humanos',
+    itemIds: ['nomina'],
+  },
 ];
 
 export function resolveAppNavId(pathname: string): string {
@@ -97,13 +103,13 @@ export function resolveAppNavId(pathname: string): string {
   if (pathname.startsWith('/customers')) return 'customers';
   if (pathname.startsWith('/invoices')) return 'invoices';
   if (pathname.startsWith('/history')) return 'history';
-  if (pathname.startsWith('/cierre-caja')) return 'cierre-caja';
   if (pathname.startsWith('/credits')) return 'credits';
   if (pathname.startsWith('/expenses')) return 'expenses';
   if (pathname.startsWith('/suppliers')) return 'suppliers';
   if (pathname.startsWith('/accounts-payable')) return 'accounts-payable';
   if (pathname.startsWith('/tasas')) return 'tasas';
   if (pathname.startsWith('/settings')) return 'settings';
+  if (pathname.startsWith('/nomina')) return 'nomina';
   if (pathname.startsWith('/concierto/escaner')) return 'concierto-escaner';
   if (pathname.startsWith('/concierto/mapa')) return 'concierto-mapa';
   if (pathname.startsWith('/concierto/ordenes')) return 'concierto-ordenes';
