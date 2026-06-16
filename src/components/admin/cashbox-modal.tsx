@@ -94,12 +94,12 @@ export function CashboxModal({
   const difference = summary ? totalPhysicalBs - summary.total : 0
   const differencePercent = summary ? ((difference / summary.total) * 100).toFixed(1) : "0"
 
-  const totalExpectedPercent = summary ? [
+  const totalExpectedPercent = summary ? ([
     { label: 'Efectivo Bs', value: summary.cashBs, percent: summary.total > 0 ? (summary.cashBs / summary.total) * 100 : 0, color: 'from-emerald-500 to-emerald-400' },
     { label: 'Efectivo USD', value: summary.cashUsd, percent: summary.total > 0 ? (summary.cashUsd / summary.total) * 100 : 0, color: 'from-blue-500 to-blue-400' },
     { label: 'Pago Móvil', value: summary.pagoMovil, percent: summary.total > 0 ? (summary.pagoMovil / summary.total) * 100 : 0, color: 'from-purple-500 to-purple-400' },
     { label: 'Zelle', value: summary.zelle, percent: summary.total > 0 ? (summary.zelle / summary.total) * 100 : 0, color: 'from-amber-500 to-amber-400' },
-  ].filter(item => item.value > 0) : []
+  ] as const).filter(item => item.value > 0) : []
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
