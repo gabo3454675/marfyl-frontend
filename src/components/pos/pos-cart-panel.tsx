@@ -110,6 +110,28 @@ export function PosCartPanel({
   compact = false,
   className,
 }: PosCartPanelProps) {
+  const cartUnits = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  const checkoutButton = showCheckoutButton ? (
+    <Button
+      className={cn(
+        'h-12 w-full touch-manipulation text-base font-semibold sm:text-lg',
+        compact ? 'flex' : 'mt-3 hidden lg:flex',
+      )}
+      onClick={onCheckout}
+      disabled={cart.length === 0 || processing}
+    >
+      {processing ? (
+        <>
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          Procesando...
+        </>
+      ) : (
+        'COBRAR'
+      )}
+    </Button>
+  ) : null;
+
   return (
     <AdminCard
       title={
@@ -118,19 +140,19 @@ export function PosCartPanel({
           Carrito de Venta
           {cart.length > 0 ? (
             <Badge variant="secondary" className="ml-1 tabular-nums">
-              {cart.length}
+              {cartUnits}
             </Badge>
           ) : null}
         </span>
       }
       className={cn('admin-pos-panel h-full max-h-[inherit]', className)}
-      bodyClassName={cn('admin-pos-cart-body', compact ? 'p-3' : 'p-4 sm:p-5')}
+      bodyClassName={cn('admin-pos-cart-body', compact ? 'flex min-h-0 flex-1 flex-col p-3' : 'p-4 sm:p-5')}
       elevation="sm"
     >
       <div
         className={cn(
           'admin-pos-cart-controls',
-          splitPayment && !compact && 'max-h-[min(36dvh,17rem)] overflow-y-auto overscroll-y-contain pr-1',
+          splitPayment && 'max-h-[min(36dvh,17rem)] overflow-y-auto overscroll-y-contain pr-1',
         )}
       >
         <div>
@@ -163,7 +185,7 @@ export function PosCartPanel({
             id={compact ? 'customer-mobile' : 'customer'}
             value={selectedCustomerId || ''}
             onChange={(e) => onCustomerChange(e.target.value ? Number(e.target.value) : null)}
-            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className="mt-1 min-h-[44px] w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="">Cliente Genérico</option>
             {customers.map((customer) => (
@@ -184,7 +206,7 @@ export function PosCartPanel({
 
         <div className="space-y-3">
           <Label className="block text-sm font-medium">Modalidades de pago</Label>
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex min-h-[44px] items-center justify-between gap-2">
             <Label htmlFor={compact ? 'split-pay-mobile' : 'split-pay'} className="cursor-pointer text-sm font-normal leading-tight">
               Pago combinado
             </Label>
@@ -212,7 +234,7 @@ export function PosCartPanel({
                       next[idx] = { ...next[idx], method: e.target.value as PaymentMethod };
                       onSplitLinesChange(next);
                     }}
-                    className="h-10 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm"
+                    className="h-11 min-h-[44px] min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm"
                   >
                     {(Object.keys(PAYMENT_LABELS) as PaymentMethod[])
                       .filter((m) => m !== 'CREDIT')
@@ -227,7 +249,7 @@ export function PosCartPanel({
                     step="0.01"
                     min="0"
                     placeholder={BS_PAYMENT_METHODS.includes(line.method) ? 'Bs' : 'USD'}
-                    className="h-10 w-24 shrink-0"
+                    className="h-11 min-h-[44px] w-24 shrink-0"
                     value={line.amount}
                     onChange={(e) => {
                       const next = [...splitLines];
@@ -239,7 +261,7 @@ export function PosCartPanel({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10 shrink-0"
+                    className="h-11 w-11 shrink-0 touch-manipulation"
                     disabled={splitLines.length <= 2}
                     onClick={() => onSplitLinesChange(splitLines.filter((_, i) => i !== idx))}
                     aria-label="Quitar línea"
@@ -252,7 +274,7 @@ export function PosCartPanel({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="w-full min-h-[44px]"
+                className="w-full min-h-[44px] touch-manipulation"
                 disabled={splitLines.length >= 6}
                 onClick={() => onSplitLinesChange([...splitLines, { method: 'ZELLE', amount: '' }])}
               >
@@ -284,7 +306,7 @@ export function PosCartPanel({
                   type="button"
                   variant={paymentMethod === id ? 'default' : 'outline'}
                   size="sm"
-                  className="min-h-[40px] touch-manipulation"
+                  className="min-h-[44px] shrink-0 touch-manipulation"
                   onClick={() => onPaymentMethodChange(id)}
                 >
                   {label}
@@ -295,7 +317,7 @@ export function PosCartPanel({
         </div>
       </div>
 
-      <div className="admin-pos-cart-scroll">
+      <div className={cn('admin-pos-cart-scroll', compact && 'min-h-[4rem]')}>
         {cart.length === 0 ? (
           <div className="py-10 text-center text-muted-foreground">
             <ShoppingCart className="mx-auto mb-2 h-12 w-12 opacity-50" />
@@ -315,8 +337,9 @@ export function PosCartPanel({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 shrink-0"
+                    className="h-10 w-10 shrink-0 touch-manipulation"
                     onClick={() => onRemoveFromCart(item.product.id)}
+                    aria-label="Quitar del carrito"
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
@@ -326,20 +349,22 @@ export function PosCartPanel({
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-9 w-9 touch-manipulation"
+                      className="h-11 w-11 touch-manipulation"
                       onClick={() => onUpdateQuantity(item.product.id, -1)}
+                      aria-label="Reducir cantidad"
                     >
-                      <Minus className="h-3.5 w-3.5" />
+                      <Minus className="h-4 w-4" />
                     </Button>
                     <span className="w-8 text-center font-semibold tabular-nums">{item.quantity}</span>
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-9 w-9 touch-manipulation"
+                      className="h-11 w-11 touch-manipulation"
                       onClick={() => onUpdateQuantity(item.product.id, 1)}
                       disabled={item.quantity >= sellableUnits(item.product)}
+                      aria-label="Aumentar cantidad"
                     >
-                      <Plus className="h-3.5 w-3.5" />
+                      <Plus className="h-4 w-4" />
                     </Button>
                   </div>
                   <span className="font-bold tabular-nums">
@@ -365,7 +390,7 @@ export function PosCartPanel({
           <span>Total a cobrar</span>
           <span>{formatCurrency(total)}</span>
         </div>
-        {(paymentMethod === 'CASH_BS' || paymentMethod === 'PAGO_MOVIL') && (
+        {(paymentMethod === 'CASH_BS' || paymentMethod === 'PAGO_MOVIL') && !splitPayment && (
           <p className="text-xs text-muted-foreground">
             Equiv. Bs:{' '}
             {new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(round2(total * tasaBcv))}
@@ -373,21 +398,10 @@ export function PosCartPanel({
         )}
       </div>
 
-      {showCheckoutButton && (
-        <Button
-          className="mt-3 hidden h-12 w-full touch-manipulation text-lg font-semibold lg:flex"
-          onClick={onCheckout}
-          disabled={cart.length === 0 || processing}
-        >
-          {processing ? (
-            <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Procesando...
-            </>
-          ) : (
-            'COBRAR'
-          )}
-        </Button>
+      {compact ? (
+        <div className="admin-pos-checkout-sticky">{checkoutButton}</div>
+      ) : (
+        checkoutButton
       )}
     </AdminCard>
   );

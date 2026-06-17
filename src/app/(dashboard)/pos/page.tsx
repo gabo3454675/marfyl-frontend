@@ -128,7 +128,9 @@ export default function POSPage() {
   } | null>(null);
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
 
-  // Cargar productos
+  const cartUnits = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
+
+  const needsPaymentSetup = splitPayment || paymentMethod === 'CREDIT';
   const fetchProducts = useCallback(async () => {
     if (!selectedId) return;
 
@@ -232,8 +234,12 @@ export default function POSPage() {
 
   // Agregar producto al carrito
   const addToCart = (product: Product) => {
+    const maxQ = sellableUnits(product);
+    if (maxQ < 1) {
+      toast.error('Sin disponibilidad para este producto');
+      return;
+    }
     setCart((prevCart) => {
-      const maxQ = sellableUnits(product);
       const existingItem = prevCart.find((item) => item.product.id === product.id);
       if (existingItem) {
         if (existingItem.quantity >= maxQ) return prevCart;
@@ -243,7 +249,6 @@ export default function POSPage() {
             : item,
         );
       }
-      if (maxQ < 1) return prevCart;
       return [...prevCart, { product, quantity: 1 }];
     });
   };
@@ -415,6 +420,7 @@ export default function POSPage() {
         setCart([]);
         setSelectedCustomerId(null);
         setSuccess(true);
+        setMobileCartOpen(false);
         toast.info('Venta guardada localmente', {
           description: 'Se enviará al servidor cuando haya conexión.',
         });
@@ -429,15 +435,24 @@ export default function POSPage() {
         setCart([]);
         setSelectedCustomerId(null);
         setSuccess(true);
+        setMobileCartOpen(false);
         setLastInvoiceId(created.id);
+        toast.success('¡Venta procesada!');
         await fetchProducts();
         setTimeout(() => {
           setSuccess(false);
           setLastInvoiceId(null);
         }, 10000);
       }
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Error al procesar la venta');
+    } catch (error: unknown) {
+      const msg =
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        (error as { response?: { data?: { message?: string } } }).response?.data?.message
+          ? String((error as { response?: { data?: { message?: string } } }).response?.data?.message)
+          : 'Error al procesar la venta';
+      toast.error(msg);
       console.error('Error processing sale:', error);
     } finally {
       setProcessing(false);
@@ -510,6 +525,18 @@ export default function POSPage() {
     }
   };
 
+  const handleBarCheckout = () => {
+    if (cart.length === 0) return;
+    if (needsPaymentSetup) {
+      setMobileCartOpen(true);
+      toast.message('Configura el pago en el carrito', {
+        description: splitPayment ? 'Pago combinado requiere montos por línea.' : 'Selecciona cliente y verifica crédito.',
+      });
+      return;
+    }
+    void handleCheckout();
+  };
+
   const cartPanelProps = {
     cart,
     currencyMode,
@@ -571,8 +598,13 @@ export default function POSPage() {
       headerClassName="admin-pos-page-header mb-2 sm:mb-5 md:mb-6 shrink-0"
     >
 
-      {/* Barra fija móvil/tablet: carrito + COBRAR sobre bottom nav */}
-      <div className="admin-pos-checkout-bar lg:hidden" role="region" aria-label="Resumen de cobro">
+      {/* Barra fija móvil/tablet: carrito + COBRAR rápido */}
+      <div
+        className={cn('admin-pos-checkout-bar lg:hidden', mobileCartOpen && 'pointer-events-none opacity-0')}
+        role="region"
+        aria-label="Resumen de cobro"
+        aria-hidden={mobileCartOpen}
+      >
         <button
           type="button"
           className="admin-pos-checkout-summary touch-manipulation"
@@ -583,8 +615,8 @@ export default function POSPage() {
             <span className="relative inline-flex">
               <ShoppingCart className="h-5 w-5 text-primary" />
               {cart.length > 0 ? (
-                <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                  {cart.length}
+                <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                  {cartUnits}
                 </span>
               ) : null}
             </span>
@@ -597,8 +629,8 @@ export default function POSPage() {
           </span>
         </button>
         <Button
-          className="h-11 min-w-[6.5rem] shrink-0 touch-manipulation px-4 text-base font-semibold"
-          onClick={handleCheckout}
+          className="h-11 min-h-[44px] min-w-[6.5rem] shrink-0 touch-manipulation px-4 text-base font-semibold"
+          onClick={handleBarCheckout}
           disabled={cart.length === 0 || processing}
         >
           {processing ? <Loader2 className="h-5 w-5 animate-spin" /> : 'COBRAR'}
@@ -606,7 +638,7 @@ export default function POSPage() {
       </div>
 
       {success && (
-        <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+        <div className="mb-3 shrink-0 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-900/20 sm:mb-4 sm:p-4">
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-1 md:flex-row md:items-center md:gap-2">
               <div className="flex items-center gap-2">
@@ -637,7 +669,7 @@ export default function POSPage() {
                         if (contentType.includes('application/json')) {
                           const text = await (response.data as Blob).text();
                           const data = JSON.parse(text);
-                          alert(data?.message ?? 'Error al descargar la factura');
+                          toast.error(data?.message ?? 'Error al descargar la factura');
                           return;
                         }
                         const blob = new Blob([response.data], { type: 'application/pdf' });
@@ -652,7 +684,10 @@ export default function POSPage() {
                         window.URL.revokeObjectURL(url);
                       } catch (error: any) {
                         console.error('Error downloading PDF:', error);
-                        alert(error.response?.data?.message ?? 'Error al descargar la factura');
+                        toast.error(
+                          (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+                            'Error al descargar la factura',
+                        );
                       }
                     }}
                   >
@@ -683,7 +718,7 @@ export default function POSPage() {
                     type="button"
                     size="sm"
                     variant={catalogFilter === 'all' ? 'default' : 'outline'}
-                    className="h-8 text-xs"
+                    className="min-h-[44px] touch-manipulation text-xs"
                     onClick={() => setCatalogFilter('all')}
                   >
                     Todo el inventario
@@ -692,7 +727,7 @@ export default function POSPage() {
                     type="button"
                     size="sm"
                     variant={catalogFilter === 'special' ? 'default' : 'outline'}
-                    className="h-8 gap-1.5 text-xs"
+                    className="min-h-[44px] gap-1.5 touch-manipulation text-xs"
                     onClick={() => setCatalogFilter('special')}
                   >
                     <Layers className="h-3.5 w-3.5" />
@@ -705,7 +740,7 @@ export default function POSPage() {
                     placeholder="Buscar producto, SKU o código de barras..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
+                    className="min-h-[44px] pl-10"
                   />
                 </div>
               </div>
@@ -803,16 +838,21 @@ export default function POSPage() {
       <Sheet open={mobileCartOpen} onOpenChange={setMobileCartOpen}>
         <SheetContent
           side="bottom"
-          className="admin-pos-cart-sheet flex max-h-[min(88dvh,720px)] flex-col gap-0 p-0 pb-[calc(var(--app-bottom-chrome)+3.75rem)]"
+          className="admin-pos-cart-sheet flex max-h-[min(92dvh,720px)] flex-col gap-0 p-0 pb-0 md:pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] max-md:pb-[calc(var(--app-bottom-chrome)+0.5rem)]"
         >
           <SheetHeader className="shrink-0 border-b px-4 py-3 text-left">
             <SheetTitle className="flex items-center gap-2 text-base">
               <ShoppingCart className="h-5 w-5" />
               Carrito y pago
+              {cartUnits > 0 ? (
+                <Badge variant="secondary" className="tabular-nums">
+                  {cartUnits}
+                </Badge>
+              ) : null}
             </SheetTitle>
           </SheetHeader>
-          <div className="min-h-0 flex-1 overflow-hidden px-1">
-            <PosCartPanel {...cartPanelProps} compact showCheckoutButton={false} className="border-0 shadow-none" />
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-1">
+            <PosCartPanel {...cartPanelProps} compact showCheckoutButton className="min-h-0 flex-1 border-0 shadow-none" />
           </div>
         </SheetContent>
       </Sheet>

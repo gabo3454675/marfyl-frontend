@@ -1195,6 +1195,15 @@
     padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
     min-height: 3.75rem;
   }
+  /* Tablet: sin bottom nav, barra pegada al borde inferior */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .admin-pos-checkout-bar {
+      bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .admin-pos-mobile-pad {
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--app-pos-checkout-h));
+    }
+  }
   .admin-pos-checkout-summary {
     @apply min-w-0 flex-1 rounded-lg px-1 py-0.5 text-left transition-colors active:bg-muted/60;
   }
@@ -1261,6 +1270,23 @@
   }
   .admin-pos-cart-sheet .admin-card-header {
     @apply hidden;
+  }
+  .admin-pos-cart-sheet .admin-pos-cart-body {
+    @apply flex min-h-0 flex-1 flex-col overflow-hidden;
+  }
+  .admin-pos-cart-sheet .admin-pos-cart-controls {
+    max-height: min(32dvh, 14rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .admin-pos-cart-sheet .admin-pos-cart-scroll {
+    @apply min-h-[4rem] flex-1;
+  }
+  .admin-pos-cart-sheet .admin-pos-cart-footer {
+    @apply sticky bottom-0 z-10 border-t bg-card pt-3 shadow-[0_-4px_12px_hsl(var(--background)/0.85)];
+  }
+  .admin-pos-cart-sheet .admin-pos-checkout-sticky {
+    @apply shrink-0 border-t bg-card p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))];
   }
 
   .admin-pos-pay-methods {
