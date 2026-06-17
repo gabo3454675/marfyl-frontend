@@ -2,14 +2,23 @@
 
 import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Grid2x2, ShoppingCart, Box, MoreVertical, Users, FileText, CreditCard, DollarSign, Settings, LogOut, PackageMinus, History, BarChart3, Wallet, AlertTriangle, TrendingUp, Truck, Landmark, ExternalLink, UsersRound } from 'lucide-react';
+import { Grid2x2, ShoppingCart, Box, MoreVertical, LogOut, ExternalLink } from 'lucide-react';
 import { FISCAL_NAV_ITEMS } from '@/config/fiscal-nav';
+import {
+  APP_NAV_SECTIONS,
+  getNavItem,
+  getQuickAccessItems,
+  getSectionIdForNavItem,
+  resolveAppNavId,
+} from '@/config/app-nav';
 import { resolveConcertNavId } from '@/config/concert-nav';
 import { CONCERT_DEFAULT_SLUG } from '@/lib/concert/feature';
 import { useConcertNavItems } from '@/hooks/useConcertNavItems';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { OrganizationSwitcher } from '@/components/organization-switcher';
+import { NavSectionCollapsible } from '@/components/layout/sidebar-nav-parts';
+import { useNavSectionsOpen } from '@/hooks/useNavSectionsOpen';
 import {
   Sheet,
   SheetContent,
@@ -19,31 +28,14 @@ import {
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { usePermission } from '@/hooks/usePermission';
-import { canShowNavItem } from '@/hooks/useNavByRole';
+import { canShowNavItem, type NavItem } from '@/hooks/useNavByRole';
 import { useAuthStore } from '@/store/useAuthStore';
 import { markExplicitLogout } from '@/lib/fiscal-preview';
 
-const navigationItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Grid2x2, href: '/', permission: 'canViewDashboard' as const },
+const bottomBarItems = [
+  { id: 'dashboard', label: 'Inicio', icon: Grid2x2, href: '/', permission: 'canViewDashboard' as const },
   { id: 'pos', label: 'POS', icon: ShoppingCart, href: '/pos', permission: 'canManageCustomers' as const },
   { id: 'products', label: 'Inventario', icon: Box, href: '/products', permission: 'canManageProducts' as const },
-];
-
-// Enlaces adicionales que aparecen en el menú "Más" (filtrados por rol)
-const additionalMenuItems = [
-  { id: 'customers', label: 'Clientes', icon: Users, href: '/customers', permission: 'canManageCustomers' as const },
-  { id: 'invoices', label: 'Facturas', icon: FileText, href: '/invoices', permission: 'canManageCustomers' as const },
-  { id: 'history', label: 'Historial de Ventas', icon: History, href: '/history', permission: 'canManageCustomers' as const },
-  { id: 'credits', label: 'Cuentas por Cobrar', icon: CreditCard, href: '/credits', permission: 'canManageCustomers' as const },
-  { id: 'expenses', label: 'Gastos', icon: DollarSign, href: '/expenses', permission: 'canManageExpenses' as const },
-  { id: 'suppliers', label: 'Proveedores', icon: Truck, href: '/suppliers', permission: 'canManageExpenses' as const },
-  { id: 'accounts-payable', label: 'Cuentas por pagar', icon: Landmark, href: '/accounts-payable', permission: 'canManageExpenses' as const },
-  { id: 'alertas-stock', label: 'Alertas inventario', icon: AlertTriangle, href: '/alertas-stock', permission: 'canManageInventory' as const },
-  { id: 'tasas', label: 'Tasas BCV / Diferencial', icon: TrendingUp, href: '/tasas', permission: 'canManageExpenses' as const },
-  { id: 'movements', label: 'Movimientos inventario', icon: PackageMinus, href: '/inventory/movements', permission: 'canManageInventory' as const },
-  { id: 'autoconsumo', label: 'Autoconsumo', icon: BarChart3, href: '/autoconsumo', permission: 'canManageInventory' as const },
-  { id: 'nomina', label: 'Nómina', icon: UsersRound, href: '/nomina', permission: 'canManageTeam' as const },
-  { id: 'settings', label: 'Configuración', icon: Settings, href: '/settings', permission: 'canManageTeam' as const },
 ];
 
 export default function BottomNav() {
@@ -54,25 +46,17 @@ export default function BottomNav() {
   const { clearAuth } = useAuthStore();
   const concertNavItems = useConcertNavItems();
 
-  const getActiveItem = () => {
+  const activeItem = (() => {
     if (resolveConcertNavId(pathname ?? '')) return 'more';
-    if (pathname === '/') return 'dashboard';
-    if (pathname.startsWith('/pos')) return 'pos';
-    if (pathname.startsWith('/products')) return 'products';
-    if (pathname.startsWith('/inventory/movements')) return 'movements';
-    if (pathname.startsWith('/autoconsumo')) return 'autoconsumo';
-    if (pathname.startsWith('/inventory')) return 'products';
-    return 'dashboard';
-  };
+    const appId = resolveAppNavId(pathname ?? '');
+    if (appId === 'dashboard' || appId === 'pos' || appId === 'products') return appId;
+    return 'more';
+  })();
 
-  const activeItem = getActiveItem();
+  const activeSectionId = getSectionIdForNavItem(resolveAppNavId(pathname ?? ''));
+  const { isOpen: isSectionOpen, toggle: toggleSection } = useNavSectionsOpen(activeSectionId);
 
-  const visibleMainNav = navigationItems.filter((item) =>
-    canShowNavItem(item, permissions),
-  );
-  const filteredAdditionalItems = additionalMenuItems.filter((item) =>
-    canShowNavItem(item, permissions),
-  );
+  const visibleMainNav = bottomBarItems.filter((item) => canShowNavItem(item, permissions));
 
   const handleMenuItemClick = (href: string) => {
     router.push(href);
@@ -94,7 +78,7 @@ export default function BottomNav() {
             key={item.id}
             type="button"
             data-active={activeItem === item.id ? 'true' : 'false'}
-            className="admin-bottom-nav-item"
+            className="admin-bottom-nav-item cursor-pointer"
             onClick={() => router.push(item.href)}
             aria-label={item.label}
             aria-current={activeItem === item.id ? 'page' : undefined}
@@ -107,8 +91,8 @@ export default function BottomNav() {
           <SheetTrigger asChild>
             <button
               type="button"
-              data-active={isSheetOpen ? 'true' : 'false'}
-              className={cn('admin-bottom-nav-item admin-bottom-nav-more')}
+              data-active={activeItem === 'more' ? 'true' : 'false'}
+              className={cn('admin-bottom-nav-item admin-bottom-nav-more cursor-pointer')}
               aria-label="Más opciones"
               aria-expanded={isSheetOpen}
             >
@@ -125,109 +109,158 @@ export default function BottomNav() {
             </SheetHeader>
 
             <div className="mt-4">
-              <p className="text-xs font-medium text-muted-foreground mb-2">
-                Organización activa
-              </p>
-              <OrganizationSwitcher
-                variant="menu-list"
-                onBeforeSwitch={() => setIsSheetOpen(false)}
-              />
+              <p className="text-xs font-medium text-muted-foreground mb-2">Organización activa</p>
+              <OrganizationSwitcher variant="menu-list" onBeforeSwitch={() => setIsSheetOpen(false)} />
             </div>
 
-            <div className="mt-4 space-y-1">
-              {concertNavItems.length > 0 && (
-                <div className="pb-3 mb-3 border-b border-border">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-2">
-                    Evento Monddy (temporal)
-                  </p>
-                  <div className="space-y-0.5 pl-1 border-l-2 border-amber-500/40 ml-1">
-                    {concertNavItems.map((item) => {
-                      const isActive = resolveConcertNavId(pathname ?? '') === item.id;
+            <div className="mt-4">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-2">
+                Acceso rápido
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {getQuickAccessItems()
+                  .filter((item) => canShowNavItem(item, permissions))
+                  .map((item) => {
+                    const isActive = resolveAppNavId(pathname ?? '') === item.id;
+                    return (
+                      <Button
+                        key={item.id}
+                        variant={isActive ? 'default' : 'outline'}
+                        className="h-11 justify-start gap-2 cursor-pointer"
+                        onClick={() => handleMenuItemClick(item.href)}
+                      >
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        <span className="truncate text-sm">{item.label}</span>
+                      </Button>
+                    );
+                  })}
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-0">
+              {APP_NAV_SECTIONS.map((section) => {
+                const items = section.itemIds
+                  .map((id) => getNavItem(id))
+                  .filter(Boolean)
+                  .filter((item) => canShowNavItem(item as NavItem, permissions));
+                if (items.length === 0) return null;
+                const hasActiveChild = items.some(
+                  (item) => resolveAppNavId(pathname ?? '') === item!.id,
+                );
+                return (
+                  <NavSectionCollapsible
+                    key={section.id}
+                    id={section.id}
+                    label={section.label}
+                    open={isSectionOpen(section.id)}
+                    onToggle={() => toggleSection(section.id)}
+                    hasActiveChild={hasActiveChild}
+                    variant="sheet"
+                  >
+                    {items.map((item) => {
+                      const isActive = pathname.startsWith(item!.href) && item!.href !== '/';
+                      const Icon = item!.icon;
                       return (
                         <Button
-                          key={item.id}
+                          key={item!.id}
                           variant="ghost"
                           className={cn(
-                            'w-full justify-start gap-3 h-11 pl-6',
+                            'w-full justify-start gap-3 h-11 pl-4 cursor-pointer',
                             isActive
                               ? 'bg-sidebar-primary text-sidebar-primary-foreground'
                               : 'text-foreground hover:bg-secondary',
                           )}
-                          onClick={() => handleMenuItemClick(item.href)}
+                          onClick={() => handleMenuItemClick(item!.href)}
                         >
-                          <item.icon className="h-4 w-4" />
-                          <span className="text-sm">{item.label}</span>
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span className="text-sm truncate">{item!.label}</span>
                         </Button>
                       );
                     })}
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start gap-3 h-11 pl-6 text-foreground hover:bg-secondary"
-                      onClick={() => handleMenuItemClick(`/evento/${CONCERT_DEFAULT_SLUG}`)}
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      <span className="text-sm">Página pública de entradas</span>
-                    </Button>
-                  </div>
-                </div>
-              )}
-              <ThemeToggle variant="full" className="mb-2" />
+                  </NavSectionCollapsible>
+                );
+              })}
+
               {permissions.canManageFiscal && (
-                <div className="pt-3 mt-3 border-t border-border">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-2">
-                    Fiscal MARFYL
-                  </p>
-                  <div className="space-y-0.5 pl-1 border-l-2 border-primary/25 ml-1">
+                <NavSectionCollapsible
+                  id="fiscal"
+                  label="Fiscal MARFYL"
+                  open={isSectionOpen('fiscal')}
+                  onToggle={() => toggleSection('fiscal')}
+                  variant="sheet"
+                >
                   {FISCAL_NAV_ITEMS.map((item) => {
-                    const isActive = pathname.startsWith(item.href) && (item.href !== '/fiscal' || pathname === '/fiscal');
+                    const isActive =
+                      pathname.startsWith(item.href) &&
+                      (item.href !== '/fiscal' || pathname === '/fiscal');
                     return (
                       <Button
                         key={item.id}
                         variant="ghost"
                         className={cn(
-                          'w-full justify-start gap-3 h-11 pl-6',
+                          'w-full justify-start gap-3 h-11 pl-4 cursor-pointer',
                           isActive
                             ? 'bg-sidebar-primary text-sidebar-primary-foreground'
                             : 'text-foreground hover:bg-secondary',
                         )}
                         onClick={() => handleMenuItemClick(item.href)}
                       >
-                        <item.icon className="h-4 w-4" />
-                        <span className="text-sm">{item.label}</span>
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        <span className="text-sm truncate">{item.label}</span>
                       </Button>
                     );
                   })}
-                  </div>
-                </div>
+                </NavSectionCollapsible>
               )}
-              <div className="pt-3 mt-3 border-t border-border space-y-0.5">
-              {filteredAdditionalItems.map((item) => {
-                const isActive = pathname.startsWith(item.href);
-                return (
+
+              {concertNavItems.length > 0 && (
+                <NavSectionCollapsible
+                  id="concierto"
+                  label="Evento Monddy"
+                  open={isSectionOpen('concierto')}
+                  onToggle={() => toggleSection('concierto')}
+                  variant="sheet"
+                >
+                  {concertNavItems.map((item) => {
+                    const isActive = resolveConcertNavId(pathname ?? '') === item.id;
+                    return (
+                      <Button
+                        key={item.id}
+                        variant="ghost"
+                        className={cn(
+                          'w-full justify-start gap-3 h-11 pl-4 cursor-pointer',
+                          isActive
+                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                            : 'text-foreground hover:bg-secondary',
+                        )}
+                        onClick={() => handleMenuItemClick(item.href)}
+                      >
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        <span className="text-sm truncate">{item.label}</span>
+                      </Button>
+                    );
+                  })}
                   <Button
-                    key={item.id}
                     variant="ghost"
-                    className={cn(
-                      'w-full justify-start gap-3 h-12',
-                      isActive
-                        ? 'bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary'
-                        : 'text-foreground hover:bg-secondary'
-                    )}
-                    onClick={() => handleMenuItemClick(item.href)}
+                    className="w-full justify-start gap-3 h-11 pl-4 cursor-pointer text-foreground hover:bg-secondary"
+                    onClick={() => handleMenuItemClick(`/evento/${CONCERT_DEFAULT_SLUG}`)}
                   >
-                    <item.icon className="h-5 w-5" />
-                    <span className="text-base">{item.label}</span>
+                    <ExternalLink className="h-4 w-4 shrink-0" />
+                    <span className="text-sm truncate">Página pública de entradas</span>
                   </Button>
-                );
-              })}
-              </div>
+                </NavSectionCollapsible>
+              )}
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-border space-y-2">
+              <ThemeToggle variant="full" />
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-3 h-12 mt-4 pt-4 border-t border-border text-destructive hover:text-destructive hover:bg-destructive/10"
+                className="w-full justify-start gap-3 h-11 text-destructive hover:text-destructive hover:bg-destructive/10 cursor-pointer"
                 onClick={handleLogout}
               >
-                <LogOut className="h-5 w-5" />
-                <span className="text-base">Cerrar Sesión</span>
+                <LogOut className="h-4 w-4" />
+                <span className="text-sm">Cerrar Sesión</span>
               </Button>
             </div>
           </SheetContent>

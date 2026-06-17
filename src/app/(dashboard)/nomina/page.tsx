@@ -1,355 +1,284 @@
 "use client"
 
-import { useState } from "react"
-import { Users, Receipt, History, Play, Calculator } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { useState, useEffect, useMemo, useCallback } from "react"
+import dynamic from "next/dynamic"
+import { useRouter } from "next/navigation"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { Users, Receipt, History, Play, Calculator, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { AdminPageShell } from "@/components/admin/admin-page-shell"
+import { AdminCard } from "@/components/admin/admin-card"
 import { PayrollKpiCards } from "@/components/admin/payroll/kpi-cards"
-import { EmployeeList, Employee } from "@/components/admin/payroll/employee-list"
-import { PayrollModal } from "@/components/admin/payroll/payroll-modal"
+import { EmployeeList } from "@/components/admin/payroll/employee-list"
+import { usePermission } from "@/hooks/usePermission"
+import { payrollService } from "@/lib/api/payroll"
+import {
+  type PayrollEmployee,
+  calculateTotalPayroll,
+  calculateEmployeeSalary,
+} from "@/types/payroll"
+import { toast } from "sonner"
 
-const mockEmployees: Employee[] = [
-  {
-    id: 1,
-    name: "María López",
-    avatar: null,
-    role: "Cajera",
-    type: "fixed",
-    baseSalary: 450,
-    bonuses: 0,
-    deductions: 0,
-    status: "paid",
-  },
-  {
-    id: 2,
-    name: "Carlos Pérez",
-    avatar: null,
-    role: "Vendedor",
-    type: "commission",
-    baseSalary: 150,
-    commission: 5,
-    bonuses: 0,
-    deductions: 0,
-    status: "pending",
-  },
-  {
-    id: 3,
-    name: "Ana Martínez",
-    avatar: null,
-    role: "Supervisora",
-    type: "fixed",
-    baseSalary: 600,
-    bonuses: 50,
-    deductions: 25,
-    status: "review",
-  },
-  {
-    id: 4,
-    name: "Luis Rodríguez",
-    avatar: null,
-    role: "Bodeguero",
-    type: "fixed",
-    baseSalary: 380,
-    bonuses: 0,
-    deductions: 0,
-    status: "paid",
-  },
-  {
-    id: 5,
-    name: "Sofia Hernández",
-    avatar: null,
-    role: "Vendedora",
-    type: "commission",
-    baseSalary: 120,
-    commission: 5,
-    bonuses: 100,
-    deductions: 0,
-    status: "pending",
-  },
-  {
-    id: 6,
-    name: "Miguel Torres",
-    avatar: null,
-    role: "Contador",
-    type: "fixed",
-    baseSalary: 800,
-    bonuses: 0,
-    deductions: 50,
-    status: "paid",
-  },
-  {
-    id: 7,
-    name: "Laura Jiménez",
-    avatar: null,
-    role: "Auxiliar",
-    type: "hourly",
-    baseSalary: 5,
-    hoursWorked: 160,
-    bonuses: 0,
-    deductions: 0,
-    status: "review",
-  },
-  {
-    id: 8,
-    name: "Roberto Díaz",
-    avatar: null,
-    role: "Seguridad",
-    type: "fixed",
-    baseSalary: 350,
-    bonuses: 0,
-    deductions: 0,
-    status: "paid",
-  },
-]
+const PayrollModal = dynamic(
+  () => import("@/components/admin/payroll/payroll-modal").then((m) => m.PayrollModal),
+  { ssr: false },
+)
 
 export default function NominaPage() {
+  const router = useRouter()
+  const queryClient = useQueryClient()
+  const { canManageTeam } = usePermission()
+
   const [activeTab, setActiveTab] = useState("employees")
-  const [employees, setEmployees] = useState<Employee[]>(mockEmployees)
   const [showProcessModal, setShowProcessModal] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
-  const calculateTotalPayroll = () => {
-    return employees.reduce((total, emp) => {
-      let base = emp.baseSalary
-      if (emp.type === "hourly" && emp.hoursWorked) {
-        base = base * emp.hoursWorked
-      } else if (emp.type === "commission") {
-        base = base + (emp.baseSalary * ((emp.commission || 0) / 100))
+  const {
+    data: employees = [],
+    isLoading,
+    error: loadError,
+  } = useQuery({
+    queryKey: ["payroll", "employees"],
+    queryFn: () => payrollService.getEmployees(),
+    enabled: canManageTeam,
+    staleTime: 15_000,
+  })
+
+  const { data: history = [] } = useQuery({
+    queryKey: ["payroll", "history"],
+    queryFn: () => payrollService.getHistory(),
+    enabled: canManageTeam,
+    staleTime: 30_000,
+  })
+
+  const invalidatePayroll = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ["payroll"] })
+  }, [queryClient])
+
+  const totalPayroll = useMemo(() => calculateTotalPayroll(employees), [employees])
+  const pendingCount = useMemo(() => employees.filter((e) => e.status === "pending").length, [employees])
+  const reviewCount = useMemo(() => employees.filter((e) => e.status === "review").length, [employees])
+  const pendingPaymentCount = useMemo(() => employees.filter((e) => e.status !== "paid").length, [employees])
+
+  const lastProcessedDate = useMemo(() => {
+    if (history.length === 0) return "—"
+    return new Date(history[0].date).toLocaleDateString("es-VE", { day: "numeric", month: "short" })
+  }, [history])
+
+  const payrollStatus = useMemo((): "pending" | "processing" | "completed" => {
+    if (pendingCount > 0) return "pending"
+    if (reviewCount > 0) return "processing"
+    return "completed"
+  }, [pendingCount, reviewCount])
+
+  const patchEmployee = useCallback(
+    (updated: PayrollEmployee) => {
+      queryClient.setQueryData<PayrollEmployee[]>(["payroll", "employees"], (prev) =>
+        (prev ?? []).map((e) => (e.memberId === updated.memberId ? updated : e)),
+      )
+    },
+    [queryClient],
+  )
+
+  const handleUpdateBonuses = useCallback(
+    async (memberId: number, amount: number) => {
+      try {
+        const updated = await payrollService.adjustBonus(memberId, amount)
+        patchEmployee(updated)
+      } catch {
+        toast.error("No se pudo registrar la bonificación.")
       }
-      return total + base + emp.bonuses - emp.deductions
-    }, 0)
-  }
+    },
+    [patchEmployee],
+  )
 
-  const activeEmployees = employees.filter((e) => e.status !== "paid").length
+  const handleUpdateDeductions = useCallback(
+    async (memberId: number, amount: number) => {
+      try {
+        const updated = await payrollService.adjustDeduction(memberId, amount)
+        patchEmployee(updated)
+      } catch {
+        toast.error("No se pudo registrar la deducción.")
+      }
+    },
+    [patchEmployee],
+  )
 
-  const handleUpdateBonuses = (employeeId: number, amount: number) => {
-    setEmployees((prev) =>
-      prev.map((emp) =>
-        emp.id === employeeId
-          ? { ...emp, bonuses: emp.bonuses + amount, status: "review" }
-          : emp
-      )
-    )
-  }
-
-  const handleUpdateDeductions = (employeeId: number, amount: number) => {
-    setEmployees((prev) =>
-      prev.map((emp) =>
-        emp.id === employeeId
-          ? { ...emp, deductions: emp.deductions + amount, status: "review" }
-          : emp
-      )
-    )
-  }
-
-  const handleProcessPayroll = async () => {
+  const handleProcessPayroll = useCallback(async () => {
     setIsProcessing(true)
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    try {
+      const result = await payrollService.processPayroll()
+      invalidatePayroll()
+      if (result.errors.length > 0) {
+        toast.warning(`Nómina parcial: ${result.created} pagos, ${result.errors.length} fallidos.`)
+      } else {
+        toast.success(`Nómina procesada: ${result.created} pagos registrados.`)
+      }
+    } catch {
+      toast.error("Error al procesar la nómina.")
+      throw new Error("process failed")
+    } finally {
+      setIsProcessing(false)
+    }
+  }, [invalidatePayroll])
 
-    setEmployees((prev) =>
-      prev.map((emp) => ({ ...emp, status: "paid" as const }))
-    )
+  useEffect(() => {
+    if (!canManageTeam) router.replace("/")
+  }, [canManageTeam, router])
 
-    setIsProcessing(false)
+  if (!canManageTeam) {
+    return null
   }
-
-  const pendingCount = employees.filter((e) => e.status === "pending").length
-  const reviewCount = employees.filter((e) => e.status === "review").length
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="fixed inset-0 bg-grid-pattern opacity-30" />
-
-      <div className="relative container mx-auto px-4 py-8 max-w-6xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-3">
-              <div
-                className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center",
-                  "bg-gradient-to-br from-emerald-500/20 to-blue-500/20",
-                  "border border-emerald-500/30"
-                )}
-              >
-                <Calculator className="w-5 h-5 text-emerald-400" />
-              </div>
-              Nómina
-            </h1>
-            <p className="text-sm text-slate-400 mt-1">
-              Gestiona los pagos de tu equipo
-            </p>
-          </div>
-
-          <Button
-            onClick={() => setShowProcessModal(true)}
-            disabled={employees.length === 0}
-            className={cn(
-              "h-11 px-6 transition-all duration-300",
-              "bg-gradient-to-r from-emerald-500 to-emerald-600",
-              "hover:from-emerald-400 hover:to-emerald-500",
-              "shadow-lg shadow-emerald-500/25",
-              "disabled:opacity-50 disabled:cursor-not-allowed",
-              "flex items-center gap-2"
-            )}
-          >
-            <Play className="w-4 h-4" />
-            Procesar Nómina
-          </Button>
+    <AdminPageShell
+      eyebrow="Recursos Humanos"
+      title={
+        <span className="flex items-center gap-3">
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
+            <Calculator className="h-5 w-5 text-primary" />
+          </span>
+          Nómina
+        </span>
+      }
+      subtitle="Pagos del equipo en base de datos. Al procesar se registran gastos en categoría Nómina."
+      maxWidth="wide"
+      loading={isLoading}
+      actions={
+        <Button
+          onClick={() => setShowProcessModal(true)}
+          disabled={employees.length === 0 || isProcessing}
+          className="h-11 w-full min-h-[44px] cursor-pointer gap-2 sm:w-auto"
+        >
+          <Play className="h-4 w-4" />
+          Procesar nómina
+        </Button>
+      }
+    >
+      {loadError && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          No se pudo cargar la nómina. Verifica tu conexión.
         </div>
+      )}
 
-        <div className="mb-8">
-          <PayrollKpiCards
-            totalPayroll={calculateTotalPayroll()}
-            activeEmployees={activeEmployees}
-            lastProcessedDate="15 May"
-            status={pendingCount > 0 ? "pending" : reviewCount > 0 ? "processing" : "completed"}
-          />
-        </div>
+      <div className="mb-6">
+        <PayrollKpiCards
+          totalPayroll={totalPayroll}
+          employeeCount={employees.length}
+          pendingPayments={pendingPaymentCount}
+          lastProcessedDate={lastProcessedDate}
+          status={payrollStatus}
+        />
+      </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList
-            className="bg-slate-800/50 border border-slate-700/50 p-1 rounded-xl"
-          >
-            <TabsTrigger
-              value="employees"
-              className={cn(
-                "data-[active]:bg-slate-700 data-[active]:text-slate-100",
-                "data-[active]:shadow-sm"
-              )}
-            >
-              <Users className="w-4 h-4 mr-2" />
-              Empleados
-              <span
-                className={cn(
-                  "ml-2 px-2 py-0.5 rounded-full text-xs font-medium",
-                  employees.length > 0
-                    ? "bg-blue-500/20 text-blue-400"
-                    : "bg-slate-700 text-slate-400"
-                )}
-              >
-                {employees.length}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto bg-muted/50 p-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsTrigger value="employees" className="min-h-[44px] shrink-0 cursor-pointer gap-2 px-3 sm:px-4">
+            <Users className="h-4 w-4" />
+            Empleados
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+              {employees.length}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger value="payments" className="min-h-[44px] shrink-0 cursor-pointer gap-2 px-3 sm:px-4">
+            <Receipt className="h-4 w-4" />
+            Pagos
+            {pendingPaymentCount > 0 && (
+              <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+                {pendingPaymentCount}
               </span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="payments"
-              className={cn(
-                "data-[active]:bg-slate-700 data-[active]:text-slate-100",
-                "data-[active]:shadow-sm"
-              )}
-            >
-              <Receipt className="w-4 h-4 mr-2" />
-              Pagos
-              {pendingCount > 0 && (
-                <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400">
-                  {pendingCount}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger
-              value="history"
-              className={cn(
-                "data-[active]:bg-slate-700 data-[active]:text-slate-100",
-                "data-[active]:shadow-sm"
-              )}
-            >
-              <History className="w-4 h-4 mr-2" />
-              Historial
-            </TabsTrigger>
-          </TabsList>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="history" className="min-h-[44px] shrink-0 cursor-pointer gap-2 px-3 sm:px-4">
+            <History className="h-4 w-4" />
+            Historial
+            {history.length > 0 && (
+              <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{history.length}</span>
+            )}
+          </TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="employees" className="mt-6">
+        <TabsContent value="employees" className="mt-4">
+          {employees.length === 0 ? (
+            <AdminCard>
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                No hay miembros activos en la organización.
+              </p>
+            </AdminCard>
+          ) : (
             <EmployeeList
               employees={employees}
               onUpdateBonuses={handleUpdateBonuses}
               onUpdateDeductions={handleUpdateDeductions}
             />
-          </TabsContent>
+          )}
+        </TabsContent>
 
-          <TabsContent value="payments" className="mt-6">
-            <div className="space-y-4">
-              {employees
-                .filter((e) => e.status !== "paid")
-                .map((employee) => (
-                  <div
-                    key={employee.id}
-                    className={cn(
-                      "rounded-xl p-4",
-                      "bg-gradient-to-br from-slate-800/60 to-slate-900/80",
-                      "border border-slate-700/50",
-                      "flex items-center justify-between"
-                    )}
-                  >
-                    <div>
-                      <p className="font-medium text-slate-100">{employee.name}</p>
-                      <p className="text-sm text-slate-400">{employee.role}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-amber-400">
-                        Bs{" "}
-                        {(
-                          employee.baseSalary +
-                          employee.bonuses -
-                          employee.deductions
-                        ).toLocaleString("es-VE", { minimumFractionDigits: 2 })}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {employee.status === "pending"
-                          ? "Pendiente"
-                          : "En Revisión"}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-
-              {employees.filter((e) => e.status !== "paid").length === 0 && (
-                <div
-                  className={cn(
-                    "rounded-xl p-12 text-center",
-                    "bg-slate-800/30 border border-slate-700/50"
-                  )}
-                >
-                  <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
-                    <Receipt className="w-8 h-8 text-emerald-400" />
-                  </div>
-                  <h3 className="text-lg font-medium text-slate-200 mb-2">
-                    Todos los pagos completados
-                  </h3>
-                  <p className="text-sm text-slate-400">
-                    No hay pagos pendientes por procesar
+        <TabsContent value="payments" className="mt-4 space-y-3">
+          {employees
+            .filter((e) => e.status !== "paid")
+            .map((employee) => (
+              <AdminCard key={employee.memberId} bodyClassName="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{employee.name}</p>
+                  <p className="text-sm text-muted-foreground">{employee.role}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="font-semibold tabular-nums text-amber-700 dark:text-amber-400">
+                    Bs {calculateEmployeeSalary(employee).toLocaleString("es-VE", { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {employee.status === "pending" ? "Pendiente" : "En revisión"}
                   </p>
                 </div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="history" className="mt-6">
-            <div
-              className={cn(
-                "rounded-xl p-12 text-center",
-                "bg-slate-800/30 border border-slate-700/50"
-              )}
-            >
-              <div className="w-16 h-16 rounded-full bg-slate-700/50 flex items-center justify-center mx-auto mb-4">
-                <History className="w-8 h-8 text-slate-400" />
+              </AdminCard>
+            ))}
+          {pendingPaymentCount === 0 && (
+            <AdminCard>
+              <div className="py-10 text-center">
+                <Receipt className="mx-auto mb-3 h-8 w-8 text-emerald-500" />
+                <h3 className="font-medium">Todos los pagos completados</h3>
+                <p className="mt-1 text-sm text-muted-foreground">No hay pagos pendientes</p>
               </div>
-              <h3 className="text-lg font-medium text-slate-200 mb-2">
-                Historial de nóminas
-              </h3>
-              <p className="text-sm text-slate-400">
-                Aquí aparecerán las nóminas procesadas anteriormente
+            </AdminCard>
+          )}
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-4 space-y-2">
+          {history.length === 0 ? (
+            <AdminCard>
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                El historial aparecerá tras procesar la primera nómina.
               </p>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+            </AdminCard>
+          ) : (
+            history.map((entry) => (
+              <AdminCard key={entry.id} bodyClassName="flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{entry.employeeName}</p>
+                  <p className="text-muted-foreground">
+                    {new Date(entry.date).toLocaleDateString("es-VE")}
+                    {entry.periodLabel ? ` · ${entry.periodLabel}` : ""}
+                  </p>
+                </div>
+                <p className="font-semibold tabular-nums text-emerald-700 dark:text-emerald-400 shrink-0">
+                  Bs {entry.amount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}
+                </p>
+              </AdminCard>
+            ))
+          )}
+        </TabsContent>
+      </Tabs>
 
       <PayrollModal
         isOpen={showProcessModal}
         onClose={() => setShowProcessModal(false)}
         employees={employees}
         onProcess={handleProcessPayroll}
+        isProcessing={isProcessing}
       />
-    </div>
+    </AdminPageShell>
   )
 }

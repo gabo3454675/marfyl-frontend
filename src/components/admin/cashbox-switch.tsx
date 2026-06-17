@@ -4,15 +4,7 @@ import { useState } from "react"
 import { Lock, Unlock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { CashboxModal } from "./cashbox-modal"
-
-interface BoxSummary {
-  cashBs: number
-  cashUsd: number
-  pagoMovil: number
-  zelle: number
-  total: number
-  exchangeRate: number
-}
+import type { BoxSummary } from "@/lib/api/cierre-caja"
 
 interface CashboxSwitchProps {
   isBoxOpen: boolean
@@ -27,8 +19,8 @@ interface CashboxSwitchProps {
   summary?: BoxSummary
 }
 
-function formatCurrency(amount: number): string {
-  return `Bs ${amount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}`
+function formatUsd(amount: number): string {
+  return `$ ${amount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}`
 }
 
 function formatTime(date: Date): string {
@@ -101,7 +93,7 @@ export function CashboxSwitch({
               </span>
               <p className="text-[10px] sm:text-xs text-emerald-500/70">
                 Desde {boxOpenedAt ? formatTime(boxOpenedAt) : "--:--"} ·{" "}
-                {formatCurrency(initialAmount)}
+                {formatUsd(initialAmount)}
               </p>
             </>
           ) : (

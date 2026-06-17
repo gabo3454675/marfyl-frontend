@@ -21,6 +21,7 @@ export function NavSectionLabel({ children, className }: { children: React.React
   );
 }
 
+/** @deprecated Usar NavSectionCollapsible */
 export function NavSection({
   label,
   children,
@@ -34,6 +35,87 @@ export function NavSection({
     <section className={cn('nav-sidebar-section', className)} aria-label={label}>
       <NavSectionLabel>{label}</NavSectionLabel>
       <div className="flex flex-col gap-0.5 mt-0.5">{children}</div>
+    </section>
+  );
+}
+
+export function NavSectionCollapsible({
+  id,
+  label,
+  open,
+  onToggle,
+  hasActiveChild,
+  children,
+  variant = 'sidebar',
+}: {
+  id: string;
+  label: string;
+  open: boolean;
+  onToggle: () => void;
+  hasActiveChild?: boolean;
+  children: React.ReactNode;
+  variant?: 'sidebar' | 'sheet';
+}) {
+  const isSheet = variant === 'sheet';
+
+  return (
+    <section
+      className={cn(
+        isSheet ? 'border-b border-border/60 last:border-b-0' : 'nav-sidebar-section',
+      )}
+      aria-label={label}
+    >
+      <button
+        type="button"
+        id={`nav-section-${id}`}
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-controls={`nav-section-panel-${id}`}
+        className={cn(
+          'w-full flex items-center justify-between gap-2 rounded-lg min-h-[40px] cursor-pointer transition-colors duration-200',
+          isSheet
+            ? 'px-1 py-3 text-left hover:bg-muted/50'
+            : 'px-2 py-2.5 text-left hover:bg-sidebar-accent/80',
+          hasActiveChild && !isSheet && 'bg-sidebar-accent/40',
+        )}
+      >
+        <span
+          className={cn(
+            'font-semibold uppercase tracking-wide truncate',
+            isSheet ? 'text-[11px] text-muted-foreground' : 'text-[11px] text-sidebar-foreground/70',
+          )}
+        >
+          {label}
+        </span>
+        <ChevronDown
+          className={cn(
+            'h-4 w-4 shrink-0 transition-transform duration-200',
+            isSheet ? 'text-muted-foreground' : 'text-sidebar-foreground/50',
+            open && 'rotate-180',
+          )}
+        />
+      </button>
+
+      <div
+        id={`nav-section-panel-${id}`}
+        role="region"
+        aria-labelledby={`nav-section-${id}`}
+        className={cn(
+          'grid transition-[grid-template-rows,opacity,margin] duration-200 ease-out',
+          open ? 'grid-rows-[1fr] opacity-100 mt-0.5' : 'grid-rows-[0fr] opacity-0 mt-0',
+        )}
+      >
+        <div className="overflow-hidden min-h-0">
+          <div
+            className={cn(
+              'flex flex-col gap-0.5',
+              isSheet ? 'pb-2 pl-1' : 'pl-2 ml-1 border-l border-sidebar-border/50 py-1',
+            )}
+          >
+            {children}
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
@@ -55,7 +137,7 @@ export function SidebarNavLink({
       data-active={active ? 'true' : 'false'}
       className={cn('admin-nav-link', compact && 'h-9 gap-2')}
     >
-      <Link href={item.href} prefetch>
+      <Link href={item.href} prefetch className="cursor-pointer">
         <item.icon className={cn('shrink-0', compact ? 'h-4 w-4' : 'h-[1.125rem] w-[1.125rem]')} />
         <span className="truncate text-sm">{item.label}</span>
       </Link>
@@ -116,7 +198,7 @@ export function FiscalNavCollapsible({
                   data-active={fiscalItemActive ? 'true' : 'false'}
                   className="admin-nav-link h-9 gap-2.5"
                 >
-                  <Link href={item.href} prefetch>
+                  <Link href={item.href} prefetch className="cursor-pointer">
                     <item.icon className="h-4 w-4 shrink-0" />
                     <span className="truncate text-sm">{item.label}</span>
                   </Link>

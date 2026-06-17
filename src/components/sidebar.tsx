@@ -4,11 +4,18 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronLeft, ChevronDown, LogOut, Check, Download } from 'lucide-react';
-import { FISCAL_NAV_ITEMS, isFiscalRoute, resolveFiscalNavId } from '@/config/fiscal-nav';
-import { APP_NAV_ITEMS, APP_NAV_SECTIONS, getNavItem, resolveAppNavId } from '@/config/app-nav';
+import { isFiscalRoute, resolveFiscalNavId } from '@/config/fiscal-nav';
+import {
+  APP_NAV_SECTIONS,
+  getNavItem,
+  getQuickAccessItems,
+  getSectionIdForNavItem,
+  resolveAppNavId,
+} from '@/config/app-nav';
 import { resolveConcertNavId } from '@/config/concert-nav';
 import { useConcertNavItems } from '@/hooks/useConcertNavItems';
-import { FiscalNavCollapsible, NavSection, SidebarNavLink } from '@/components/layout/sidebar-nav-parts';
+import { FiscalNavCollapsible, NavSectionCollapsible, SidebarNavLink } from '@/components/layout/sidebar-nav-parts';
+import { useNavSectionsOpen } from '@/hooks/useNavSectionsOpen';
 import { MarfylLogo } from '@/components/brand/marfyl-logo';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -30,7 +37,6 @@ import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { markExplicitLogout } from '@/lib/fiscal-preview';
 
-const navigationItems = APP_NAV_ITEMS;
 const SIDEBAR_COLLAPSED_KEY = 'marfyl-sidebar-collapsed';
 
 export default function Sidebar() {
@@ -119,6 +125,8 @@ export default function Sidebar() {
   };
 
   const activeItem = getActiveItem();
+  const activeSectionId = getSectionIdForNavItem(activeItem);
+  const { isOpen: isSectionOpen, toggle: toggleSection } = useNavSectionsOpen(activeSectionId);
 
   const handleLogout = () => {
     markExplicitLogout();
@@ -381,22 +389,44 @@ export default function Sidebar() {
       <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden sidebar-scroll">
         {!isCollapsed ? (
           <div className="p-3 pb-4 flex flex-col gap-0">
-            {APP_NAV_SECTIONS.filter((s) => s.id !== 'config').map((section) => {
+            {/* Accesos rápidos — siempre visibles */}
+            <div className="flex flex-col gap-0.5 pb-2 mb-1 border-b border-sidebar-border/40">
+              {getQuickAccessItems()
+                .filter((item) => canShowNavItem(item, permissions))
+                .map((item) => (
+                  <SidebarNavLink
+                    key={item.id}
+                    item={item}
+                    active={activeItem === item.id}
+                  />
+                ))}
+            </div>
+
+            {APP_NAV_SECTIONS.map((section) => {
               const items = section.itemIds
                 .map((id) => getNavItem(id))
                 .filter(Boolean)
                 .filter((item) => canShowNavItem(item as NavItem, permissions));
               if (items.length === 0) return null;
+              const hasActiveChild = items.some((item) => activeItem === item!.id);
               return (
-                <NavSection key={section.id} label={section.label}>
+                <NavSectionCollapsible
+                  key={section.id}
+                  id={section.id}
+                  label={section.label}
+                  open={isSectionOpen(section.id)}
+                  onToggle={() => toggleSection(section.id)}
+                  hasActiveChild={hasActiveChild}
+                >
                   {items.map((item) => (
                     <SidebarNavLink
                       key={item!.id}
                       item={item!}
                       active={activeItem === item!.id}
+                      compact
                     />
                   ))}
-                </NavSection>
+                </NavSectionCollapsible>
               );
             })}
 
@@ -409,65 +439,55 @@ export default function Sidebar() {
             )}
 
             {concertNavItems.length > 0 && (
-              <NavSection label="Evento Monddy (temporal)">
+              <NavSectionCollapsible
+                id="concierto"
+                label="Evento Monddy"
+                open={isSectionOpen('concierto')}
+                onToggle={() => toggleSection('concierto')}
+                hasActiveChild={!!resolveConcertNavId(pathname ?? '')}
+              >
                 {concertNavItems.map((item) => (
                   <SidebarNavLink
                     key={item.id}
                     item={item}
                     active={activeItem === item.id}
+                    compact
                   />
                 ))}
-              </NavSection>
+              </NavSectionCollapsible>
             )}
-
-            {APP_NAV_SECTIONS.filter((s) => s.id === 'config').map((section) => {
-              const items = section.itemIds
-                .map((id) => getNavItem(id))
-                .filter(Boolean)
-                .filter((item) => canShowNavItem(item as NavItem, permissions));
-              if (items.length === 0) return null;
-              return (
-                <NavSection key={section.id} label={section.label}>
-                  {items.map((item) => (
-                    <SidebarNavLink
-                      key={item!.id}
-                      item={item!}
-                      active={activeItem === item!.id}
-                    />
-                  ))}
-                </NavSection>
-              );
-            })}
           </div>
         ) : (
           <div className="p-2 space-y-1">
-            {[
-              ...navigationItems,
-              ...concertNavItems,
-              ...(permissions.canManageFiscal
-                ? FISCAL_NAV_ITEMS.map((f) => ({
-                    id: f.id,
-                    label: f.label,
-                    icon: f.icon,
-                    href: f.href,
-                    permission: 'canManageFiscal' as const,
-                  }))
-                : []),
-            ]
+            {['dashboard', 'pos', 'products']
+              .map((id) => getNavItem(id))
+              .filter(Boolean)
               .filter((item) => canShowNavItem(item as NavItem, permissions))
-              .map((item) => (
+              .map((item) => {
+                const Icon = item!.icon;
+                return (
                 <Button
-                  key={item.id}
+                  key={item!.id}
                   asChild
                   variant="ghost"
-                  data-active={activeItem === item.id ? 'true' : 'false'}
-                  className="admin-nav-link-compact justify-center p-0"
+                  data-active={activeItem === item!.id ? 'true' : 'false'}
+                  className="admin-nav-link-compact justify-center p-0 cursor-pointer"
+                  title={item!.label}
                 >
-                  <Link href={item.href} prefetch>
-                    <item.icon className="h-5 w-5 flex-shrink-0" />
+                  <Link href={item!.href} prefetch>
+                    <Icon className="h-5 w-5 flex-shrink-0" />
                   </Link>
                 </Button>
-              ))}
+                );
+              })}
+            <Button
+              variant="ghost"
+              className="admin-nav-link-compact justify-center p-0 cursor-pointer"
+              title="Expandir menú completo"
+              onClick={() => setIsCollapsed(false)}
+            >
+              <ChevronLeft className="h-5 w-5 rotate-180" />
+            </Button>
           </div>
         )}
       </nav>

@@ -41,7 +41,12 @@ export type AppNavSection = {
   id: string;
   label: string;
   itemIds: string[];
+  /** Sección abierta por defecto si el usuario no tiene preferencia guardada */
+  defaultOpen?: boolean;
 };
+
+/** Accesos frecuentes — siempre visibles, sin desplegable */
+export const APP_NAV_QUICK_ACCESS_IDS = ['dashboard', 'pos'] as const;
 
 export const APP_NAV_ITEMS: AppNavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: Grid2x2, href: '/', permission: 'canViewDashboard' },
@@ -54,6 +59,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
   { id: 'customers', label: 'Clientes', icon: Users, href: '/customers', permission: 'canManageCustomers' },
   { id: 'invoices', label: 'Facturas', icon: FileText, href: '/invoices', permission: 'canManageCustomers' },
   { id: 'history', label: 'Historial de ventas', icon: History, href: '/history', permission: 'canManageCustomers' },
+  { id: 'cierre-caja', label: 'Cierre de caja', icon: Wallet, href: '/cierre-caja', permission: 'canManageCustomers' },
   { id: 'credits', label: 'Cuentas por cobar', icon: CreditCard, href: '/credits', permission: 'canManageCustomers' },
   { id: 'expenses', label: 'Gastos', icon: DollarSign, href: '/expenses', permission: 'canManageExpenses' },
   { id: 'suppliers', label: 'Proveedores', icon: Truck, href: '/suppliers', permission: 'canManageExpenses' },
@@ -67,7 +73,13 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
   {
     id: 'ventas',
     label: 'Ventas y caja',
-    itemIds: ['dashboard', 'pos', 'invoices', 'history'],
+    defaultOpen: true,
+    itemIds: ['invoices', 'history', 'cierre-caja'],
+  },
+  {
+    id: 'clientes',
+    label: 'Clientes',
+    itemIds: ['customers', 'credits'],
   },
   {
     id: 'inventario',
@@ -76,18 +88,18 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
   },
   {
     id: 'finanzas',
-    label: 'Clientes y finanzas',
-    itemIds: ['customers', 'credits', 'expenses', 'suppliers', 'accounts-payable'],
-  },
-  {
-    id: 'config',
-    label: 'Configuración',
-    itemIds: ['tasas', 'settings'],
+    label: 'Finanzas',
+    itemIds: ['expenses', 'suppliers', 'accounts-payable', 'tasas'],
   },
   {
     id: 'rrhh',
     label: 'Recursos Humanos',
     itemIds: ['nomina'],
+  },
+  {
+    id: 'sistema',
+    label: 'Sistema',
+    itemIds: ['settings'],
   },
 ];
 
@@ -103,6 +115,7 @@ export function resolveAppNavId(pathname: string): string {
   if (pathname.startsWith('/customers')) return 'customers';
   if (pathname.startsWith('/invoices')) return 'invoices';
   if (pathname.startsWith('/history')) return 'history';
+  if (pathname.startsWith('/cierre-caja')) return 'cierre-caja';
   if (pathname.startsWith('/credits')) return 'credits';
   if (pathname.startsWith('/expenses')) return 'expenses';
   if (pathname.startsWith('/suppliers')) return 'suppliers';
@@ -119,4 +132,15 @@ export function resolveAppNavId(pathname: string): string {
 
 export function getNavItem(id: string) {
   return APP_NAV_ITEMS.find((i) => i.id === id);
+}
+
+export function getSectionIdForNavItem(navId: string): string | null {
+  for (const section of APP_NAV_SECTIONS) {
+    if (section.itemIds.includes(navId)) return section.id;
+  }
+  return null;
+}
+
+export function getQuickAccessItems(): AppNavItem[] {
+  return APP_NAV_QUICK_ACCESS_IDS.map((id) => getNavItem(id)).filter(Boolean) as AppNavItem[];
 }

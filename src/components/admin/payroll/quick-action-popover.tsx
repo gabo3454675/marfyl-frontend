@@ -11,7 +11,6 @@ interface QuickActionPopoverProps {
   currentDeductions: number
   onAddBonus: (employeeId: number, amount: number) => void
   onAddDeduction: (employeeId: number, amount: number) => void
-  children: React.ReactNode
 }
 
 export function QuickActionPopover({
@@ -20,7 +19,6 @@ export function QuickActionPopover({
   currentDeductions,
   onAddBonus,
   onAddDeduction,
-  children,
 }: QuickActionPopoverProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [bonusAmount, setBonusAmount] = useState("")
@@ -43,10 +41,7 @@ export function QuickActionPopover({
         setActiveField(null)
       }
     }
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside)
-    }
+    if (isOpen) document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isOpen])
 
@@ -87,161 +82,172 @@ export function QuickActionPopover({
     <div className="relative inline-flex">
       <button
         ref={triggerRef}
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        aria-label="Acciones rápidas"
+        aria-label="Bonificaciones y deducciones"
         aria-expanded={isOpen}
         className={cn(
-          "flex items-center gap-1 px-2 py-1 rounded-lg transition-all duration-200",
-          "hover:bg-slate-700/50 active:scale-95",
-          isOpen && "bg-slate-700"
+          "flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 transition-colors duration-200",
+          "hover:bg-muted",
+          isOpen && "bg-muted",
         )}
       >
-        {children}
+        <span className="inline-flex items-center gap-1">
+          <span className="rounded-md bg-emerald-500/10 p-1.5 text-emerald-600 dark:text-emerald-400">
+            <Plus className="h-3.5 w-3.5" />
+          </span>
+          <span className="rounded-md bg-red-500/10 p-1.5 text-red-600 dark:text-red-400">
+            <Minus className="h-3.5 w-3.5" />
+          </span>
+        </span>
       </button>
 
       {isOpen && (
-        <div
-          ref={popoverRef}
-          role="dialog"
-          aria-label="Acciones de asignación"
-          className={cn(
-            "absolute right-0 top-full mt-2 z-50",
-            "w-72 rounded-xl",
-            "bg-gradient-to-br from-slate-800 to-slate-900",
-            "border border-slate-700/50",
-            "shadow-[0_8px_32px_rgba(0,0,0,0.4)]",
-            "animate-in fade-in zoom-in-95 duration-150"
-          )}
-        >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/50">
-            <span className="text-sm font-medium text-slate-200">Asignaciones</span>
+        <>
+          <div
+            className="fixed inset-0 z-[90] bg-black/40 sm:hidden"
+            aria-hidden
+            onClick={() => {
+              setIsOpen(false)
+              setActiveField(null)
+            }}
+          />
+          <div
+            ref={popoverRef}
+            role="dialog"
+            aria-label="Ajustes de nómina"
+            className={cn(
+              "z-[100] rounded-xl border bg-card p-0 shadow-lg",
+              "fixed inset-x-3 bottom-[calc(var(--app-bottom-chrome,4.5rem)+0.75rem)] max-h-[min(70dvh,24rem)] overflow-y-auto",
+              "animate-in fade-in slide-in-from-bottom-4 duration-200",
+              "sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:mt-2 sm:w-72 sm:max-h-none",
+            )}
+          >
+          <div className="flex items-center justify-between border-b px-4 py-3">
+            <span className="text-sm font-medium">Asignaciones</span>
             <button
+              type="button"
               onClick={() => {
                 setIsOpen(false)
                 setActiveField(null)
               }}
-              className="p-1 rounded-lg hover:bg-slate-700/50 transition-colors"
+              className="cursor-pointer rounded-lg p-1 transition-colors hover:bg-muted"
+              aria-label="Cerrar"
             >
-              <X className="w-4 h-4 text-slate-400" />
+              <X className="h-4 w-4 text-muted-foreground" />
             </button>
           </div>
 
-          <div className="p-4 space-y-4">
+          <div className="space-y-4 p-4">
             <div className="flex gap-4 text-xs">
-              <div className="flex items-center gap-1.5">
-                <span className="text-slate-500">Bonificaciones:</span>
-                <span className="font-medium text-emerald-400">Bs {currentBonuses.toLocaleString()}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-slate-500">Deducciones:</span>
-                <span className="font-medium text-red-400">Bs {currentDeductions.toLocaleString()}</span>
-              </div>
+              <span className="text-muted-foreground">
+                Bonos: <strong className="text-emerald-600 dark:text-emerald-400">Bs {currentBonuses.toLocaleString()}</strong>
+              </span>
+              <span className="text-muted-foreground">
+                Deducc.: <strong className="text-red-600 dark:text-red-400">Bs {currentDeductions.toLocaleString()}</strong>
+              </span>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
-                  <Plus className="w-3 h-3 text-emerald-400" />
-                  Bonificación
-                </label>
-                {successBonus && (
-                  <span className="flex items-center gap-1 text-xs text-emerald-400 animate-in fade-in duration-200">
-                    <Check className="w-3 h-3" />
-                    Añadido
-                  </span>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">
-                    Bs
-                  </span>
-                  <input
-                    type="number"
-                    value={bonusAmount}
-                    onChange={(e) => setBonusAmount(e.target.value)}
-                    onFocus={() => setActiveField("bonus")}
-                    onKeyDown={(e) => handleKeyDown(e, handleAddBonus)}
-                    placeholder="0.00"
-                    className={cn(
-                      "w-full h-9 pl-8 pr-3 rounded-lg",
-                      "bg-slate-900/50 border transition-all duration-200",
-                      "text-sm text-slate-200 placeholder:text-slate-600",
-                      "focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50",
-                      activeField === "bonus" && "border-emerald-500/50"
-                    )}
-                  />
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleAddBonus}
-                  disabled={!bonusAmount || parseFloat(bonusAmount) <= 0}
-                  className={cn(
-                    "h-9 px-3 transition-all duration-200",
-                    "bg-emerald-500/10 text-emerald-400",
-                    "hover:bg-emerald-500/20 hover:text-emerald-300",
-                    "disabled:opacity-30 disabled:cursor-not-allowed"
-                  )}
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
-                  <Minus className="w-3 h-3 text-red-400" />
-                  Deducción
-                </label>
-                {successDeduction && (
-                  <span className="flex items-center gap-1 text-xs text-emerald-400 animate-in fade-in duration-200">
-                    <Check className="w-3 h-3" />
-                    Añadida
-                  </span>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">
-                    Bs
-                  </span>
-                  <input
-                    type="number"
-                    value={deductionAmount}
-                    onChange={(e) => setDeductionAmount(e.target.value)}
-                    onFocus={() => setActiveField("deduction")}
-                    onKeyDown={(e) => handleKeyDown(e, handleAddDeduction)}
-                    placeholder="0.00"
-                    className={cn(
-                      "w-full h-9 pl-8 pr-3 rounded-lg",
-                      "bg-slate-900/50 border transition-all duration-200",
-                      "text-sm text-slate-200 placeholder:text-slate-600",
-                      "focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-500/50",
-                      activeField === "deduction" && "border-red-500/50"
-                    )}
-                  />
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleAddDeduction}
-                  disabled={!deductionAmount || parseFloat(deductionAmount) <= 0}
-                  className={cn(
-                    "h-9 px-3 transition-all duration-200",
-                    "bg-red-500/10 text-red-400",
-                    "hover:bg-red-500/20 hover:text-red-300",
-                    "disabled:opacity-30 disabled:cursor-not-allowed"
-                  )}
-                >
-                  <Minus className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
+            <AdjustRow
+              label="Bonificación"
+              icon={Plus}
+              tone="emerald"
+              value={bonusAmount}
+              onChange={setBonusAmount}
+              onFocus={() => setActiveField("bonus")}
+              active={activeField === "bonus"}
+              onSubmit={handleAddBonus}
+              onKeyDown={(e) => handleKeyDown(e, handleAddBonus)}
+              success={successBonus}
+            />
+            <AdjustRow
+              label="Deducción"
+              icon={Minus}
+              tone="red"
+              value={deductionAmount}
+              onChange={setDeductionAmount}
+              onFocus={() => setActiveField("deduction")}
+              active={activeField === "deduction"}
+              onSubmit={handleAddDeduction}
+              onKeyDown={(e) => handleKeyDown(e, handleAddDeduction)}
+              success={successDeduction}
+            />
           </div>
-        </div>
+          </div>
+        </>
       )}
+    </div>
+  )
+}
+
+function AdjustRow({
+  label,
+  icon: Icon,
+  tone,
+  value,
+  onChange,
+  onFocus,
+  active,
+  onSubmit,
+  onKeyDown,
+  success,
+}: {
+  label: string
+  icon: typeof Plus
+  tone: "emerald" | "red"
+  value: string
+  onChange: (v: string) => void
+  onFocus: () => void
+  active: boolean
+  onSubmit: () => void
+  onKeyDown: (e: React.KeyboardEvent) => void
+  success: boolean
+}) {
+  const ring = tone === "emerald" ? "focus:ring-emerald-500/30 border-emerald-500/40" : "focus:ring-red-500/30 border-red-500/40"
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <Icon className={cn("h-3 w-3", tone === "emerald" ? "text-emerald-500" : "text-red-500")} />
+          {label}
+        </label>
+        {success && (
+          <span className="flex items-center gap-1 text-xs text-emerald-600 animate-in fade-in">
+            <Check className="h-3 w-3" /> OK
+          </span>
+        )}
+      </div>
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">Bs</span>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onFocus={onFocus}
+            onKeyDown={onKeyDown}
+            placeholder="0.00"
+            className={cn(
+              "h-9 w-full rounded-lg border bg-background pl-8 pr-3 text-sm transition-colors duration-200",
+              "focus:outline-none focus:ring-2",
+              ring,
+              active && (tone === "emerald" ? "border-emerald-500/50" : "border-red-500/50"),
+            )}
+          />
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={onSubmit}
+          disabled={!value || parseFloat(value) <= 0}
+          className="h-9 cursor-pointer px-3"
+        >
+          <Icon className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   )
 }

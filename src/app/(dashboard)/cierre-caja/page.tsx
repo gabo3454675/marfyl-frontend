@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard } from '@/components/admin/admin-card';
 import {
@@ -17,92 +17,38 @@ import {
   Printer,
   AlertCircle,
 } from 'lucide-react';
-import { apiClient } from '@/lib/api';
+import { cierreCajaService, type CierreAbierto, type CierreCerrado } from '@/lib/api/cierre-caja';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
-
-interface CierreAbierto {
-  id: number;
-  fechaApertura: string;
-  montoInicial: number;
-  ventasEfectivo: number;
-  ventasDigitales: number;
-  ventasEfectivoUsd: number;
-  ventasEfectivoBs: number;
-  ventasPagoMovil: number;
-  ventasPos: number;
-  autoconsumos: number;
-  user?: { id: number; fullName?: string; email?: string };
-  notaAutoconsumos?: string;
-}
-
-interface CierreCerrado {
-  id: number;
-  fechaApertura: string;
-  fechaCierre: string;
-  estado: string;
-  montoInicial: number;
-  montoFisico?: number | null;
-  montoFisicoUsd?: number | null;
-  montoFisicoVes?: number | null;
-  diferencia?: number | null;
-  diferenciaUsd?: number | null;
-  diferenciaVes?: number | null;
-  totalUsd?: number | null;
-  totalVes?: number | null;
-  impreso?: boolean | null;
-  observaciones?: string | null;
-  user?: { id: number; fullName?: string; email?: string };
-}
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function CierreCajaPage() {
   const { formatForDisplay } = useDisplayCurrency();
-  const [abierto, setAbierto] = useState<CierreAbierto | null | undefined>(undefined);
-  const [historial, setHistorial] = useState<CierreCerrado[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const orgId = useAuthStore((s) => s.selectedOrganizationId || s.selectedCompanyId);
+
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successClose, setSuccessClose] = useState<CierreCerrado | null>(null);
+  const [montoInicial, setMontoInicial] = useState('0');
+  const [montoFisicoUsd, setMontoFisicoUsd] = useState('');
+  const [montoFisicoVes, setMontoFisicoVes] = useState('');
+  const [observaciones, setObservaciones] = useState('');
 
-  // Form apertura
-  const [montoInicial, setMontoInicial] = useState<string>('0');
-  // Form cierre
-  const [montoFisicoUsd, setMontoFisicoUsd] = useState<string>('');
-  const [montoFisicoVes, setMontoFisicoVes] = useState<string>('');
-  const [observaciones, setObservaciones] = useState<string>('');
+  const { data: abierto, isLoading: loadingAbierto } = useQuery({
+    queryKey: ['cierre-caja', 'abierto', orgId],
+    queryFn: () => cierreCajaService.getAbierto(),
+    staleTime: 15_000,
+  });
 
-  const fetchAbierto = useCallback(async () => {
-    try {
-      const res = await apiClient.get<CierreAbierto | null>('/cierre-caja/abierto');
-      setAbierto(res.data ?? null);
-    } catch (e: unknown) {
-      setAbierto(null);
-      const msg = e && typeof e === 'object' && 'response' in e
-        ? (e as { response?: { data?: { message?: string } } }).response?.data?.message
-        : 'Error al cargar turno';
-      setError(String(msg));
-    }
-  }, []);
+  const { data: historial = [], isLoading: loadingHistorial } = useQuery({
+    queryKey: ['cierre-caja', 'historial', orgId],
+    queryFn: () => cierreCajaService.listHistorial(20),
+    staleTime: 30_000,
+  });
 
-  const fetchHistorial = useCallback(async () => {
-    try {
-      const res = await apiClient.get<CierreCerrado[]>('/cierre-caja', {
-        params: { estado: 'CLOSED', limit: 20 },
-      });
-      setHistorial(Array.isArray(res.data) ? res.data : []);
-    } catch {
-      setHistorial([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    Promise.all([fetchAbierto(), fetchHistorial()]).finally(() => {
-      if (!cancelled) setLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, [fetchAbierto, fetchHistorial]);
+  const invalidate = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ['cierre-caja'] });
+  }, [queryClient]);
 
   const handleApertura = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,10 +61,9 @@ export default function CierreCajaPage() {
       return;
     }
     try {
-      await apiClient.post('/cierre-caja/apertura', { montoInicial: num });
+      await cierreCajaService.apertura({ montoInicial: num });
       setMontoInicial('0');
-      await fetchAbierto();
-      await fetchHistorial();
+      invalidate();
     } catch (e: unknown) {
       const msg = e && typeof e === 'object' && 'response' in e
         ? (e as { response?: { data?: { message?: string } } }).response?.data?.message
@@ -134,20 +79,17 @@ export default function CierreCajaPage() {
     setSending(true);
     setError(null);
     setSuccessClose(null);
-    const usd = parseFloat(montoFisicoUsd) || 0;
-    const ves = parseFloat(montoFisicoVes) || 0;
     try {
-      const res = await apiClient.post<CierreCerrado>('/cierre-caja/cerrar', {
-        montoFisicoUsd: usd,
-        montoFisicoVes: ves,
+      const closed = await cierreCajaService.cerrar({
+        montoFisicoUsd: parseFloat(montoFisicoUsd) || 0,
+        montoFisicoVes: parseFloat(montoFisicoVes) || 0,
         observaciones: observaciones.trim() || undefined,
       });
-      setSuccessClose(res.data);
+      setSuccessClose(closed);
       setMontoFisicoUsd('');
       setMontoFisicoVes('');
       setObservaciones('');
-      await fetchAbierto();
-      await fetchHistorial();
+      invalidate();
     } catch (e: unknown) {
       const msg = e && typeof e === 'object' && 'response' in e
         ? (e as { response?: { data?: { message?: string } } }).response?.data?.message
@@ -160,31 +102,27 @@ export default function CierreCajaPage() {
 
   const handleImprimir = async (cierreId: number) => {
     try {
-      const res = await apiClient.get<{ ticketText: string; resumenUrl: string; qrDataUrl: string }>(
-        `/cierre-caja/${cierreId}/ticket`,
-        { params: { ancho: 80 } },
-      );
+      const ticket = await cierreCajaService.getTicket(cierreId, 80);
       const w = window.open('', '_blank');
       if (w) {
         w.document.write(
-          `<pre style="font-family: monospace; white-space: pre-wrap; padding: 8px;">${res.data.ticketText}</pre>` +
-          (res.data.resumenUrl ? `<p><a href="${res.data.resumenUrl}" target="_blank">Ver resumen digital</a></p>` : ''),
+          `<pre style="font-family: monospace; white-space: pre-wrap; padding: 8px;">${ticket.ticketText}</pre>` +
+          (ticket.resumenUrl ? `<p><a href="${ticket.resumenUrl}" target="_blank">Ver resumen digital</a></p>` : ''),
         );
         w.document.close();
       }
+      await cierreCajaService.marcarImpreso(cierreId);
+      invalidate();
     } catch {
       setError('No se pudo generar el ticket.');
     }
   };
 
+  const loading = loadingAbierto || loadingHistorial;
+
   if (loading && abierto === undefined) {
     return (
-      <AdminPageShell
-        eyebrow="Ventas"
-        title="Cierre de caja"
-        subtitle="Abre o cierra tu turno de caja."
-        loading
-      />
+      <AdminPageShell eyebrow="Ventas" title="Cierre de caja" subtitle="Abre o cierra tu turno de caja." loading />
     );
   }
 
@@ -192,11 +130,11 @@ export default function CierreCajaPage() {
     <AdminPageShell
       eyebrow="Ventas"
       title="Cierre de caja"
-      subtitle="Abre o cierra tu turno. El mismo turno abierto en la app se puede ver y cerrar aquí."
+      subtitle="Abre o cierra tu turno. Sincronizado con el switch de caja del topbar."
+      maxWidth="wide"
     >
-
       {error && (
-        <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {error}
         </div>
@@ -204,7 +142,7 @@ export default function CierreCajaPage() {
 
       {successClose && (
         <AdminCard
-          className="border-green-500/30"
+          className="mb-4 border-green-500/30"
           title={
             <span className="flex items-center gap-2 text-green-700 dark:text-green-400">
               <DoorClosed className="h-5 w-5" />
@@ -219,113 +157,31 @@ export default function CierreCajaPage() {
           }
         >
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => handleImprimir(successClose.id)} className="cursor-pointer">
+            <Button variant="outline" size="sm" onClick={() => handleImprimir(successClose.id)}>
               <Printer className="mr-2 h-4 w-4" />
               Imprimir ticket
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSuccessClose(null)} className="cursor-pointer">
+            <Button variant="ghost" size="sm" onClick={() => setSuccessClose(null)}>
               Cerrar aviso
             </Button>
           </div>
         </AdminCard>
       )}
 
-      {abierto && (
-        <AdminCard
-          title={
-            <span className="flex items-center gap-2">
-              <Wallet className="h-5 w-5" />
-              Turno abierto (X-Report)
-            </span>
-          }
-          description={
-            <>
-              Cajero: {abierto.user?.fullName || abierto.user?.email || '—'} · Apertura:{' '}
-              {new Date(abierto.fechaApertura).toLocaleString('es')}
-            </>
-          }
-          bodyClassName="space-y-4"
-        >
-            <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
-              <div className="rounded-md border bg-muted/30 p-3">
-                <span className="text-muted-foreground">Monto inicial</span>
-                <p className="font-medium">{formatForDisplay(abierto.montoInicial)}</p>
-              </div>
-              <div className="rounded-md border bg-muted/30 p-3">
-                <span className="text-muted-foreground">Efectivo USD</span>
-                <p className="font-medium">{formatForDisplay(abierto.ventasEfectivoUsd ?? 0)}</p>
-              </div>
-              <div className="rounded-md border bg-muted/30 p-3">
-                <span className="text-muted-foreground">Efectivo Bs</span>
-                <p className="font-medium">{formatForDisplay(abierto.ventasEfectivoBs ?? 0)}</p>
-              </div>
-              <div className="rounded-md border bg-muted/30 p-3">
-                <span className="text-muted-foreground">Pago móvil Bs</span>
-                <p className="font-medium">{formatForDisplay(abierto.ventasPagoMovil ?? 0)}</p>
-              </div>
-              <div className="rounded-md border bg-muted/30 p-3">
-                <span className="text-muted-foreground">POS / Zelle USD</span>
-                <p className="font-medium">{formatForDisplay(abierto.ventasPos ?? 0)}</p>
-              </div>
-              <div className="rounded-md border bg-muted/30 p-3">
-                <span className="text-muted-foreground">Autoconsumos (no monetario)</span>
-                <p className="font-medium">{formatForDisplay(abierto.autoconsumos ?? 0)}</p>
-              </div>
-            </div>
-            {abierto.notaAutoconsumos && (
-              <p className="text-xs text-muted-foreground">{abierto.notaAutoconsumos}</p>
-            )}
-
-            <form onSubmit={handleCerrar} className="space-y-4 border-t pt-4">
-              <h3 className="font-medium">Cerrar turno (Z-Report)</h3>
-              <p className="text-sm text-muted-foreground">
-                Ingresa el monto físico contado en caja (USD y Bs) para conciliar.
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="montoFisicoUsd">Monto físico USD</Label>
-                  <Input
-                    id="montoFisicoUsd"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    value={montoFisicoUsd}
-                    onChange={(e) => setMontoFisicoUsd(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="montoFisicoVes">Monto físico Bs</Label>
-                  <Input
-                    id="montoFisicoVes"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    value={montoFisicoVes}
-                    onChange={(e) => setMontoFisicoVes(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="observaciones">Observaciones (opcional)</Label>
-                <Input
-                  id="observaciones"
-                  placeholder="Ej: faltante por..."
-                  value={observaciones}
-                  onChange={(e) => setObservaciones(e.target.value)}
-                  maxLength={500}
-                />
-              </div>
-              <Button type="submit" disabled={sending}>
-                {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DoorClosed className="mr-2 h-4 w-4" />}
-                Cerrar turno
-              </Button>
-            </form>
-        </AdminCard>
-      )}
-
-      {!abierto && (
+      {abierto ? (
+        <TurnoAbiertoCard
+          abierto={abierto}
+          formatForDisplay={formatForDisplay}
+          montoFisicoUsd={montoFisicoUsd}
+          montoFisicoVes={montoFisicoVes}
+          observaciones={observaciones}
+          sending={sending}
+          onMontoFisicoUsdChange={setMontoFisicoUsd}
+          onMontoFisicoVesChange={setMontoFisicoVes}
+          onObservacionesChange={setObservaciones}
+          onCerrar={handleCerrar}
+        />
+      ) : (
         <AdminCard
           title={
             <span className="flex items-center gap-2">
@@ -333,68 +189,142 @@ export default function CierreCajaPage() {
               Abrir turno
             </span>
           }
-          description="Indica el monto inicial en caja (USD) para iniciar tu turno. Puedes abrirlo desde la app o desde aquí."
+          description="Monto inicial en USD. También puedes abrir desde el switch del topbar."
         >
-            <form onSubmit={handleApertura} className="flex flex-wrap items-end gap-4">
-              <div className="min-w-[180px] space-y-2">
-                <Label htmlFor="montoInicial">Monto inicial (USD)</Label>
-                <Input
-                  id="montoInicial"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={montoInicial}
-                  onChange={(e) => setMontoInicial(e.target.value)}
-                />
-              </div>
-              <Button type="submit" disabled={sending} className="cursor-pointer">
-                {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DoorOpen className="mr-2 h-4 w-4" />}
-                Abrir caja
-              </Button>
-            </form>
+          <form onSubmit={handleApertura} className="flex flex-wrap items-end gap-4">
+            <div className="min-w-[180px] space-y-2">
+              <Label htmlFor="montoInicial">Monto inicial (USD)</Label>
+              <Input
+                id="montoInicial"
+                type="number"
+                step="0.01"
+                min="0"
+                value={montoInicial}
+                onChange={(e) => setMontoInicial(e.target.value)}
+              />
+            </div>
+            <Button type="submit" disabled={sending}>
+              {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DoorOpen className="mr-2 h-4 w-4" />}
+              Abrir caja
+            </Button>
+          </form>
         </AdminCard>
       )}
 
       <AdminCard
+        className="mt-4"
         title={
           <span className="flex items-center gap-2">
             <History className="h-5 w-5" />
             Últimos cierres
           </span>
         }
-        description="Listado de turnos ya cerrados. Puedes imprimir el ticket desde aquí."
+        description="Turnos cerrados. Imprime el ticket Z-Report desde aquí."
       >
-          {historial.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No hay cierres recientes.</p>
-          ) : (
-            <ul className="space-y-2">
-              {historial.map((c) => (
-                <li
-                  key={c.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm"
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Receipt className="h-4 w-4 text-muted-foreground" />
-                    <span>
-                      {new Date(c.fechaCierre).toLocaleString('es')} · 
-                      {c.user?.fullName || c.user?.email || '—'} · 
-                      Dif. USD: {formatForDisplay(c.diferenciaUsd ?? c.diferencia ?? 0)}
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleImprimir(c.id)}
-                    className="cursor-pointer"
-                  >
-                    <Printer className="mr-1 h-4 w-4" />
-                    Ticket
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
+        {historial.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No hay cierres recientes.</p>
+        ) : (
+          <ul className="space-y-2">
+            {historial.map((c) => (
+              <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm">
+                <div className="flex flex-wrap items-center gap-2 min-w-0">
+                  <Receipt className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="truncate">
+                    {new Date(c.fechaCierre).toLocaleString('es')} · {c.user?.fullName || c.user?.email || '—'} · Dif. USD:{' '}
+                    {formatForDisplay(c.diferenciaUsd ?? c.diferencia ?? 0)}
+                  </span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => handleImprimir(c.id)}>
+                  <Printer className="mr-1 h-4 w-4" />
+                  Ticket
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
       </AdminCard>
     </AdminPageShell>
+  );
+}
+
+function TurnoAbiertoCard({
+  abierto,
+  formatForDisplay,
+  montoFisicoUsd,
+  montoFisicoVes,
+  observaciones,
+  sending,
+  onMontoFisicoUsdChange,
+  onMontoFisicoVesChange,
+  onObservacionesChange,
+  onCerrar,
+}: {
+  abierto: CierreAbierto;
+  formatForDisplay: (n: number) => string;
+  montoFisicoUsd: string;
+  montoFisicoVes: string;
+  observaciones: string;
+  sending: boolean;
+  onMontoFisicoUsdChange: (v: string) => void;
+  onMontoFisicoVesChange: (v: string) => void;
+  onObservacionesChange: (v: string) => void;
+  onCerrar: (e: React.FormEvent) => void;
+}) {
+  return (
+    <AdminCard
+      title={
+        <span className="flex items-center gap-2">
+          <Wallet className="h-5 w-5" />
+          Turno abierto (X-Report)
+        </span>
+      }
+      description={
+        <>
+          Cajero: {abierto.user?.fullName || abierto.user?.email || '—'} · Apertura:{' '}
+          {new Date(abierto.fechaApertura).toLocaleString('es')}
+        </>
+      }
+      bodyClassName="space-y-4"
+    >
+      <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+        {[
+          ['Monto inicial', abierto.montoInicial],
+          ['Efectivo USD', abierto.ventasEfectivoUsd ?? 0],
+          ['Efectivo Bs', abierto.ventasEfectivoBs ?? 0],
+          ['Pago móvil Bs', abierto.ventasPagoMovil ?? 0],
+          ['POS / Zelle USD', abierto.ventasPos ?? 0],
+          ['Autoconsumos', abierto.autoconsumos ?? 0],
+        ].map(([label, value]) => (
+          <div key={String(label)} className="rounded-md border bg-muted/30 p-3">
+            <span className="text-muted-foreground">{label}</span>
+            <p className="font-medium">{formatForDisplay(Number(value))}</p>
+          </div>
+        ))}
+      </div>
+      {abierto.notaAutoconsumos && (
+        <p className="text-xs text-muted-foreground">{abierto.notaAutoconsumos}</p>
+      )}
+      <form onSubmit={onCerrar} className="space-y-4 border-t pt-4">
+        <h3 className="font-medium">Cerrar turno (Z-Report)</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="montoFisicoUsd">Monto físico USD</Label>
+            <Input id="montoFisicoUsd" type="number" step="0.01" min="0" placeholder="0.00" value={montoFisicoUsd} onChange={(e) => onMontoFisicoUsdChange(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="montoFisicoVes">Monto físico Bs</Label>
+            <Input id="montoFisicoVes" type="number" step="0.01" min="0" placeholder="0.00" value={montoFisicoVes} onChange={(e) => onMontoFisicoVesChange(e.target.value)} />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="observaciones">Observaciones (opcional)</Label>
+          <Input id="observaciones" placeholder="Ej: faltante por..." value={observaciones} onChange={(e) => onObservacionesChange(e.target.value)} maxLength={500} />
+        </div>
+        <Button type="submit" disabled={sending}>
+          {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DoorClosed className="mr-2 h-4 w-4" />}
+          Cerrar turno
+        </Button>
+      </form>
+    </AdminCard>
   );
 }

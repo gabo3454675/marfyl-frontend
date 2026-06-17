@@ -1,27 +1,19 @@
 "use client"
 
-import { useState } from "react"
-import { User, Check, Clock, AlertCircle, Plus, Minus } from "lucide-react"
+import { memo } from "react"
+import Image from "next/image"
+import { Check, Clock, AlertCircle, Plus, Minus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
+import { AdminCard } from "@/components/admin/admin-card"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { QuickActionPopover } from "./quick-action-popover"
+import { calculateEmployeeSalary, type PayrollEmployee } from "@/types/payroll"
 
-export interface Employee {
-  id: number
-  name: string
-  avatar: string | null
-  role: string
-  type: "fixed" | "commission" | "hourly"
-  baseSalary: number
-  commission?: number
-  hoursWorked?: number
-  bonuses: number
-  deductions: number
-  status: "paid" | "pending" | "review"
-}
+export type Employee = PayrollEmployee
 
 interface EmployeeListProps {
-  employees: Employee[]
+  employees: PayrollEmployee[]
   onUpdateBonuses: (employeeId: number, amount: number) => void
   onUpdateDeductions: (employeeId: number, amount: number) => void
 }
@@ -29,44 +21,29 @@ interface EmployeeListProps {
 const statusConfig = {
   paid: {
     label: "Pagado",
-    variant: "default" as const,
     icon: Check,
-    className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+    className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
   },
   pending: {
     label: "Pendiente",
-    variant: "secondary" as const,
     icon: Clock,
-    className: "bg-amber-500/10 text-amber-400 border-amber-500/30",
+    className: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30",
   },
   review: {
-    label: "En Revisión",
-    variant: "secondary" as const,
+    label: "En revisión",
     icon: AlertCircle,
-    className: "bg-blue-500/10 text-blue-400 border-blue-500/30",
+    className: "bg-primary/10 text-primary border-primary/30",
   },
-}
+} as const
 
 const typeLabels = {
   fixed: "Fijo",
   commission: "Comisión",
-  hourly: "Por Hora",
+  hourly: "Por hora",
 }
 
 function formatCurrency(amount: number): string {
   return `Bs ${amount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}`
-}
-
-function calculateSalary(employee: Employee): number {
-  let base = employee.baseSalary
-
-  if (employee.type === "hourly" && employee.hoursWorked) {
-    base = base * employee.hoursWorked
-  } else if (employee.type === "commission") {
-    return base + (employee.baseSalary * ((employee.commission || 0) / 100))
-  }
-
-  return base + employee.bonuses - employee.deductions
 }
 
 function getInitials(name: string): string {
@@ -78,177 +55,88 @@ function getInitials(name: string): string {
     .slice(0, 2)
 }
 
-function getAvatarColor(id: number): string {
-  const colors = [
-    "from-blue-500 to-blue-600",
-    "from-emerald-500 to-emerald-600",
-    "from-purple-500 to-purple-600",
-    "from-amber-500 to-amber-600",
-    "from-rose-500 to-rose-600",
-    "from-cyan-500 to-cyan-600",
-    "from-indigo-500 to-indigo-600",
-    "from-teal-500 to-teal-600",
-  ]
-  return colors[id % colors.length]
-}
-
-function EmployeeCard({
+const EmployeeCard = memo(function EmployeeCard({
   employee,
   onAddBonus,
   onAddDeduction,
 }: {
-  employee: Employee
+  employee: PayrollEmployee
   onAddBonus: (employeeId: number, amount: number) => void
   onAddDeduction: (employeeId: number, amount: number) => void
 }) {
-  const [isHovered, setIsHovered] = useState(false)
   const status = statusConfig[employee.status]
-  const totalSalary = calculateSalary(employee)
+  const totalSalary = calculateEmployeeSalary(employee)
   const StatusIcon = status.icon
 
   return (
-    <div
-      className={cn(
-        "group relative overflow-hidden rounded-xl",
-        "bg-gradient-to-br from-slate-800/60 to-slate-900/80",
-        "border border-slate-700/50",
-        "p-4 transition-all duration-300",
-        "hover:border-slate-600/60 hover:shadow-lg hover:shadow-slate-900/50",
-        "hover:-translate-y-0.5"
-      )}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div
-        className={cn(
-          "absolute inset-0 bg-gradient-to-br from-blue-500/5 to-emerald-500/5",
-          "opacity-0 transition-opacity duration-300",
-          isHovered && "opacity-100"
-        )}
-      />
-
-      <div className="relative flex items-center gap-4">
-        <div className="relative">
-          <div
-            className={cn(
-              "w-12 h-12 rounded-full flex items-center justify-center",
-              "bg-gradient-to-br text-white font-semibold text-sm",
-              getAvatarColor(employee.id),
-              "shadow-lg"
-            )}
-          >
+    <AdminCard bodyClassName="p-4 sm:p-5">
+      <div className="flex flex-col gap-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <Avatar className="h-11 w-11 shrink-0 border border-border">
             {employee.avatar ? (
-              <img
+              <Image
                 src={employee.avatar}
                 alt={employee.name}
-                className="w-full h-full rounded-full object-cover"
+                width={44}
+                height={44}
+                className="h-full w-full object-cover"
               />
             ) : (
-              getInitials(employee.name)
+              <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                {getInitials(employee.name)}
+              </AvatarFallback>
             )}
-          </div>
-          <span
-            className={cn(
-              "absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full",
-              "border-2 border-slate-800",
-              employee.status === "paid" && "bg-emerald-500",
-              employee.status === "pending" && "bg-amber-500",
-              employee.status === "review" && "bg-blue-500"
-            )}
-          />
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-slate-100 truncate">
-              {employee.name}
-            </h3>
-            <Badge
-              variant="outline"
-              className={cn("text-[10px] px-1.5 py-0", status.className)}
-            >
-              <StatusIcon className="w-3 h-3 mr-1" />
-              {status.label}
-            </Badge>
-          </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            {employee.role} · {typeLabels[employee.type]}
-          </p>
-          <div className="flex items-center gap-3 mt-1.5 text-xs">
-            <span className="text-slate-500">
-              Base:{" "}
-              <span className="text-slate-300">
-                {formatCurrency(employee.baseSalary)}
-              </span>
-            </span>
-            {employee.type === "commission" && employee.commission && (
-              <span className="text-slate-500">
-                +{employee.commission}% Comisión
-              </span>
-            )}
-            {employee.type === "hourly" && employee.hoursWorked && (
-              <span className="text-slate-500">
-                {employee.hoursWorked}h × {formatCurrency(employee.baseSalary)}
-              </span>
-            )}
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="truncate text-sm font-semibold text-foreground">{employee.name}</h3>
+              <Badge variant="outline" className={cn("text-[10px]", status.className)}>
+                <StatusIcon className="mr-1 h-3 w-3" />
+                {status.label}
+              </Badge>
+            </div>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {employee.role} · {typeLabels[employee.type]}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Base {formatCurrency(employee.baseSalary)}
+              {employee.type === "commission" && employee.commission != null && (
+                <span> · +{employee.commission}% comisión</span>
+              )}
+              {employee.type === "hourly" && employee.hoursWorked != null && (
+                <span> · {employee.hoursWorked}h</span>
+              )}
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-3 sm:pt-4">
           <QuickActionPopover
-            employeeId={employee.id}
+            employeeId={employee.memberId}
             currentBonuses={employee.bonuses}
             currentDeductions={employee.deductions}
             onAddBonus={onAddBonus}
             onAddDeduction={onAddDeduction}
-          >
-            <div className="flex items-center gap-1">
-              <button
-                className={cn(
-                  "p-1.5 rounded-lg transition-all duration-200",
-                  "bg-emerald-500/10 text-emerald-400",
-                  "hover:bg-emerald-500/20 hover:text-emerald-300",
-                  "active:scale-95"
-                )}
-                aria-label="Agregar bonificación"
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </button>
-              <button
-                className={cn(
-                  "p-1.5 rounded-lg transition-all duration-200",
-                  "bg-red-500/10 text-red-400",
-                  "hover:bg-red-500/20 hover:text-red-300",
-                  "active:scale-95"
-                )}
-                aria-label="Agregar deducción"
-              >
-                <Minus className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </QuickActionPopover>
-
+          />
           <div className="text-right">
-            <p className="text-sm font-bold text-slate-100">
-              {formatCurrency(totalSalary)}
-            </p>
+            <p className="text-base font-bold tabular-nums text-foreground">{formatCurrency(totalSalary)}</p>
             {(employee.bonuses > 0 || employee.deductions > 0) && (
-              <p className="text-[10px] text-slate-500">
+              <p className="text-[10px] text-muted-foreground tabular-nums">
                 {employee.bonuses > 0 && (
-                  <span className="text-emerald-500">+{employee.bonuses}</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">+{employee.bonuses}</span>
                 )}
                 {employee.bonuses > 0 && employee.deductions > 0 && " · "}
                 {employee.deductions > 0 && (
-                  <span className="text-red-500">-{employee.deductions}</span>
+                  <span className="text-red-600 dark:text-red-400">-{employee.deductions}</span>
                 )}
               </p>
             )}
           </div>
         </div>
       </div>
-    </div>
+    </AdminCard>
   )
-}
+})
 
 export function EmployeeList({
   employees,
@@ -259,7 +147,7 @@ export function EmployeeList({
     <div className="space-y-3">
       {employees.map((employee) => (
         <EmployeeCard
-          key={employee.id}
+          key={employee.memberId}
           employee={employee}
           onAddBonus={onUpdateBonuses}
           onAddDeduction={onUpdateDeductions}
