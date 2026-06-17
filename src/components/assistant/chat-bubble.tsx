@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { AssistantMessageContent } from './assistant-message-content';
 
 export function ChatBubble({
   content,
@@ -21,11 +22,15 @@ export function ChatBubble({
     >
       <div
         className={cn(
-          'max-w-[min(300px,88%)] px-4 py-3.5 text-[15px] leading-relaxed text-white shadow-lg',
-          isUser ? 'ai-bubble-user' : 'ai-bubble-assistant',
+          'max-w-[min(100%,22rem)] px-4 py-3.5 shadow-lg sm:max-w-[min(100%,26rem)]',
+          isUser ? 'ai-bubble-user text-[15px] leading-relaxed text-white' : 'ai-bubble-assistant',
         )}
       >
-        {content}
+        {isUser ? (
+          <p className="whitespace-pre-wrap break-words">{content}</p>
+        ) : (
+          <AssistantMessageContent content={content} />
+        )}
       </div>
     </motion.div>
   );
@@ -64,9 +69,9 @@ export function StreamBubble({
       animate={{ opacity: 1 }}
       className={cn('flex w-full justify-start', className)}
     >
-      <div className="ai-bubble-assistant max-w-[min(300px,88%)] px-4 py-3.5 text-[15px] leading-relaxed text-white shadow-lg">
-        <span>{content}</span>
-        <span className="ai-cursor ml-0.5" />
+      <div className="ai-bubble-assistant max-w-[min(100%,22rem)] px-4 py-3.5 shadow-lg sm:max-w-[min(100%,26rem)]">
+        <AssistantMessageContent content={content} />
+        <span className="ai-cursor ml-0.5 inline-block align-baseline" />
       </div>
     </motion.div>
   );

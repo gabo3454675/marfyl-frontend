@@ -7,4 +7,4 @@ export const ASSISTANT_QUICK_PROMPTS = [
 ] as const;
 
 export const ASSISTANT_STARTER =
-  'Hola, soy tu asistente fiscal MARFYL. Puedo ayudarte con facturación, control tributario, reportes y validaciones SENIAT.';
+  'Soy **MARFYL**, tu asistente fiscal. Consultas de facturación, IVA y SENIAT en respuestas breves y claras.';

@@ -18,6 +18,7 @@ import {
   type AssistantConversation,
 } from './assistant-chat-storage';
 import { ChatBubble, StreamBubble, TypingIndicator } from './chat-bubble';
+import { AssistantMessageContent } from './assistant-message-content';
 import { AssistantAuditWarnings } from './assistant-audit-warnings';
 import { AssistantSummaryCard } from './assistant-summary-card';
 import { AssistantComposer } from './assistant-composer';
@@ -335,8 +336,8 @@ export function AssistantPanel({
             <MoreHorizontal className="h-4 w-4 text-white" />
           </button>
         </div>
-        {variant === 'sheet' && (
-          <div className="mt-3">
+        {(variant === 'sheet' || variant === 'page') && (
+          <div className={cn('mt-2 sm:mt-3', variant === 'page' && 'lg:hidden')}>
             <AssistantSummaryCard compact />
           </div>
         )}
@@ -352,14 +353,12 @@ export function AssistantPanel({
           <div
             ref={scrollRef}
             onScroll={updateScrollState}
-            className="ai-chat-scroll flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 py-3 sm:px-4"
+            className="ai-chat-scroll relative flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 py-3 sm:px-4"
           >
-            <div className="mt-auto flex flex-col gap-2">
+            <div className="mt-auto flex flex-col gap-3 pb-2">
               {onlyStarter && (
                 <div className="ai-welcome mb-2 shrink-0">
-                  <p className="text-sm leading-relaxed text-white/80">
-                    {ASSISTANT_STARTER_MESSAGE.content}
-                  </p>
+                  <AssistantMessageContent content={ASSISTANT_STARTER_MESSAGE.content} />
                   <p className="mt-2 text-xs text-white/45">
                     Elija una acción rápida o escriba su consulta abajo. El historial se guarda en
                     este dispositivo.
@@ -399,22 +398,22 @@ export function AssistantPanel({
                 </div>
               )}
             </div>
-          </div>
 
-          {showScrollDown && (
-            <button
-              type="button"
-              onClick={() => {
-                stickToBottomRef.current = true;
-                scrollToBottom('smooth');
-              }}
-              className="absolute bottom-[calc(100%+0.5rem)] left-1/2 z-[2] flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-white/15 bg-black/55 px-3 py-1.5 text-xs text-white/80 shadow-lg backdrop-blur-sm transition-colors hover:bg-black/70"
-              aria-label="Ir al final de la conversación"
-            >
-              <ChevronDown className="h-3.5 w-3.5" />
-              Ir al final
-            </button>
-          )}
+            {showScrollDown && (
+              <button
+                type="button"
+                onClick={() => {
+                  stickToBottomRef.current = true;
+                  scrollToBottom('smooth');
+                }}
+                className="sticky bottom-2 z-[2] mx-auto mt-2 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/70 px-3 py-1.5 text-xs text-white/90 shadow-lg backdrop-blur-sm transition-colors hover:bg-black/85"
+                aria-label="Ir al final de la conversación"
+              >
+                <ChevronDown className="h-3.5 w-3.5" />
+                Ir al final
+              </button>
+            )}
+          </div>
 
           <div className="shrink-0 space-y-2.5 border-t border-white/5 bg-black/25 px-3 pb-3 pt-2 backdrop-blur-sm sm:px-4 sm:pb-4">
             {(onlyStarter || error) && (
