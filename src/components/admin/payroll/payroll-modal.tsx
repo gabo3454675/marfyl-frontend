@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { Check, Loader2, Receipt, DollarSign, Users, TrendingUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { ModalPortal, useBodyScrollLock } from "@/components/ui/modal-portal"
 import { calculateTotalPayroll, formatPayrollTotals, type PayrollEmployee } from "@/types/payroll"
 
 interface PayrollModalProps {
@@ -32,6 +33,8 @@ export function PayrollModal({
       setLocalProcessing(false)
     }
   }, [isOpen])
+
+  useBodyScrollLock(isOpen)
 
   const totals = useMemo(() => {
     let totalFixedUsd = 0
@@ -95,15 +98,17 @@ export function PayrollModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
+    <ModalPortal>
+      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6">
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
 
-      <div
-        className={cn(
-          "relative flex w-full max-w-md flex-col overflow-hidden border bg-card shadow-2xl",
-          "max-h-[min(92dvh,640px)] rounded-t-2xl sm:rounded-2xl",
-        )}
-      >
+        <div
+          className={cn(
+            "relative z-10 flex w-full max-w-md flex-col overflow-hidden border bg-card shadow-2xl",
+            "max-h-[min(90dvh,640px)] rounded-2xl",
+            "animate-in fade-in zoom-in-95 duration-200",
+          )}
+        >
         {isComplete && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-emerald-500/10 backdrop-blur-sm">
             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500 shadow-lg">
@@ -223,5 +228,6 @@ export function PayrollModal({
         </div>
       </div>
     </div>
+    </ModalPortal>
   )
 }

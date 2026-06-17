@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Check, Loader2, Lock, Unlock, DollarSign, CreditCard, Smartphone, Banknote, TrendingUp, TrendingDown, Minus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { ModalPortal, useBodyScrollLock } from "@/components/ui/modal-portal"
 import type { BoxSummary } from "@/lib/api/cierre-caja"
 
 interface CashboxModalProps {
@@ -50,6 +51,8 @@ export function CashboxModal({
       setErrorMsg(null)
     }
   }, [isOpen, type])
+
+  useBodyScrollLock(isOpen)
 
   const formatInputNumber = (value: string): string => {
     const cleaned = value.replace(/[^\d.]/g, "")
@@ -105,21 +108,22 @@ export function CashboxModal({
   const diffVes = summary ? physBs - summary.totalVes : 0
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="cashbox-modal-title"
-    >
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
-
+    <ModalPortal>
       <div
-        className={cn(
-          "relative z-10 flex w-full max-w-lg flex-col overflow-hidden border bg-card shadow-2xl",
-          "max-h-[min(92dvh,720px)] rounded-t-2xl sm:rounded-2xl",
-          "animate-in fade-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200",
-        )}
+        className="fixed inset-0 z-[200] flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cashbox-modal-title"
       >
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
+
+        <div
+          className={cn(
+            "relative z-10 flex w-full max-w-lg flex-col overflow-hidden border bg-card shadow-2xl",
+            "max-h-[min(90dvh,720px)] rounded-2xl",
+            "animate-in fade-in zoom-in-95 duration-200",
+          )}
+        >
         {isComplete && (
           <div
             className={cn(
@@ -358,6 +362,7 @@ export function CashboxModal({
         </footer>
       </div>
     </div>
+    </ModalPortal>
   )
 }
 

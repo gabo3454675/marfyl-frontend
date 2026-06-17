@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { Plus, Minus, X, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -29,16 +30,22 @@ export function QuickActionPopover({
   const [successBonus, setSuccessBonus] = useState(false)
   const [successDeduction, setSuccessDeduction] = useState(false)
   const popoverRef = useRef<HTMLDivElement>(null)
+  const desktopPopoverRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
+  const [portalReady, setPortalReady] = useState(false)
+
+  useEffect(() => {
+    setPortalReady(true)
+  }, [])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(e.target as Node) &&
-        triggerRef.current &&
-        !triggerRef.current.contains(e.target as Node)
-      ) {
+      const target = e.target as Node
+      const inside =
+        popoverRef.current?.contains(target) ||
+        desktopPopoverRef.current?.contains(target) ||
+        triggerRef.current?.contains(target)
+      if (!inside) {
         setIsOpen(false)
         setActiveField(null)
       }
@@ -82,6 +89,63 @@ export function QuickActionPopover({
 
   const currencyLabel = payCurrency === "VES" ? "Bs" : "$"
 
+  const panelBody = (
+    <>
+      <div className="flex items-center justify-between border-b px-4 py-3">
+        <span className="text-sm font-medium">Asignaciones</span>
+        <button
+          type="button"
+          onClick={() => {
+            setIsOpen(false)
+            setActiveField(null)
+          }}
+          className="cursor-pointer rounded-lg p-1 transition-colors hover:bg-muted"
+          aria-label="Cerrar"
+        >
+          <X className="h-4 w-4 text-muted-foreground" />
+        </button>
+      </div>
+
+      <div className="space-y-4 p-4">
+        <div className="flex gap-4 text-xs">
+          <span className="text-muted-foreground">
+            Bonos: <strong className="text-emerald-600 dark:text-emerald-400">{currencyLabel} {currentBonuses.toLocaleString()}</strong>
+          </span>
+          <span className="text-muted-foreground">
+            Deducc.: <strong className="text-red-600 dark:text-red-400">{currencyLabel} {currentDeductions.toLocaleString()}</strong>
+          </span>
+        </div>
+
+        <AdjustRow
+          label="Bonificación"
+          icon={Plus}
+          tone="emerald"
+          currencyLabel={currencyLabel}
+          value={bonusAmount}
+          onChange={setBonusAmount}
+          onFocus={() => setActiveField("bonus")}
+          active={activeField === "bonus"}
+          onSubmit={handleAddBonus}
+          onKeyDown={(e) => handleKeyDown(e, handleAddBonus)}
+          success={successBonus}
+        />
+        <AdjustRow
+          label="Deducción"
+          icon={Minus}
+          tone="red"
+          currencyLabel={currencyLabel}
+          value={deductionAmount}
+          onChange={setDeductionAmount}
+          onFocus={() => setActiveField("deduction")}
+          active={activeField === "deduction"}
+          onSubmit={handleAddDeduction}
+          onKeyDown={(e) => handleKeyDown(e, handleAddDeduction)}
+          success={successDeduction}
+        />
+      </div>
+    </>
+  )
+
   return (
     <div className="relative inline-flex">
       <button
@@ -104,10 +168,10 @@ export function QuickActionPopover({
         </span>
       </button>
 
-      {isOpen && (
+      {isOpen && portalReady && createPortal(
         <>
           <div
-            className="fixed inset-0 z-[90] bg-black/40 sm:hidden"
+            className="fixed inset-0 z-[190] bg-black/40 sm:hidden"
             aria-hidden
             onClick={() => {
               setIsOpen(false)
@@ -119,66 +183,29 @@ export function QuickActionPopover({
             role="dialog"
             aria-label="Ajustes de nómina"
             className={cn(
-              "z-[100] rounded-xl border bg-card p-0 shadow-lg",
-              "fixed inset-x-3 bottom-[calc(var(--app-bottom-chrome,4.5rem)+0.75rem)] max-h-[min(70dvh,24rem)] overflow-y-auto",
-              "animate-in fade-in slide-in-from-bottom-4 duration-200",
-              "sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:mt-2 sm:w-72 sm:max-h-none",
+              "fixed inset-x-3 bottom-[calc(var(--app-bottom-chrome,4.5rem)+0.75rem)] z-[195]",
+              "max-h-[min(70dvh,24rem)] overflow-y-auto rounded-xl border bg-card p-0 shadow-lg",
+              "animate-in fade-in slide-in-from-bottom-4 duration-200 sm:hidden",
             )}
           >
-          <div className="flex items-center justify-between border-b px-4 py-3">
-            <span className="text-sm font-medium">Asignaciones</span>
-            <button
-              type="button"
-              onClick={() => {
-                setIsOpen(false)
-                setActiveField(null)
-              }}
-              className="cursor-pointer rounded-lg p-1 transition-colors hover:bg-muted"
-              aria-label="Cerrar"
-            >
-              <X className="h-4 w-4 text-muted-foreground" />
-            </button>
+            {panelBody}
           </div>
+        </>,
+        document.body,
+      )}
 
-          <div className="space-y-4 p-4">
-            <div className="flex gap-4 text-xs">
-              <span className="text-muted-foreground">
-                Bonos: <strong className="text-emerald-600 dark:text-emerald-400">{currencyLabel} {currentBonuses.toLocaleString()}</strong>
-              </span>
-              <span className="text-muted-foreground">
-                Deducc.: <strong className="text-red-600 dark:text-red-400">{currencyLabel} {currentDeductions.toLocaleString()}</strong>
-              </span>
-            </div>
-
-            <AdjustRow
-              label="Bonificación"
-              icon={Plus}
-              tone="emerald"
-              currencyLabel={currencyLabel}
-              value={bonusAmount}
-              onChange={setBonusAmount}
-              onFocus={() => setActiveField("bonus")}
-              active={activeField === "bonus"}
-              onSubmit={handleAddBonus}
-              onKeyDown={(e) => handleKeyDown(e, handleAddBonus)}
-              success={successBonus}
-            />
-            <AdjustRow
-              label="Deducción"
-              icon={Minus}
-              tone="red"
-              currencyLabel={currencyLabel}
-              value={deductionAmount}
-              onChange={setDeductionAmount}
-              onFocus={() => setActiveField("deduction")}
-              active={activeField === "deduction"}
-              onSubmit={handleAddDeduction}
-              onKeyDown={(e) => handleKeyDown(e, handleAddDeduction)}
-              success={successDeduction}
-            />
-          </div>
-          </div>
-        </>
+      {isOpen && (
+        <div
+          ref={desktopPopoverRef}
+          role="dialog"
+          aria-label="Ajustes de nómina"
+          className={cn(
+            "absolute right-0 top-full z-50 mt-2 hidden w-72 rounded-xl border bg-card p-0 shadow-lg sm:block",
+            "animate-in fade-in zoom-in-95 duration-150",
+          )}
+        >
+          {panelBody}
+        </div>
       )}
     </div>
   )
