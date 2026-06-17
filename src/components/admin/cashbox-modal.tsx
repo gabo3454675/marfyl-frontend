@@ -146,7 +146,9 @@ export function CashboxModal({
                 {isOpenType ? "Monto inicial en USD para iniciar el turno" : "Conciliación bimoneda del turno"}
               </p>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose} disabled={isLoading}>Cerrar</Button>
+            <Button variant="ghost" size="sm" onClick={onClose} disabled={isLoading} className="min-h-[44px] shrink-0 cursor-pointer">
+              Cerrar
+            </Button>
           </div>
         </header>
 
@@ -171,7 +173,7 @@ export function CashboxModal({
                   value={initialAmount}
                   onChange={(e) => setInitialAmount(formatInputNumber(e.target.value))}
                   placeholder="0.00"
-                  className="h-14 w-full rounded-xl border bg-muted/30 pl-10 pr-4 text-xl font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                  className="h-14 min-h-[44px] w-full rounded-xl border bg-muted/30 pl-10 pr-4 text-xl font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
                 />
               </div>
               <p className="text-xs text-muted-foreground">Saldo inicial en dólares con el que comienza el turno.</p>
@@ -181,7 +183,7 @@ export function CashboxModal({
                     key={amount}
                     type="button"
                     onClick={() => setInitialAmount(amount.toString())}
-                    className="flex-1 min-w-[4.5rem] rounded-lg border py-2 text-sm text-muted-foreground hover:bg-muted"
+                    className="min-h-[44px] flex-1 min-w-[4.5rem] rounded-lg border py-2 text-sm text-muted-foreground hover:bg-muted cursor-pointer"
                   >
                     ${amount}
                   </button>
@@ -284,15 +286,15 @@ export function CashboxModal({
           )}
         </div>
 
-        <footer className="shrink-0 border-t bg-card/80 px-4 py-4 sm:px-6">
-          <div className="mx-auto flex max-w-2xl gap-3">
-            <Button variant="outline" onClick={onClose} disabled={isLoading} className="flex-1">
+        <footer className="shrink-0 border-t bg-card/95 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:px-6">
+          <div className="mx-auto flex max-w-2xl flex-col-reverse gap-3 sm:flex-row">
+            <Button variant="outline" onClick={onClose} disabled={isLoading} className="min-h-[44px] flex-1 cursor-pointer">
               Cancelar
             </Button>
             <Button
               onClick={isOpenType ? handleOpenBox : handleCloseBox}
               disabled={isLoading || isComplete}
-              className={cn("flex-1", isOpenType ? "bg-emerald-600 hover:bg-emerald-500" : "bg-red-600 hover:bg-red-500")}
+              className={cn("min-h-[44px] flex-1 cursor-pointer", isOpenType ? "bg-emerald-600 hover:bg-emerald-500" : "bg-red-600 hover:bg-red-500")}
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">

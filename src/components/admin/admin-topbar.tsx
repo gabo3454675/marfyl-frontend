@@ -25,13 +25,13 @@ export function AdminTopbar({
         <OrganizationSwitcher variant="topbar" />
       </div>
 
-      <div className="ml-auto flex flex-wrap items-center justify-end gap-3 sm:gap-4">
+      <div className="ml-auto flex flex-wrap items-center justify-end gap-2 sm:gap-3 md:gap-4">
         <CashboxSwitchWrapper />
         <TasksNotificationBell />
-        <DisplayCurrencyToggle className="shrink-0" short />
+        <DisplayCurrencyToggle className="hidden sm:flex shrink-0" short />
         <ExchangeRateIndicator
           onOpenConfig={onOpenRateConfig}
-          className="shrink-0"
+          className="shrink-0 max-w-[7.5rem] sm:max-w-none"
         />
       </div>
     </header>

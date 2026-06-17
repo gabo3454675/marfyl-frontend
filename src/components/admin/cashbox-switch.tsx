@@ -55,28 +55,28 @@ export function CashboxSwitch({
       <button
         type="button"
         onClick={handleSwitchClick}
+        aria-label={isBoxOpen ? "Caja abierta — tocar para cerrar" : "Caja cerrada — tocar para abrir"}
         className={cn(
-          "flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-2.5 rounded-xl",
-          "transition-all duration-300",
-          "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900",
+          "flex min-h-[44px] min-w-[44px] items-center gap-2 rounded-xl px-2.5 py-2 sm:gap-3 sm:px-3 sm:py-2.5",
+          "transition-all duration-300 cursor-pointer",
+          "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background",
           isBoxOpen
-            ? "bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/15 focus:ring-emerald-500/50"
-            : "bg-slate-800/50 border border-slate-700 hover:bg-slate-800 focus:ring-slate-500/50"
+            ? "border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/15 focus:ring-emerald-500/50"
+            : "border border-border bg-muted/40 hover:bg-muted/60 focus:ring-muted-foreground/30",
         )}
       >
         <div
           className={cn(
-            "relative w-9 sm:w-10 h-5 sm:h-6 rounded-full transition-all duration-300",
+            "relative h-6 w-10 shrink-0 rounded-full transition-all duration-300",
             isBoxOpen
-              ? "bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_16px_rgba(16,185,129,0.4)]"
-              : "bg-slate-700"
+              ? "bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.35)]"
+              : "bg-muted-foreground/30",
           )}
         >
           <div
             className={cn(
-              "absolute top-0.5 sm:top-1 w-3.5 sm:w-4 h-3.5 sm:h-4 rounded-full bg-white shadow-md",
-              "transition-all duration-300",
-              isBoxOpen ? "left-4 sm:left-5" : "left-0.5 sm:left-1"
+              "absolute top-1 h-4 w-4 rounded-full bg-white shadow-md transition-all duration-300",
+              isBoxOpen ? "left-5" : "left-1",
             )}
           />
           {isBoxOpen && (
@@ -84,10 +84,18 @@ export function CashboxSwitch({
           )}
         </div>
 
-        <div className="text-left hidden sm:block">
+        {/* Etiqueta compacta en móvil */}
+        <span className={cn(
+          "text-[11px] font-medium sm:hidden",
+          isBoxOpen ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+        )}>
+          {isBoxOpen ? "Abierta" : "Caja"}
+        </span>
+
+        <div className="hidden text-left sm:block">
           {isBoxOpen ? (
             <>
-              <span className="text-xs sm:text-sm font-medium text-emerald-400 flex items-center gap-1">
+              <span className="flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 sm:text-sm">
                 <Unlock className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
                 Caja Abierta
               </span>
@@ -98,11 +106,11 @@ export function CashboxSwitch({
             </>
           ) : (
             <>
-              <span className="text-xs sm:text-sm font-medium text-slate-400 flex items-center gap-1">
+              <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground sm:text-sm">
                 <Lock className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
                 Caja
               </span>
-              <p className="text-[10px] sm:text-xs text-slate-500">Sin actividad</p>
+              <p className="text-[10px] text-muted-foreground sm:text-xs">Sin actividad</p>
             </>
           )}
         </div>
