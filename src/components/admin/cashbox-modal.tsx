@@ -105,23 +105,34 @@ export function CashboxModal({
   const diffVes = summary ? physBs - summary.totalVes : 0
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-background/95 backdrop-blur-sm">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden />
+    <div
+      className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cashbox-modal-title"
+    >
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
 
-      <div className={cn(
-        "relative z-10 flex min-h-0 flex-1 flex-col",
-        "mx-auto w-full max-w-2xl",
-        "animate-in fade-in slide-in-from-bottom-4 duration-300",
-      )}>
+      <div
+        className={cn(
+          "relative z-10 flex w-full max-w-lg flex-col overflow-hidden border bg-card shadow-2xl",
+          "max-h-[min(92dvh,720px)] rounded-t-2xl sm:rounded-2xl",
+          "animate-in fade-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200",
+        )}
+      >
         {isComplete && (
-          <div className={cn(
-            "absolute inset-0 z-20 flex flex-col items-center justify-center backdrop-blur-sm",
-            isOpenType ? "bg-emerald-500/15" : "bg-red-500/15",
-          )}>
-            <div className={cn(
-              "flex h-20 w-20 items-center justify-center rounded-full text-white shadow-xl",
-              isOpenType ? "bg-emerald-500" : "bg-red-500",
-            )}>
+          <div
+            className={cn(
+              "absolute inset-0 z-20 flex flex-col items-center justify-center backdrop-blur-sm",
+              isOpenType ? "bg-emerald-500/15" : "bg-red-500/15",
+            )}
+          >
+            <div
+              className={cn(
+                "flex h-20 w-20 items-center justify-center rounded-full text-white shadow-xl",
+                isOpenType ? "bg-emerald-500" : "bg-red-500",
+              )}
+            >
               <Check className="h-10 w-10" />
             </div>
             <p className={cn("mt-4 text-lg font-semibold", isOpenType ? "text-emerald-600" : "text-red-600")}>
@@ -134,25 +145,35 @@ export function CashboxModal({
 
         <header className="shrink-0 border-b px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className={cn(
-              "flex h-11 w-11 items-center justify-center rounded-xl border",
-              isOpenType ? "border-emerald-500/30 bg-emerald-500/10" : "border-red-500/30 bg-red-500/10",
-            )}>
+            <div
+              className={cn(
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border",
+                isOpenType ? "border-emerald-500/30 bg-emerald-500/10" : "border-red-500/30 bg-red-500/10",
+              )}
+            >
               {isOpenType ? <Unlock className="h-5 w-5 text-emerald-500" /> : <Lock className="h-5 w-5 text-red-500" />}
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-semibold">{isOpenType ? "Abrir Caja" : "Cerrar Caja"}</h2>
-              <p className="text-sm text-muted-foreground truncate">
+              <h2 id="cashbox-modal-title" className="text-lg font-semibold">
+                {isOpenType ? "Abrir Caja" : "Cerrar Caja"}
+              </h2>
+              <p className="truncate text-sm text-muted-foreground">
                 {isOpenType ? "Monto inicial en USD para iniciar el turno" : "Conciliación bimoneda del turno"}
               </p>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose} disabled={isLoading} className="min-h-[44px] shrink-0 cursor-pointer">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              disabled={isLoading}
+              className="min-h-[44px] shrink-0 cursor-pointer"
+            >
               Cerrar
             </Button>
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6">
           {errorMsg && (
             <p className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {errorMsg}
@@ -160,7 +181,7 @@ export function CashboxModal({
           )}
 
           {isOpenType ? (
-            <div className="mx-auto max-w-md space-y-4">
+            <div className="space-y-4">
               <label className="flex items-center gap-2 text-sm font-medium">
                 <DollarSign className="h-4 w-4 text-emerald-500" />
                 Monto Inicial (USD)
@@ -173,6 +194,7 @@ export function CashboxModal({
                   value={initialAmount}
                   onChange={(e) => setInitialAmount(formatInputNumber(e.target.value))}
                   placeholder="0.00"
+                  autoFocus
                   className="h-14 min-h-[44px] w-full rounded-xl border bg-muted/30 pl-10 pr-4 text-xl font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
                 />
               </div>
@@ -183,7 +205,7 @@ export function CashboxModal({
                     key={amount}
                     type="button"
                     onClick={() => setInitialAmount(amount.toString())}
-                    className="min-h-[44px] flex-1 min-w-[4.5rem] rounded-lg border py-2 text-sm text-muted-foreground hover:bg-muted cursor-pointer"
+                    className="min-h-[44px] min-w-[4.5rem] flex-1 cursor-pointer rounded-lg border py-2 text-sm text-muted-foreground hover:bg-muted"
                   >
                     ${amount}
                   </button>
@@ -191,8 +213,8 @@ export function CashboxModal({
               </div>
             </div>
           ) : summary ? (
-            <div className="space-y-4 pb-4">
-              <section className="rounded-xl border bg-card p-4">
+            <div className="space-y-4">
+              <section className="rounded-xl border bg-muted/20 p-4">
                 <h3 className="mb-3 flex items-center gap-2 text-sm font-medium">
                   <TrendingUp className="h-4 w-4 text-emerald-500" />
                   Resumen del turno
@@ -203,19 +225,31 @@ export function CashboxModal({
                     <span className="font-medium">{formatUsd(summary.montoInicial)}</span>
                   </div>
                   <div className="flex justify-between rounded-lg bg-muted/40 px-3 py-2">
-                    <span className="text-muted-foreground flex items-center gap-1"><Banknote className="h-3.5 w-3.5" />Efectivo USD</span>
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Banknote className="h-3.5 w-3.5" />
+                      Efectivo USD
+                    </span>
                     <span className="font-medium">{formatUsd(summary.cashUsd)}</span>
                   </div>
                   <div className="flex justify-between rounded-lg bg-muted/40 px-3 py-2">
-                    <span className="text-muted-foreground flex items-center gap-1"><Banknote className="h-3.5 w-3.5" />Efectivo Bs</span>
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Banknote className="h-3.5 w-3.5" />
+                      Efectivo Bs
+                    </span>
                     <span className="font-medium">{formatBs(summary.cashBs)}</span>
                   </div>
                   <div className="flex justify-between rounded-lg bg-muted/40 px-3 py-2">
-                    <span className="text-muted-foreground flex items-center gap-1"><Smartphone className="h-3.5 w-3.5" />Pago Móvil</span>
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Smartphone className="h-3.5 w-3.5" />
+                      Pago Móvil
+                    </span>
                     <span className="font-medium">{formatBs(summary.pagoMovil)}</span>
                   </div>
-                  <div className="flex justify-between rounded-lg bg-muted/40 px-3 py-2">
-                    <span className="text-muted-foreground flex items-center gap-1"><CreditCard className="h-3.5 w-3.5" />POS / Zelle</span>
+                  <div className="flex justify-between rounded-lg bg-muted/40 px-3 py-2 sm:col-span-2">
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <CreditCard className="h-3.5 w-3.5" />
+                      POS / Zelle
+                    </span>
                     <span className="font-medium">{formatUsd(summary.zelle)}</span>
                   </div>
                 </div>
@@ -231,7 +265,7 @@ export function CashboxModal({
                 </div>
               </section>
 
-              <section className="rounded-xl border bg-card p-4">
+              <section className="rounded-xl border bg-muted/20 p-4">
                 <h3 className="mb-3 text-sm font-medium">Cuadre físico</h3>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
@@ -282,19 +316,22 @@ export function CashboxModal({
               </div>
             </div>
           ) : (
-            <p className="text-center text-muted-foreground py-8">Cargando resumen del turno...</p>
+            <p className="py-8 text-center text-muted-foreground">Cargando resumen del turno...</p>
           )}
         </div>
 
-        <footer className="shrink-0 border-t bg-card/95 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:px-6">
-          <div className="mx-auto flex max-w-2xl flex-col-reverse gap-3 sm:flex-row">
+        <footer className="shrink-0 border-t bg-card px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row">
             <Button variant="outline" onClick={onClose} disabled={isLoading} className="min-h-[44px] flex-1 cursor-pointer">
               Cancelar
             </Button>
             <Button
               onClick={isOpenType ? handleOpenBox : handleCloseBox}
               disabled={isLoading || isComplete}
-              className={cn("min-h-[44px] flex-1 cursor-pointer", isOpenType ? "bg-emerald-600 hover:bg-emerald-500" : "bg-red-600 hover:bg-red-500")}
+              className={cn(
+                "min-h-[44px] flex-1 cursor-pointer",
+                isOpenType ? "bg-emerald-600 hover:bg-emerald-500" : "bg-red-600 hover:bg-red-500",
+              )}
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">
@@ -303,7 +340,17 @@ export function CashboxModal({
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  {isOpenType ? <><Unlock className="h-4 w-4" />Abrir Caja</> : <><Lock className="h-4 w-4" />Cerrar y Generar</>}
+                  {isOpenType ? (
+                    <>
+                      <Unlock className="h-4 w-4" />
+                      Abrir Caja
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-4 w-4" />
+                      Cerrar y Generar
+                    </>
+                  )}
                 </span>
               )}
             </Button>
@@ -325,17 +372,30 @@ function DiffCard({
 }) {
   const isZero = Math.abs(value) < 0.01
   return (
-    <div className={cn(
-      "rounded-xl border p-4",
-      isZero ? "border-amber-500/30 bg-amber-500/10" : value > 0 ? "border-emerald-500/30 bg-emerald-500/10" : "border-red-500/30 bg-red-500/10",
-    )}>
+    <div
+      className={cn(
+        "rounded-xl border p-4",
+        isZero
+          ? "border-amber-500/30 bg-amber-500/10"
+          : value > 0
+            ? "border-emerald-500/30 bg-emerald-500/10"
+            : "border-red-500/30 bg-red-500/10",
+      )}
+    >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          {isZero ? <Minus className="h-4 w-4 text-amber-500" /> : value > 0 ? <TrendingUp className="h-4 w-4 text-emerald-500" /> : <TrendingDown className="h-4 w-4 text-red-500" />}
+          {isZero ? (
+            <Minus className="h-4 w-4 text-amber-500" />
+          ) : value > 0 ? (
+            <TrendingUp className="h-4 w-4 text-emerald-500" />
+          ) : (
+            <TrendingDown className="h-4 w-4 text-red-500" />
+          )}
           <p className="text-sm font-medium">{label}</p>
         </div>
         <p className={cn("font-bold", isZero ? "text-amber-600" : value > 0 ? "text-emerald-600" : "text-red-600")}>
-          {value > 0 ? "+" : value < 0 ? "-" : ""}{formatter(Math.abs(value))}
+          {value > 0 ? "+" : value < 0 ? "-" : ""}
+          {formatter(Math.abs(value))}
         </p>
       </div>
     </div>

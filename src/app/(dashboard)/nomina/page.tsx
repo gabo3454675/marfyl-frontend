@@ -15,10 +15,13 @@ import { usePermission } from "@/hooks/usePermission"
 import { payrollService } from "@/lib/api/payroll"
 import {
   type PayrollEmployee,
+  type PayrollCurrency,
   calculateTotalPayroll,
   calculateEmployeeSalary,
+  formatPayrollMoney,
 } from "@/types/payroll"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 const PayrollModal = dynamic(
   () => import("@/components/admin/payroll/payroll-modal").then((m) => m.PayrollModal),
@@ -56,7 +59,7 @@ export default function NominaPage() {
     void queryClient.invalidateQueries({ queryKey: ["payroll"] })
   }, [queryClient])
 
-  const totalPayroll = useMemo(() => calculateTotalPayroll(employees), [employees])
+  const payrollTotals = useMemo(() => calculateTotalPayroll(employees), [employees])
   const pendingCount = useMemo(() => employees.filter((e) => e.status === "pending").length, [employees])
   const reviewCount = useMemo(() => employees.filter((e) => e.status === "review").length, [employees])
   const pendingPaymentCount = useMemo(() => employees.filter((e) => e.status !== "paid").length, [employees])
@@ -64,6 +67,12 @@ export default function NominaPage() {
   const lastProcessedDate = useMemo(() => {
     if (history.length === 0) return "—"
     return new Date(history[0].date).toLocaleDateString("es-VE", { day: "numeric", month: "short" })
+  }, [history])
+
+  const daysSinceLastProcess = useMemo(() => {
+    if (history.length === 0) return null
+    const diff = Date.now() - new Date(history[0].date).getTime()
+    return Math.floor(diff / (1000 * 60 * 60 * 24))
   }, [history])
 
   const payrollStatus = useMemo((): "pending" | "processing" | "completed" => {
@@ -100,6 +109,19 @@ export default function NominaPage() {
         patchEmployee(updated)
       } catch {
         toast.error("No se pudo registrar la deducción.")
+      }
+    },
+    [patchEmployee],
+  )
+
+  const handleUpdateCurrency = useCallback(
+    async (memberId: number, payCurrency: PayrollCurrency) => {
+      try {
+        const updated = await payrollService.updateCurrency(memberId, payCurrency)
+        patchEmployee(updated)
+        toast.success(`Moneda actualizada a ${payCurrency === "VES" ? "Bs" : "USD"}`)
+      } catch {
+        toast.error("No se pudo cambiar la moneda.")
       }
     },
     [patchEmployee],
@@ -142,14 +164,14 @@ export default function NominaPage() {
           Nómina
         </span>
       }
-      subtitle="Pagos del equipo en base de datos. Al procesar se registran gastos en categoría Nómina."
+      subtitle="Gestiona los pagos de tu equipo. Cada empleado puede cobrar en USD o Bs."
       maxWidth="wide"
       loading={isLoading}
       actions={
         <Button
           onClick={() => setShowProcessModal(true)}
           disabled={employees.length === 0 || isProcessing}
-          className="h-11 w-full min-h-[44px] cursor-pointer gap-2 sm:w-auto"
+          className="h-11 min-h-[44px] w-full cursor-pointer gap-2 bg-emerald-600 hover:bg-emerald-500 sm:w-auto"
         >
           <Play className="h-4 w-4" />
           Procesar nómina
@@ -165,40 +187,61 @@ export default function NominaPage() {
 
       <div className="mb-6">
         <PayrollKpiCards
-          totalPayroll={totalPayroll}
-          employeeCount={employees.length}
+          employees={employees}
+          totals={payrollTotals}
           pendingPayments={pendingPaymentCount}
           lastProcessedDate={lastProcessedDate}
+          daysSinceLastProcess={daysSinceLastProcess}
           status={payrollStatus}
         />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto bg-muted/50 p-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <TabsTrigger value="employees" className="min-h-[44px] shrink-0 cursor-pointer gap-2 px-3 sm:px-4">
-            <Users className="h-4 w-4" />
-            Empleados
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-              {employees.length}
-            </span>
-          </TabsTrigger>
-          <TabsTrigger value="payments" className="min-h-[44px] shrink-0 cursor-pointer gap-2 px-3 sm:px-4">
-            <Receipt className="h-4 w-4" />
-            Pagos
-            {pendingPaymentCount > 0 && (
-              <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
-                {pendingPaymentCount}
+        <div className="rounded-xl border bg-card/60 p-1.5 shadow-sm">
+          <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto bg-transparent p-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <TabsTrigger
+              value="employees"
+              className={cn(
+                "min-h-[44px] shrink-0 cursor-pointer gap-2 rounded-lg px-4 py-2.5",
+                "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm",
+              )}
+            >
+              <Users className="h-4 w-4" />
+              Empleados
+              <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold data-[state=active]:bg-primary-foreground/20">
+                {employees.length}
               </span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="history" className="min-h-[44px] shrink-0 cursor-pointer gap-2 px-3 sm:px-4">
-            <History className="h-4 w-4" />
-            Historial
-            {history.length > 0 && (
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{history.length}</span>
-            )}
-          </TabsTrigger>
-        </TabsList>
+            </TabsTrigger>
+            <TabsTrigger
+              value="payments"
+              className={cn(
+                "min-h-[44px] shrink-0 cursor-pointer gap-2 rounded-lg px-4 py-2.5",
+                "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm",
+              )}
+            >
+              <Receipt className="h-4 w-4" />
+              Pagos
+              {pendingPaymentCount > 0 && (
+                <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                  {pendingPaymentCount}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger
+              value="history"
+              className={cn(
+                "min-h-[44px] shrink-0 cursor-pointer gap-2 rounded-lg px-4 py-2.5",
+                "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm",
+              )}
+            >
+              <History className="h-4 w-4" />
+              Historial
+              {history.length > 0 && (
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">{history.length}</span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="employees" className="mt-4">
           {employees.length === 0 ? (
@@ -212,29 +255,38 @@ export default function NominaPage() {
               employees={employees}
               onUpdateBonuses={handleUpdateBonuses}
               onUpdateDeductions={handleUpdateDeductions}
+              onUpdateCurrency={handleUpdateCurrency}
             />
           )}
         </TabsContent>
 
-        <TabsContent value="payments" className="mt-4 space-y-3">
+        <TabsContent value="payments" className="mt-4 space-y-2.5">
           {employees
             .filter((e) => e.status !== "paid")
-            .map((employee) => (
-              <AdminCard key={employee.memberId} bodyClassName="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <p className="font-medium truncate">{employee.name}</p>
-                  <p className="text-sm text-muted-foreground">{employee.role}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="font-semibold tabular-nums text-amber-700 dark:text-amber-400">
-                    Bs {calculateEmployeeSalary(employee).toLocaleString("es-VE", { minimumFractionDigits: 2 })}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {employee.status === "pending" ? "Pendiente" : "En revisión"}
-                  </p>
-                </div>
-              </AdminCard>
-            ))}
+            .map((employee) => {
+              const currency = employee.payCurrency ?? "USD"
+              return (
+                <AdminCard
+                  key={employee.memberId}
+                  bodyClassName="flex items-center justify-between gap-3 p-4"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{employee.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {employee.role} · {currency === "VES" ? "Bs" : "USD"}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="font-semibold tabular-nums text-amber-700 dark:text-amber-400">
+                      {formatPayrollMoney(calculateEmployeeSalary(employee), currency)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {employee.status === "pending" ? "Pendiente" : "En revisión"}
+                    </p>
+                  </div>
+                </AdminCard>
+              )
+            })}
           {pendingPaymentCount === 0 && (
             <AdminCard>
               <div className="py-10 text-center">
@@ -257,14 +309,14 @@ export default function NominaPage() {
             history.map((entry) => (
               <AdminCard key={entry.id} bodyClassName="flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
                 <div className="min-w-0">
-                  <p className="font-medium truncate">{entry.employeeName}</p>
+                  <p className="truncate font-medium">{entry.employeeName}</p>
                   <p className="text-muted-foreground">
                     {new Date(entry.date).toLocaleDateString("es-VE")}
                     {entry.periodLabel ? ` · ${entry.periodLabel}` : ""}
                   </p>
                 </div>
-                <p className="font-semibold tabular-nums text-emerald-700 dark:text-emerald-400 shrink-0">
-                  Bs {entry.amount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}
+                <p className="shrink-0 font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+                  {formatPayrollMoney(entry.amount, entry.payCurrency ?? "USD")}
                 </p>
               </AdminCard>
             ))

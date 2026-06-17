@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 
 interface QuickActionPopoverProps {
   employeeId: number
+  payCurrency: "USD" | "VES"
   currentBonuses: number
   currentDeductions: number
   onAddBonus: (employeeId: number, amount: number) => void
@@ -15,6 +16,7 @@ interface QuickActionPopoverProps {
 
 export function QuickActionPopover({
   employeeId,
+  payCurrency,
   currentBonuses,
   currentDeductions,
   onAddBonus,
@@ -78,6 +80,8 @@ export function QuickActionPopover({
     }
   }
 
+  const currencyLabel = payCurrency === "VES" ? "Bs" : "$"
+
   return (
     <div className="relative inline-flex">
       <button
@@ -87,18 +91,16 @@ export function QuickActionPopover({
         aria-label="Bonificaciones y deducciones"
         aria-expanded={isOpen}
         className={cn(
-          "flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 transition-colors duration-200",
-          "hover:bg-muted",
+          "flex cursor-pointer items-center gap-1 rounded-lg p-0.5 transition-colors duration-200",
+          "hover:bg-muted/60",
           isOpen && "bg-muted",
         )}
       >
-        <span className="inline-flex items-center gap-1">
-          <span className="rounded-md bg-emerald-500/10 p-1.5 text-emerald-600 dark:text-emerald-400">
-            <Plus className="h-3.5 w-3.5" />
-          </span>
-          <span className="rounded-md bg-red-500/10 p-1.5 text-red-600 dark:text-red-400">
-            <Minus className="h-3.5 w-3.5" />
-          </span>
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+          <Plus className="h-3.5 w-3.5" />
+        </span>
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400">
+          <Minus className="h-3.5 w-3.5" />
         </span>
       </button>
 
@@ -141,10 +143,10 @@ export function QuickActionPopover({
           <div className="space-y-4 p-4">
             <div className="flex gap-4 text-xs">
               <span className="text-muted-foreground">
-                Bonos: <strong className="text-emerald-600 dark:text-emerald-400">Bs {currentBonuses.toLocaleString()}</strong>
+                Bonos: <strong className="text-emerald-600 dark:text-emerald-400">{currencyLabel} {currentBonuses.toLocaleString()}</strong>
               </span>
               <span className="text-muted-foreground">
-                Deducc.: <strong className="text-red-600 dark:text-red-400">Bs {currentDeductions.toLocaleString()}</strong>
+                Deducc.: <strong className="text-red-600 dark:text-red-400">{currencyLabel} {currentDeductions.toLocaleString()}</strong>
               </span>
             </div>
 
@@ -152,6 +154,7 @@ export function QuickActionPopover({
               label="Bonificación"
               icon={Plus}
               tone="emerald"
+              currencyLabel={currencyLabel}
               value={bonusAmount}
               onChange={setBonusAmount}
               onFocus={() => setActiveField("bonus")}
@@ -164,6 +167,7 @@ export function QuickActionPopover({
               label="Deducción"
               icon={Minus}
               tone="red"
+              currencyLabel={currencyLabel}
               value={deductionAmount}
               onChange={setDeductionAmount}
               onFocus={() => setActiveField("deduction")}
@@ -184,6 +188,7 @@ function AdjustRow({
   label,
   icon: Icon,
   tone,
+  currencyLabel,
   value,
   onChange,
   onFocus,
@@ -195,6 +200,7 @@ function AdjustRow({
   label: string
   icon: typeof Plus
   tone: "emerald" | "red"
+  currencyLabel: string
   value: string
   onChange: (v: string) => void
   onFocus: () => void
@@ -219,7 +225,7 @@ function AdjustRow({
       </div>
       <div className="flex gap-2">
         <div className="relative flex-1">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">Bs</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{currencyLabel}</span>
           <input
             type="number"
             min="0"

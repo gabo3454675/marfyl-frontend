@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { Check, Loader2, Receipt, DollarSign, Users, TrendingUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { calculateEmployeeSalary, calculateTotalPayroll, type PayrollEmployee } from "@/types/payroll"
+import { calculateTotalPayroll, formatPayrollTotals, type PayrollEmployee } from "@/types/payroll"
 
 interface PayrollModalProps {
   isOpen: boolean
@@ -12,10 +12,6 @@ interface PayrollModalProps {
   employees: PayrollEmployee[]
   onProcess: () => Promise<void>
   isProcessing?: boolean
-}
-
-function formatCurrency(amount: number): string {
-  return `Bs ${amount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}`
 }
 
 export function PayrollModal({
@@ -38,29 +34,52 @@ export function PayrollModal({
   }, [isOpen])
 
   const totals = useMemo(() => {
-    let totalFixed = 0
-    let totalCommission = 0
-    let totalBonuses = 0
-    let totalDeductions = 0
+    let totalFixedUsd = 0
+    let totalFixedVes = 0
+    let totalCommissionUsd = 0
+    let totalCommissionVes = 0
+    let totalBonusesUsd = 0
+    let totalBonusesVes = 0
+    let totalDeductionsUsd = 0
+    let totalDeductionsVes = 0
 
     employees.forEach((emp) => {
+      const isVes = emp.payCurrency === "VES"
       if (emp.type === "fixed" || emp.type === "hourly") {
         let base = emp.baseSalary
         if (emp.type === "hourly" && emp.hoursWorked) {
           base = base * emp.hoursWorked
         }
-        totalFixed += base
+        if (isVes) totalFixedVes += base
+        else totalFixedUsd += base
       } else if (emp.type === "commission") {
-        totalCommission += emp.baseSalary + emp.baseSalary * ((emp.commission ?? 0) / 100)
+        const comm = emp.baseSalary + emp.baseSalary * ((emp.commission ?? 0) / 100)
+        if (isVes) totalCommissionVes += comm
+        else totalCommissionUsd += comm
       }
-      totalBonuses += emp.bonuses
-      totalDeductions += emp.deductions
+      if (isVes) {
+        totalBonusesVes += emp.bonuses
+        totalDeductionsVes += emp.deductions
+      } else {
+        totalBonusesUsd += emp.bonuses
+        totalDeductionsUsd += emp.deductions
+      }
     })
 
-    return { totalFixed, totalCommission, totalBonuses, totalDeductions, employeeCount: employees.length }
+    return {
+      totalFixedUsd,
+      totalFixedVes,
+      totalCommissionUsd,
+      totalCommissionVes,
+      totalBonusesUsd,
+      totalBonusesVes,
+      totalDeductionsUsd,
+      totalDeductionsVes,
+      employeeCount: employees.length,
+    }
   }, [employees])
 
-  const grandTotal = useMemo(() => calculateTotalPayroll(employees), [employees])
+  const grandTotals = useMemo(() => calculateTotalPayroll(employees), [employees])
 
   const handleProcess = async () => {
     setLocalProcessing(true)
@@ -76,13 +95,13 @@ export function PayrollModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-background/95 backdrop-blur-sm sm:items-center sm:justify-center sm:bg-black/60 sm:p-4">
-      <div className="absolute inset-0 hidden sm:block" onClick={onClose} aria-hidden />
+    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
 
       <div
         className={cn(
-          "relative flex min-h-0 flex-1 flex-col overflow-hidden border bg-card shadow-2xl",
-          "sm:max-h-[min(90dvh,640px)] sm:w-full sm:max-w-md sm:flex-none sm:rounded-2xl",
+          "relative flex w-full max-w-md flex-col overflow-hidden border bg-card shadow-2xl",
+          "max-h-[min(92dvh,640px)] rounded-t-2xl sm:rounded-2xl",
         )}
       >
         {isComplete && (
@@ -120,7 +139,7 @@ export function PayrollModal({
                 <DollarSign className="h-3.5 w-3.5" />
                 Total
               </div>
-              <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(grandTotal)}</p>
+              <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{formatPayrollTotals(grandTotals)}</p>
             </div>
           </div>
 
@@ -130,31 +149,49 @@ export function PayrollModal({
               Desglose
             </div>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Sueldos Fijos</span>
-                <span className="font-medium">{formatCurrency(totals.totalFixed)}</span>
-              </div>
-              {totals.totalCommission > 0 && (
+              {(totals.totalFixedUsd > 0 || totals.totalFixedVes > 0) && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Sueldos fijos</span>
+                  <span className="font-medium text-right">
+                    {totals.totalFixedUsd > 0 && `$ ${totals.totalFixedUsd.toLocaleString("es-VE", { minimumFractionDigits: 2 })}`}
+                    {totals.totalFixedUsd > 0 && totals.totalFixedVes > 0 && " · "}
+                    {totals.totalFixedVes > 0 && `Bs ${totals.totalFixedVes.toLocaleString("es-VE", { minimumFractionDigits: 2 })}`}
+                  </span>
+                </div>
+              )}
+              {(totals.totalCommissionUsd > 0 || totals.totalCommissionVes > 0) && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Comisiones</span>
-                  <span className="font-medium">{formatCurrency(totals.totalCommission)}</span>
+                  <span className="font-medium text-right">
+                    {totals.totalCommissionUsd > 0 && `$ ${totals.totalCommissionUsd.toLocaleString("es-VE", { minimumFractionDigits: 2 })}`}
+                    {totals.totalCommissionUsd > 0 && totals.totalCommissionVes > 0 && " · "}
+                    {totals.totalCommissionVes > 0 && `Bs ${totals.totalCommissionVes.toLocaleString("es-VE", { minimumFractionDigits: 2 })}`}
+                  </span>
                 </div>
               )}
-              {totals.totalBonuses > 0 && (
+              {(totals.totalBonusesUsd > 0 || totals.totalBonusesVes > 0) && (
                 <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
                   <span>+ Bonificaciones</span>
-                  <span className="font-medium">{formatCurrency(totals.totalBonuses)}</span>
+                  <span className="font-medium text-right">
+                    {totals.totalBonusesUsd > 0 && `$ ${totals.totalBonusesUsd.toLocaleString("es-VE", { minimumFractionDigits: 2 })}`}
+                    {totals.totalBonusesUsd > 0 && totals.totalBonusesVes > 0 && " · "}
+                    {totals.totalBonusesVes > 0 && `Bs ${totals.totalBonusesVes.toLocaleString("es-VE", { minimumFractionDigits: 2 })}`}
+                  </span>
                 </div>
               )}
-              {totals.totalDeductions > 0 && (
+              {(totals.totalDeductionsUsd > 0 || totals.totalDeductionsVes > 0) && (
                 <div className="flex justify-between text-red-500">
                   <span>- Deducciones</span>
-                  <span className="font-medium">{formatCurrency(totals.totalDeductions)}</span>
+                  <span className="font-medium text-right">
+                    {totals.totalDeductionsUsd > 0 && `$ ${totals.totalDeductionsUsd.toLocaleString("es-VE", { minimumFractionDigits: 2 })}`}
+                    {totals.totalDeductionsUsd > 0 && totals.totalDeductionsVes > 0 && " · "}
+                    {totals.totalDeductionsVes > 0 && `Bs ${totals.totalDeductionsVes.toLocaleString("es-VE", { minimumFractionDigits: 2 })}`}
+                  </span>
                 </div>
               )}
               <div className="flex justify-between border-t pt-2 font-semibold">
-                <span>Neto a Pagar</span>
-                <span className="text-emerald-600 dark:text-emerald-400">{formatCurrency(grandTotal)}</span>
+                <span>Neto a pagar</span>
+                <span className="text-emerald-600 dark:text-emerald-400">{formatPayrollTotals(grandTotals)}</span>
               </div>
             </div>
           </div>

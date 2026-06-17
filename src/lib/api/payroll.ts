@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { PayrollEmployee, PayrollHistoryEntry } from '@/types/payroll';
+import type { PayrollEmployee, PayrollHistoryEntry, PayrollCurrency } from '@/types/payroll';
 
 export interface PayrollEmployeeDto {
   id: number;
@@ -9,6 +9,7 @@ export interface PayrollEmployeeDto {
   avatar: string | null;
   role: string;
   type: 'fixed' | 'commission' | 'hourly';
+  payCurrency: PayrollCurrency;
   baseSalary: number;
   commission?: number;
   hoursWorked?: number;
@@ -27,7 +28,7 @@ export interface PayrollRunDto {
   status: string;
   createdAt: string;
   processedBy: string | null;
-  lines: { id: number; employeeName: string; amount: number; date: string }[];
+  lines: { id: number; employeeName: string; amount: number; payCurrency?: PayrollCurrency; date: string }[];
 }
 
 export interface ProcessPayrollResult {
@@ -45,6 +46,7 @@ function dtoToEmployee(d: PayrollEmployeeDto): PayrollEmployee {
     avatar: d.avatar,
     role: d.role,
     type: d.type,
+    payCurrency: d.payCurrency ?? 'USD',
     baseSalary: d.baseSalary,
     commission: d.commission,
     hoursWorked: d.hoursWorked,
@@ -63,6 +65,7 @@ function runsToHistory(runs: PayrollRunDto[]): PayrollHistoryEntry[] {
         runId: run.id,
         date: line.date,
         amount: line.amount,
+        payCurrency: line.payCurrency ?? 'USD',
         description: `Nómina - ${line.employeeName} - ${run.periodLabel}`,
         employeeName: line.employeeName,
         periodLabel: run.periodLabel,
@@ -90,6 +93,14 @@ export const payrollService = {
     const res = await apiClient.post<PayrollEmployeeDto>(
       `/payroll/profiles/${memberId}/adjust`,
       { deductionAmount },
+    );
+    return dtoToEmployee(res.data);
+  },
+
+  async updateCurrency(memberId: number, payCurrency: PayrollCurrency): Promise<PayrollEmployee> {
+    const res = await apiClient.patch<PayrollEmployeeDto>(
+      `/payroll/profiles/${memberId}`,
+      { payCurrency },
     );
     return dtoToEmployee(res.data);
   },
