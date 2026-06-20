@@ -59,45 +59,86 @@ export const MARKETING_NAV = [
 
 export const MARKETING_HOME = {
   hero: {
-    eyebrow: 'SaaS B2B · Venezuela',
-    title: 'Gestión operativa y fiscal en un solo sistema',
+    eyebrow: 'MARFYL · Inteligencia Fiscal Proactiva',
+    title: 'Blindaje fiscal proactivo para empresas en Venezuela.',
     subtitle:
-      'POS táctil, inventario, facturación bimoneda y cumplimiento SENIAT para retail, distribución y servicios. Diseñado para dueños, cajeros y contadores.',
-    primaryCta: { label: 'Iniciar sesión', href: '/login' },
+      'Monitoreo automatizado del COT y normativas del SENIAT que detecta riesgos antes de que se conviertan en multas. Respuestas con precisión legal en milisegundos.',
+    primaryCta: { label: 'Comenzar ahora', href: '/register' },
     secondaryCta: { label: 'Solicitar demo', href: PRICING_TEASER.mailto },
   },
   features: [
     {
-      title: 'POS y conciliación bimoneda',
+      title: 'Calendario de Contribuyentes Especiales',
       description:
-        'Ventas en USD y Bs con Pago Móvil, Zelle y efectivo. Cierre de caja con conciliación por método y moneda.',
+        'Monitoreo automatizado de vencimientos según perfil RIF. Alertas preventivas con severidad y acción recomendada.',
     },
     {
-      title: 'Módulo fiscal SENIAT',
+      title: 'Auditoría preventiva Providencia 0071',
       description:
-        'Calendario de obligaciones, libros de venta y compra, retenciones IVA, perfil RIF y alertas de cumplimiento.',
+        'Validación continua de facturación electrónica. Detección de riesgo de clausura antes de una fiscalización.',
     },
     {
-      title: 'Inventario y alertas',
+      title: 'Cálculo inmediato de sanciones',
       description:
-        'Stock mínimo, movimientos, autoconsumo y avisos antes de quedarte sin productos críticos.',
+        'Indexación BCV actualizada. Simulación de multas en USD y Bs con base en el COT vigente.',
     },
   ],
   highlights: [
-    'Multi-rol: dueño, cajero y perfil fiscal',
-    'Cuentas por cobrar y por pagar',
-    'Tasa BCV y operaciones en bolívares',
-    'Asistente IA para dudas fiscales operativas',
+    'RAG sincronizado con COT y Gacetas Oficiales',
+    'Respuestas con citas legales exactas en milisegundos',
+    'Cero alucinaciones: 100% apego a la normativa',
+    'Asesor proactivo: advierte antes de la multa',
   ],
   trust: [
-    { label: 'Enfoque Venezuela', detail: 'RIF, SENIAT y métodos de pago locales' },
-    { label: 'Datos por organización', detail: 'Multi-tenant con permisos por rol' },
-    { label: 'Normativa versionada', detail: 'Actualización de reglas sin reescribir la app' },
+    { label: 'Precisión quirúrgica', detail: 'Citas textuales al artículo y parágrafo del COT' },
+    { label: 'Velocidad Groq', detail: 'Inferencia promedio de 140ms por consulta' },
+    { label: 'Arquitectura RAG', detail: 'Conocimiento sincronizado con Gacetas Oficiales' },
   ],
+  painPoints: [
+    {
+      title: 'Calendario de Contribuyentes Especiales automatizado',
+      description: 'Olvídate de llevar planillas Excel. Marfyl monitorea los vencimientos según tu perfil RIF y te alerta con antelación.',
+      metric: '100%',
+      metricLabel: 'Alertas preventivas',
+    },
+    {
+      title: 'Auditoría preventiva Providencia 0071',
+      description: 'Validación automática del formato de facturación electrónica. Detecta riesgos de clausura antes de una fiscalización.',
+      metric: '0',
+      metricLabel: 'Riesgos de multas por forma',
+    },
+    {
+      title: 'Cálculo de sanciones en moneda real',
+      description: 'Indexa automáticamente las multas al tipo de cambio oficial BCV de mayor valor, sin aproximaciones.',
+      metric: 'BCV',
+      metricLabel: 'Tasa oficial en tiempo real',
+    },
+    {
+      title: 'Simulador de escenarios fiscales',
+      description: 'Evalúa el impacto financiero de distintas decisiones tributarias antes de ejecutarlas.',
+      metric: '< 200ms',
+      metricLabel: 'Por consulta',
+    },
+  ],
+  simulatorQuestions: [
+    '¿Qué sanción aplica por declarar IVA con 3 días de retraso siendo Contribuyente Especial?',
+    '¿Puedo emitir facturas en Excel sin máquina fiscal bajo la Providencia 0071?',
+    '¿Qué pasa si no retengo el ISLR a mi proveedor?',
+  ],
+  architecture: {
+    title: 'Arquitectura técnica',
+    subtitle: 'Sincronizado nativamente con el Código Orgánico Tributario y Gacetas Oficiales. Cero alucinaciones, 100% apego legal.',
+    steps: [
+      { label: 'Gacetas Oficiales', description: 'Ingesta automatizada de normativas' },
+      { label: 'Embeddings Cohere', description: 'Vectorización semántica multilingual 1024d' },
+      { label: 'pgvector + HNSW', description: 'Búsqueda por similitud coseno en ms' },
+      { label: 'Groq Llama 3.3', description: 'Inferencia con contexto legal preciso' },
+    ],
+  },
   cta: {
-    title: '¿Listo para operar con más control?',
-    subtitle: 'Agenda una demo o activa tu prueba con el equipo MARFYL.',
-    primary: { label: 'Crear cuenta', href: '/register' },
+    title: 'Blinda tu empresa antes de la próxima multa',
+    subtitle: 'Agenda una demo técnica o activa tu prueba inmediata con el equipo MARFYL.',
+    primary: { label: 'Activar prueba', href: '/register' },
     secondary: { label: PRICING_TEASER.contactLabel, href: PRICING_TEASER.mailto },
   },
 } as const;

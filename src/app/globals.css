@@ -2698,3 +2698,543 @@ html {
   border-radius: 18px 18px 18px 4px;
   box-shadow: 0 1px 3px hsla(0, 0%, 0%, 0.1);
 }
+
+/* ══════════════════════════════════════════════
+   MARFYL LANDING — Dark Industrial Theme
+   Fondo #0c0d10 + acentos esmeralda
+   ══════════════════════════════════════════════ */
+
+.dark .markyl-hero {
+  --markyl-bg: #0c0d10;
+  --markyl-surface: #131418;
+  --markyl-border: rgba(255, 255, 255, 0.06);
+  --markyl-text: #f0f0f0;
+  --markyl-muted: rgba(255, 255, 255, 0.5);
+  --markyl-emerald: #10b981;
+  --markyl-emerald-dim: rgba(16, 185, 129, 0.15);
+  background: var(--markyl-bg);
+}
+
+.markyl-hero {
+  @apply relative isolate overflow-hidden;
+  min-height: min(78vh, 640px);
+  padding-top: 2rem;
+  padding-bottom: 3rem;
+  background: #0c0d10;
+}
+
+@media (min-width: 768px) {
+  .markyl-hero {
+    min-height: min(88vh, 720px);
+    padding-top: 4rem;
+    padding-bottom: 5rem;
+  }
+}
+
+.markyl-hero__grid {
+  @apply relative z-[3] grid gap-10 items-center;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+  .markyl-hero__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.markyl-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 1rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.markyl-hero-title {
+  margin-top: 1.25rem;
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: #f0f0f0;
+}
+
+@media (min-width: 640px) {
+  .markyl-hero-title {
+    font-size: 3rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .markyl-hero-title {
+    font-size: 3.75rem;
+  }
+}
+
+.markyl-hero-subtitle {
+  margin-top: 1rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.55);
+  max-width: 32rem;
+}
+
+.markyl-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.markyl-cta {
+  background: #10b981;
+  color: #0c0d10;
+  font-weight: 700;
+  border: none;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1) inset, 0 8px 24px rgba(16, 185, 129, 0.3);
+  transition: all 0.2s ease;
+}
+
+.markyl-cta:hover {
+  background: #059669;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1) inset, 0 12px 32px rgba(16, 185, 129, 0.4);
+}
+
+.markyl-outline-btn {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f0f0f0;
+  background: transparent;
+}
+
+.markyl-outline-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* ── Chat Simulator ───────────────────────── */
+
+.markyl-chat-simulator {
+  background: #131418;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.markyl-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.markyl-chat-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.markyl-chat-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #10b981;
+  color: #0c0d10;
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+.markyl-chat-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #f0f0f0;
+}
+
+.markyl-chat-status {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.markyl-chat-badge {
+  font-size: 0.625rem;
+  font-weight: 500;
+  padding: 0.25rem 0.625rem;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  white-space: nowrap;
+  animation: fadeIn 0.4s ease;
+}
+
+.markyl-chat-messages {
+  padding: 1rem;
+  max-height: 420px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.markyl-chat-welcome {
+  padding: 1.5rem 0.5rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.markyl-chat-question-btn {
+  width: 100%;
+  text-align: left;
+  padding: 0.625rem 0.875rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.markyl-chat-question-btn:hover {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.2);
+  color: #f0f0f0;
+}
+
+.markyl-chat-message {
+  display: flex;
+  gap: 0.625rem;
+  max-width: 92%;
+}
+
+.markyl-chat-message--user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.markyl-chat-message--assistant {
+  align-self: flex-start;
+}
+
+.markyl-chat-message-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: #10b981;
+  color: #0c0d10;
+  font-size: 0.65rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.markyl-chat-bubble {
+  padding: 0.625rem 0.875rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.markyl-chat-message--user .markyl-chat-bubble {
+  background: #10b981;
+  color: #0c0d10;
+  border-bottom-right-radius: 4px;
+}
+
+.markyl-chat-message--assistant .markyl-chat-bubble {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom-left-radius: 4px;
+}
+
+.markyl-chat-bubble--streaming {
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.markyl-chat-cursor {
+  display: inline-block;
+  width: 6px;
+  height: 14px;
+  background: #10b981;
+  margin-left: 2px;
+  animation: blink-cursor 0.8s step-end infinite;
+  vertical-align: text-bottom;
+}
+
+@keyframes blink-cursor {
+  50% { opacity: 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Bento Grid Section ───────────────────── */
+
+.markyl-bento-section {
+  padding: 5rem 0;
+  background: #0c0d10;
+}
+
+.markyl-bento-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+@media (min-width: 640px) {
+  .markyl-bento-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .markyl-bento-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.markyl-bento-card {
+  padding: 1.5rem;
+  border-radius: 16px;
+  background: #131418;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.markyl-bento-card:hover {
+  border-color: rgba(16, 185, 129, 0.2);
+  background: rgba(16, 185, 129, 0.03);
+  transform: translateY(-2px);
+}
+
+.markyl-bento-card--featured {
+  border-color: rgba(16, 185, 129, 0.15);
+  background: rgba(16, 185, 129, 0.04);
+}
+
+@media (min-width: 640px) {
+  .markyl-bento-card--featured {
+    grid-column: span 2;
+  }
+}
+
+.markyl-bento-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+}
+
+.markyl-bento-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f0f0f0;
+  line-height: 1.3;
+}
+
+.markyl-bento-desc {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.5;
+  flex: 1;
+}
+
+.markyl-bento-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.markyl-bento-metric-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #10b981;
+  line-height: 1;
+}
+
+.markyl-bento-metric-label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* ── Section (Alt) ───────────────────────── */
+
+.markyl-section {
+  padding: 5rem 0;
+  background: #0c0d10;
+}
+
+.markyl-section--alt {
+  background: #0e0f14;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.markyl-section-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #10b981;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.markyl-section-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #f0f0f0;
+}
+
+@media (min-width: 768px) {
+  .markyl-section-title {
+    font-size: 2.25rem;
+  }
+}
+
+/* ── Architecture Section ────────────────── */
+
+.markyl-arch-section {
+  padding: 5rem 0;
+  background: #0c0d10;
+}
+
+.markyl-arch-subtitle {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  max-width: 36rem;
+  margin: 0 auto 3rem;
+  line-height: 1.6;
+}
+
+.markyl-arch-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .markyl-arch-flow {
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+  }
+}
+
+.markyl-arch-step {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  flex: 1;
+}
+
+.markyl-arch-step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.markyl-arch-step-content {
+  flex: 1;
+}
+
+.markyl-arch-step-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #f0f0f0;
+}
+
+.markyl-arch-step-desc {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 0.125rem;
+}
+
+.markyl-arch-arrow {
+  display: none;
+  color: rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .markyl-arch-arrow {
+    display: flex;
+    margin: 0 0.5rem;
+  }
+}
+
+.markyl-arch-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  margin: 2.5rem auto 0;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.hover-lust {
+  transition: all 0.3s ease;
+}
+.hover-lust:hover {
+  border-color: rgba(16, 185, 129, 0.2);
+  background: rgba(16, 185, 129, 0.04);
+  transform: translateY(-2px);
+}
