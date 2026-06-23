@@ -53,7 +53,7 @@ export function MarketingNavbar() {
           <Button variant="ghost" size="sm" asChild>
             <Link href="/login">Iniciar sesión</Link>
           </Button>
-          <Button size="sm" className="marketing-cta border-0" asChild>
+          <Button size="sm" className="markyl-cta border-0 !text-[#0c0d10]" asChild>
             <Link href="/register">Crear cuenta</Link>
           </Button>
         </div>
@@ -109,7 +109,7 @@ export function MarketingNavbar() {
                 <Button variant="outline" className="w-full min-h-[44px]" asChild>
                   <Link href="/login">Iniciar sesión</Link>
                 </Button>
-                <Button className="marketing-cta border-0 w-full min-h-[44px]" asChild>
+                <Button className="markyl-cta border-0 w-full min-h-[44px] !text-[#0c0d10]" asChild>
                   <Link href="/register">Crear cuenta</Link>
                 </Button>
               </div>

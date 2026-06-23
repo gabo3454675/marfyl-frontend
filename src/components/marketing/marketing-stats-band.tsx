@@ -24,7 +24,7 @@ export function MarketingStatsBand() {
   const { tags, title, subtitle, cta, items } = MARKETING_STATS;
 
   return (
-    <section className="marketing-stats-band">
+    <section className="markyl-stats-band">
       <div className="marketing-stats-band__fx" aria-hidden>
         <GradientBlinds
           gradientColors={[...MARFYL_GRADIENT_COLORS]}
@@ -41,35 +41,35 @@ export function MarketingStatsBand() {
           mixBlendMode="lighten"
         />
       </div>
-      <div className="marketing-stats-band__veil" aria-hidden />
-      <div className="marketing-container marketing-stats-band__content">
-        <MarketingStagger className="marketing-stats-clients">
+      <div className="markyl-stats-band__veil" aria-hidden />
+      <div className="marketing-container markyl-stats-band__content">
+        <MarketingStagger className="markyl-stats-clients">
           {FOUNDING_CLIENTS.map((client) => (
             <MarketingStaggerItem key={client.slug}>
-              <div className="marketing-stats-client">
-                <span className="marketing-stats-client__name">{client.name}</span>
-                <span className="marketing-stats-client__sector">{client.sector}</span>
+              <div className="markyl-stats-client">
+                <span className="markyl-stats-client__name">{client.name}</span>
+                <span className="markyl-stats-client__sector">{client.sector}</span>
               </div>
             </MarketingStaggerItem>
           ))}
         </MarketingStagger>
 
-        <div className="marketing-stats-layout">
-          <MarketingReveal variant="slide-right" className="marketing-stats-copy">
-            <div className="marketing-stats-tags">
+        <div className="markyl-stats-layout">
+          <MarketingReveal variant="slide-right" className="markyl-stats-copy">
+            <div className="markyl-stats-tags">
               {tags.map((tag) => {
                 const Icon = TAG_ICONS[tag.icon];
                 return (
-                  <span key={tag.label} className="marketing-stats-tag">
+                  <span key={tag.label} className="markyl-stats-tag">
                     <Icon className="h-3.5 w-3.5" aria-hidden />
                     {tag.label}
                   </span>
                 );
               })}
             </div>
-            <h2 className="marketing-stats-title">{title}</h2>
-            <p className="marketing-stats-subtitle">{subtitle}</p>
-            <Button size="lg" variant="secondary" className="marketing-stats-cta" asChild>
+            <h2 className="markyl-stats-title">{title}</h2>
+            <p className="markyl-stats-subtitle">{subtitle}</p>
+            <Button size="lg" variant="secondary" className="markyl-stats-cta" asChild>
               <Link href={cta.href}>
                 {cta.label}
                 <Zap className="ml-2 h-4 w-4" />
@@ -77,13 +77,13 @@ export function MarketingStatsBand() {
             </Button>
           </MarketingReveal>
 
-          <MarketingStagger className="marketing-stats-grid">
+          <MarketingStagger className="markyl-stats-grid">
             {items.map((item) => (
               <MarketingStaggerItem key={item.label}>
-                <div className="marketing-stats-card h-full">
-                  <p className="marketing-stats-card__value">{item.value}</p>
-                  <p className="marketing-stats-card__label">{item.label}</p>
-                  <p className="marketing-stats-card__detail">{item.detail}</p>
+                <div className="markyl-stats-card h-full">
+                  <p className="markyl-stats-card__value">{item.value}</p>
+                  <p className="markyl-stats-card__label">{item.label}</p>
+                  <p className="markyl-stats-card__detail">{item.detail}</p>
                 </div>
               </MarketingStaggerItem>
             ))}

@@ -24,7 +24,7 @@ export function DmSurface({
     <Tag
       data-dm-zone={zone}
       className={cn(
-        'dm-surface dm-surface-shimmer relative overflow-hidden',
+        'dm-surface dm-surface-shimmer relative',
         elevation === 'sm' && 'dm-elev-sm',
         elevation === 'md' && 'dm-elev-md',
         elevation === 'lg' && 'dm-elev-lg',

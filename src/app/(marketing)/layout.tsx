@@ -23,7 +23,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         <MarketingNavbar />
         <MarketingPreviewBar />
       </div>
-      <main className="marketing-main mesh-gradient-bg bg-[hsl(var(--background))]">
+      <main className="marketing-main">
         <MarketingPageTransition>
           <div className="marketing-page-flow">{children}</div>
           <MarketingFooter />

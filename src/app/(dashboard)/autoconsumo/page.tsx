@@ -2,20 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-} from 'recharts';
+  LazyAreaChart as AreaChart,
+  LazyArea as Area,
+  LazyBarChart as BarChart,
+  LazyBar as Bar,
+  LazyXAxis as XAxis,
+  LazyYAxis as YAxis,
+  LazyCartesianGrid as CartesianGrid,
+  LazyTooltip as Tooltip,
+  LazyResponsiveContainer as ResponsiveContainer,
+  LazyPieChart as PieChart,
+  LazyPie as Pie,
+  LazyCell as Cell,
+  LazyLegend as Legend,
+} from '@/components/charts/recharts-lazy';
 import { Loader2, PackageMinus, TrendingDown } from 'lucide-react';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard } from '@/components/admin/admin-card';
@@ -132,15 +132,15 @@ export default function AutoconsumoPage() {
                 <XAxis
                   dataKey="date"
                   tick={{ fontSize: 12 }}
-                  tickFormatter={(v) => {
+                  tickFormatter={(v: string | number) => {
                     const d = new Date(v);
                     return `${d.getDate()}/${d.getMonth() + 1}`;
                   }}
                 />
-                <YAxis tickFormatter={(v) => formatCurrency(v)} tick={{ fontSize: 12 }} />
+                <YAxis tickFormatter={(v: number) => formatCurrency(v)} tick={{ fontSize: 12 }} />
                 <Tooltip
                   formatter={(value: number) => [formatCurrency(value), 'Costo']}
-                  labelFormatter={(label) => new Date(label).toLocaleDateString('es-VE')}
+                  labelFormatter={(label: string) => new Date(label).toLocaleDateString('es-VE')}
                 />
                 <Area
                   type="monotone"
@@ -170,7 +170,7 @@ export default function AutoconsumoPage() {
                   margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis type="number" tickFormatter={(v) => formatCurrency(v)} />
+                  <XAxis type="number" tickFormatter={(v: number) => formatCurrency(v)} />
                   <YAxis
                     type="category"
                     dataKey="productName"
@@ -179,7 +179,9 @@ export default function AutoconsumoPage() {
                   />
                   <Tooltip
                     formatter={(value: number) => formatCurrency(value)}
-                    labelFormatter={(_, payload) => payload?.[0]?.payload?.productName}
+                    labelFormatter={(_: string, payload: Array<{ payload?: { productName?: string } }>) =>
+                      payload?.[0]?.payload?.productName
+                    }
                   />
                   <Bar
                     dataKey="totalCost"
@@ -209,7 +211,7 @@ export default function AutoconsumoPage() {
                     paddingAngle={2}
                     dataKey="value"
                     nameKey="name"
-                    label={({ name, percent }) =>
+                    label={({ name, percent }: { name: string; percent: number }) =>
                       `${name} ${(percent * 100).toFixed(0)}%`
                     }
                   >
@@ -219,7 +221,13 @@ export default function AutoconsumoPage() {
                   </Pie>
                   <Tooltip
                     formatter={(value: number) => formatCurrency(value)}
-                    content={({ active, payload }) =>
+                    content={({
+                      active,
+                      payload,
+                    }: {
+                      active?: boolean;
+                      payload?: Array<{ name?: string; value?: number; payload?: { count: number } }>;
+                    }) =>
                       active && payload?.[0] ? (
                         <div className="rounded-lg border bg-background p-3 shadow-md">
                           <p className="font-medium">{payload[0].name}</p>

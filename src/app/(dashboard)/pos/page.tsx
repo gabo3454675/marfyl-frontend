@@ -752,7 +752,7 @@ export default function POSPage() {
                 </div>
               ) : (
                 <div className="admin-pos-catalog-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3 md:grid-cols-3 md:gap-4">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4 xl:gap-5">
                     {filteredProducts.map((product) => (
                       <div
                         key={product.id}

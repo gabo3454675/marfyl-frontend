@@ -27,7 +27,7 @@ export function AdminCard({
   const hasHeader = title || description || headerActions;
 
   return (
-    <AdminPanel zone={zone} elevation={elevation} className={cn('admin-card overflow-hidden', className)}>
+    <AdminPanel zone={zone} elevation={elevation} className={cn('admin-card', className)}>
       {hasHeader ? (
         <div
           className={cn(
@@ -80,7 +80,7 @@ export function AdminChartCard({
       zone={zone}
       title={title}
       description={description}
-      className={cn('overflow-hidden', className)}
+      className={className}
       bodyClassName={cn('pt-0 sm:pt-0', bodyClassName)}
     >
       {children}
