@@ -100,15 +100,21 @@ export function MarketingChatSimulator() {
       <div className="markyl-chat-messages">
         {messages.length === 0 && !isStreaming && (
           <div className="markyl-chat-welcome">
-            <p className="text-sm font-medium mb-2">Selecciona una consulta para ver a Marfyl en acción:</p>
+            <p className="mb-2 text-sm font-medium leading-snug sm:text-center">
+              Toca una consulta para ver a Marfyl en acción:
+            </p>
             <div className="flex flex-col gap-2">
               {Object.keys(RESPONSES).map((q) => (
                 <button
                   key={q}
+                  type="button"
                   onClick={() => handleQuestionClick(q)}
                   className="markyl-chat-question-btn"
                 >
-                  <span className="text-xs opacity-70">❯</span> {q}
+                  <span className="text-xs opacity-70" aria-hidden>
+                    ❯
+                  </span>
+                  <span className="line-clamp-3 text-left">{q}</span>
                 </button>
               ))}
             </div>

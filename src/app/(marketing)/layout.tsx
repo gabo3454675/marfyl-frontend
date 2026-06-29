@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="marketing-root">
+    <div className="marketing-root dark">
       <DmAmbientMotion palette="a" intensity="subtle" />
       <div className="marketing-chrome">
         <MarketingNavbar />
