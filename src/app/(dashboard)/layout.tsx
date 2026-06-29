@@ -14,6 +14,7 @@ import { AssistantProvider } from '@/components/assistant/assistant-provider';
 import { DmAmbientMotion } from '@/components/ui/dm-ambient-motion';
 import { DevAppSwitcher } from '@/components/marketing/dev-app-switcher';
 import { useSync } from '@/hooks/useSync';
+import { usePermission } from '@/hooks/usePermission';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
@@ -32,8 +33,10 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname() ?? '';
+  const permissions = usePermission();
+  const isPosOnlySeller = permissions.isPosOnlySeller;
   const isAssistantRoute = pathname === '/assistant' || pathname.startsWith('/assistant/');
-  const isPosRoute = pathname === '/pos';
+  const isPosRoute = pathname === '/pos' || isPosOnlySeller;
   const devPreview = isFiscalPreviewMode();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const hasHydrated = useAuthStore((state) => state._hasHydrated);
@@ -189,6 +192,15 @@ export default function DashboardLayout({
     }
   }, [mounted, hasHydrated, isAuthenticated, selectedId, hasOrganizations, user, router, pathname, devPreview]);
 
+  /** Cajero (SELLER): solo POS a pantalla completa */
+  useEffect(() => {
+    if (!mounted || !hasHydrated || !isAuthenticated || devPreview) return;
+    if (!isPosOnlySeller) return;
+    if (pathname !== '/pos') {
+      router.replace('/pos');
+    }
+  }, [mounted, hasHydrated, isAuthenticated, isPosOnlySeller, pathname, router, devPreview]);
+
   // Mientras se carga o hidrata, mostrar un estado de carga
   if (!mounted || !hasHydrated) {
     return (
@@ -242,15 +254,22 @@ export default function DashboardLayout({
     <NotificationFeedProvider>
       <AssistantProvider>
       <>
-      <div className="dm-app-shell flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden md:flex-row md:gap-0">
-        <DmAmbientMotion palette="a" intensity="subtle" />
+      <div
+        className={cn(
+          'dm-app-shell flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden md:flex-row md:gap-0',
+          isPosOnlySeller && 'dm-app-shell--pos-only',
+        )}
+      >
+        {!isPosOnlySeller && <DmAmbientMotion palette="a" intensity="subtle" />}
         {/* Desktop Sidebar */}
-        <Sidebar />
+        {!isPosOnlySeller && <Sidebar />}
 
         {/* Main Content */}
         <main className="admin-main-pane flex flex-1 flex-col min-h-0 min-w-0 w-full bg-background">
-          <AdminTopbar onOpenRateConfig={() => setRateConfigModalOpen(true)} />
-          {devPreview && <DevAppSwitcher />}
+          {!isPosOnlySeller && (
+            <AdminTopbar onOpenRateConfig={() => setRateConfigModalOpen(true)} />
+          )}
+          {devPreview && !isPosOnlySeller && <DevAppSwitcher />}
           <div
             className={
               isAssistantRoute
@@ -270,15 +289,18 @@ export default function DashboardLayout({
           </div>
         </main>
 
-        {/* Modal de configuración de tasa (abierto desde el indicador o la campanita) */}
-        <RateConfigModal open={rateConfigModalOpen} onOpenChange={setRateConfigModalOpen} />
+        {!isPosOnlySeller && (
+          <RateConfigModal open={rateConfigModalOpen} onOpenChange={setRateConfigModalOpen} />
+        )}
 
         {/* Mobile Bottom Navigation */}
-        <BottomNav />
+        {!isPosOnlySeller && <BottomNav />}
       </div>
 
       {/* Fuera del flex shell: evita recorte por overflow-hidden en desktop */}
-      {!isAssistantRoute && <MarfylAssistant hideOnMobile={isPosRoute} />}
+      {!isAssistantRoute && !isPosOnlySeller && (
+        <MarfylAssistant hideOnMobile={pathname === '/pos'} />
+      )}
       </>
       </AssistantProvider>
     </NotificationFeedProvider>

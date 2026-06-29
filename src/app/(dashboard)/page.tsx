@@ -46,8 +46,12 @@ export default function DashboardPage() {
   const { isAuthenticated, user, selectedOrganizationId, selectedCompanyId } = useAuthStore();
   const { myTasks, loading: feedTasksLoading, refetch: refetchFeedTasks } = useNotificationFeed();
   const selectedId = selectedOrganizationId || selectedCompanyId;
-  const { canViewFinancialCharts, isSuperAdmin, isAdmin, isManager } = usePermission();
+  const { canViewFinancialCharts, isSuperAdmin, isAdmin, isManager, isPosOnlySeller } = usePermission();
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (isPosOnlySeller) router.replace('/pos');
+  }, [isPosOnlySeller, router]);
 
   // ── State para datos transformados (demo data, etc.) ──
   const [summary, setSummary] = useState<DashboardSummary>(DEMO_SUMMARY);

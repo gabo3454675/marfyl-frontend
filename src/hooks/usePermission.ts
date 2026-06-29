@@ -71,6 +71,7 @@ export function usePermission() {
         canManageProducts: true,
         canManageInventory: true,
         canManageCustomers: true,
+        isPosOnlySeller: false,
         canViewDashboard: true,
         canViewFinancialCharts: true,
       };
@@ -114,7 +115,9 @@ export function usePermission() {
       canManageProducts: isSuperAdmin || isAdmin || isManager || isWarehouse,
       canManageInventory: isSuperAdmin || isAdmin || isManager || isWarehouse,
       canManageCustomers: isSuperAdmin || isAdmin || isManager || isSeller,
-      canViewDashboard: true,
+      /** Cajero (SELLER): solo POS a pantalla completa, sin menú ni dashboard. */
+      isPosOnlySeller: isSeller && !isSuperAdmin && !isAdmin && !isManager,
+      canViewDashboard: !isSeller || isSuperAdmin || isAdmin || isManager,
       canViewFinancialCharts: isSuperAdmin || isAdmin || isManager,
     };
   }, [currentOrg, isPlatformSuperAdmin]);

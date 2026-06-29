@@ -1227,6 +1227,37 @@
     }
   }
 
+  .dm-app-shell--pos-only .admin-pos-checkout-bar {
+    bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .dm-app-shell--pos-only .admin-pos-mobile-pad {
+    --app-bottom-chrome: 0px;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--app-pos-checkout-h));
+  }
+  .dm-app-shell--pos-only .app-page-shell--pos {
+    @apply p-2 pt-[max(0.5rem,env(safe-area-inset-top))] sm:p-3;
+  }
+  .dm-app-shell--pos-only .admin-pos-page-header {
+    @apply mb-1;
+  }
+  @media (max-width: 390px) {
+    .admin-pos-product-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .admin-pos-product-grid {
+    @apply grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4 xl:gap-5;
+  }
+  .admin-pos-fab-calc {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + var(--app-pos-checkout-h) + 0.75rem);
+    left: max(0.75rem, env(safe-area-inset-left, 0px));
+  }
+  @media (min-width: 1024px) {
+    .admin-pos-fab-calc {
+      bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+    }
+  }
+
   /* POS móvil: catálogo a pantalla completa, sin scroll de página duplicado */
   @media (max-width: 1023px) {
     .app-main-scroll--pos {
