@@ -51,14 +51,23 @@ export function MarketingNavbar() {
         <div className="hidden md:flex items-center gap-2 shrink-0">
           <ThemeToggle variant="compact" />
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/login">Iniciar sesión</Link>
+            <Link href="/login" scroll>
+              Iniciar sesión
+            </Link>
           </Button>
           <Button size="sm" className="markyl-cta border-0 !text-[#0c0d10]" asChild>
-            <Link href="/register">Crear cuenta</Link>
+            <Link href="/register" scroll>
+              Crear cuenta
+            </Link>
           </Button>
         </div>
 
         <div className="flex md:hidden items-center gap-1 shrink-0">
+          <Button variant="ghost" size="sm" className="h-10 px-2.5 text-xs font-semibold" asChild>
+            <Link href="/login" scroll onClick={() => setOpen(false)}>
+              Entrar
+            </Link>
+          </Button>
           <ThemeToggle variant="compact" />
           <button
             type="button"
@@ -107,10 +116,14 @@ export function MarketingNavbar() {
               <div className="marketing-mobile-drawer__actions">
                 <ThemeToggle variant="full" />
                 <Button variant="outline" className="w-full min-h-[44px]" asChild>
-                  <Link href="/login">Iniciar sesión</Link>
+                  <Link href="/login" scroll onClick={() => setOpen(false)}>
+                    Iniciar sesión
+                  </Link>
                 </Button>
                 <Button className="markyl-cta border-0 w-full min-h-[44px] !text-[#0c0d10]" asChild>
-                  <Link href="/register">Crear cuenta</Link>
+                  <Link href="/register" scroll onClick={() => setOpen(false)}>
+                    Crear cuenta
+                  </Link>
                 </Button>
               </div>
             </motion.div>
