@@ -30,8 +30,9 @@ import {
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
 import { AdminStatCard } from '@/components/admin/admin-stat-card';
-import { Plus, Edit, Trash2, Search, Loader2, DollarSign, TrendingDown, Package, Briefcase, FileSpreadsheet, Upload, Download } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Loader2, DollarSign, TrendingDown, Package, Briefcase, FileSpreadsheet, Upload, Download, Camera } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { ReceiptScanSheet } from '@/components/pos/receipt-scan-sheet';
 import apiClient from '@/lib/api';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -130,6 +131,7 @@ export default function ExpensesPage() {
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('expenses');
+  const [receiptScanOpen, setReceiptScanOpen] = useState(false);
   const [catalogProducts, setCatalogProducts] = useState<CatalogProduct[]>([]);
   const [purchaseLines, setPurchaseLines] = useState<
     { productId: string; quantity: string; unitCostUsd: string }[]
@@ -710,6 +712,16 @@ export default function ExpensesPage() {
                     <Download className="mr-2 h-4 w-4" />
                     Descargar plantilla Excel
                   </Button>
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    className="min-h-[44px] cursor-pointer touch-manipulation"
+                    onClick={() => setReceiptScanOpen(true)}
+                  >
+                    <Camera className="mr-2 h-4 w-4" />
+                    Escanear con foto (OCR)
+                  </Button>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
@@ -1247,6 +1259,16 @@ export default function ExpensesPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <ReceiptScanSheet
+          open={receiptScanOpen}
+          onOpenChange={setReceiptScanOpen}
+          categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+          onConfirmed={() => {
+            void fetchExpenses();
+            void fetchStats();
+          }}
+        />
     </AdminPageShell>
   );
 }

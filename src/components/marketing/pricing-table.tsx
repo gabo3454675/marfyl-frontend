@@ -29,8 +29,8 @@ export function PricingCards({ plans }: { plans: PricingPlan[] }) {
             <p className="text-xs marketing-pricing-muted">{plan.priceNote}</p>
             <ul className="mt-6 space-y-2 flex-1">
               {plan.features.map((f) => (
-                <li key={f} className="flex gap-2 text-sm">
-                  <Check className="h-4 w-4 shrink-0 text-[hsl(var(--marketing-accent))]" />
+                <li key={f} className="flex gap-2 text-sm text-[#f0f0f0]/70">
+                  <Check className="h-4 w-4 shrink-0 text-[#10b981]" />
                   {f}
                 </li>
               ))}
@@ -88,8 +88,8 @@ export function PricingComparison({
 
 function CellIcon({ value }: { value: boolean }) {
   return value ? (
-    <Check className="h-4 w-4 mx-auto text-[hsl(var(--marketing-accent))]" />
+    <Check className="h-4 w-4 mx-auto text-[#10b981]" />
   ) : (
-    <X className="h-4 w-4 mx-auto text-[hsl(var(--muted-foreground)/0.45)]" />
+    <X className="h-4 w-4 mx-auto text-[#f0f0f0]/20" />
   );
 }

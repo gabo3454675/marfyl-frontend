@@ -1,41 +1,16 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
-import { AdminPageShell } from '@/components/admin/admin-page-shell';
-import { AdminCard } from '@/components/admin/admin-card';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
-export default function InventoryPage() {
+export default function InventoryRedirect() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace('/products');
+  }, [router]);
   return (
-    <AdminPageShell
-      eyebrow="Inventario"
-      title="Inventario"
-      subtitle="Gestiona productos, existencias y movimientos desde un solo lugar."
-      actions={
-        <Button className="w-full sm:w-auto shrink-0 cursor-pointer" asChild>
-          <a href="/products">
-            <Plus className="mr-2 h-4 w-4" />
-            Ir a productos
-          </a>
-        </Button>
-      }
-    >
-      <AdminCard
-        title="Productos"
-        description="El catálogo completo vive en la sección Productos. Usa movimientos para ajustes y autoconsumo."
-      >
-        <p className="text-sm text-muted-foreground">
-          No hay productos en esta vista legacy. Abre{' '}
-          <a href="/products" className="text-primary font-medium hover:underline cursor-pointer">
-            Productos
-          </a>{' '}
-          o{' '}
-          <a href="/inventory/movements" className="text-primary font-medium hover:underline cursor-pointer">
-            Movimientos
-          </a>
-          .
-        </p>
-      </AdminCard>
-    </AdminPageShell>
+    <div className="flex items-center justify-center min-h-[50vh]">
+      <p className="text-muted-foreground">Redirigiendo a Productos...</p>
+    </div>
   );
 }

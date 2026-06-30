@@ -19,11 +19,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/empresa', request.url));
   }
 
-  // Ya logueado: no mostrar login
-  if (session && (pathname === '/login' || pathname === '/register')) {
-    return NextResponse.redirect(new URL('/', request.url));
-  }
-
   if (!session && pathname === '/onboarding') {
     return NextResponse.redirect(new URL('/login', request.url));
   }

@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -56,10 +57,16 @@ export function NotificationFeedProvider({ children }: { children: ReactNode }) 
   const [fiscalLoadError, setFiscalLoadError] = useState<string | null>(null);
   const [operationalErrors, setOperationalErrors] = useState<string[]>([]);
 
-  const loadData = useCallback(async () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
+  /** Evita re-fetchs si la última carga fue hace menos de 60s */
+  const lastFetchRef = useRef<number>(0);
+
+  const loadData = useCallback(async (force?: boolean) => {
+    const ts = Date.now();
+    if (!force && ts - lastFetchRef.current < 60_000) return;
+    lastFetchRef.current = ts;
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
     const opErrors: string[] = [];
 
     try {
@@ -144,9 +151,9 @@ export function NotificationFeedProvider({ children }: { children: ReactNode }) 
   }, [loadData]);
 
   useEffect(() => {
-    const onTasksUpdated = () => loadData();
-    const onRateUpdated = () => loadData();
-    const onOrgChanged = () => loadData();
+    const onTasksUpdated = () => loadData(true);
+    const onRateUpdated = () => loadData(true);
+    const onOrgChanged = () => loadData(true);
     window.addEventListener('tasks-updated', onTasksUpdated);
     window.addEventListener('organization-rate-updated', onRateUpdated);
     window.addEventListener('organization-changed', onOrgChanged);

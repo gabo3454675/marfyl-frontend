@@ -15,6 +15,8 @@ import {
   Layers,
   Sparkles,
   Search,
+  PackagePlus,
+  Calculator,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import apiClient, { invoiceService } from '@/lib/api';
@@ -28,6 +30,8 @@ import { toast } from 'sonner';
 import { round2 } from '@/lib/currencyConversion';
 import { computeCartIva } from '@/lib/tax-calculator';
 import { PosCartPanel } from '@/components/pos/pos-cart-panel';
+import { QuickProductSheet, type QuickProductResult } from '@/components/pos/quick-product-sheet';
+import { PosCalculatorDrawer, PosCalculatorFab } from '@/components/pos/pos-calculator-drawer';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 interface Product {
@@ -96,7 +100,7 @@ interface TicketSummary {
 export default function POSPage() {
   const { selectedOrganizationId, selectedCompanyId, getCurrentOrganization } = useAuthStore();
   const selectedId = selectedOrganizationId || selectedCompanyId;
-  const { canManageInvoices, canManageFiscal, canAccessPOS } = usePermission();
+  const { canManageInvoices, canManageFiscal, canAccessPOS, canManageCustomers, isPosOnlySeller } = usePermission();
   const rawRate = useExchangeRate();
   const tasaBcv = Number.isFinite(rawRate) && rawRate > 0 ? rawRate : 1;
   const [products, setProducts] = useState<Product[]>([]);
@@ -127,10 +131,59 @@ export default function POSPage() {
     available: number;
   } | null>(null);
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
+  const [quickProductOpen, setQuickProductOpen] = useState(false);
+  const [calculatorOpen, setCalculatorOpen] = useState(false);
 
   const cartUnits = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
 
   const needsPaymentSetup = splitPayment || paymentMethod === 'CREDIT';
+
+  const handleQuickProductCreated = (product: QuickProductResult, quantity: number) => {
+    const mapped: Product = {
+      id: product.id,
+      name: product.name,
+      costPrice: product.costPrice,
+      salePrice: product.salePrice,
+      stock: product.stock,
+      minStock: 5,
+      sku: product.sku,
+      isExempt: product.isExempt,
+    };
+    setProducts((prev) => {
+      if (prev.some((p) => p.id === product.id)) return prev;
+      return [mapped, ...prev];
+    });
+    setCart((prev) => {
+      const existing = prev.find((i) => i.product.id === product.id);
+      if (existing) {
+        return prev.map((i) =>
+          i.product.id === product.id
+            ? { ...i, quantity: i.quantity + quantity }
+            : i,
+        );
+      }
+      return [...prev, { product: mapped, quantity }];
+    });
+    toast.success(`${product.name} agregado al carrito`);
+  };
+
+  const handleCalculatorApply = (amount: number) => {
+    if (splitPayment) {
+      setSplitLines((lines) => {
+        const next = [...lines];
+        if (next[0]) next[0] = { ...next[0], amount: amount.toFixed(2) };
+        return next;
+      });
+    } else if (currencyMode === 'BS') {
+      setPaymentMethod('CASH_BS');
+      setSplitLines([{ method: 'CASH_BS', amount: round2(amount * tasaBcv).toFixed(2) }]);
+    } else {
+      setPaymentMethod('CASH_USD');
+      setSplitLines([{ method: 'CASH_USD', amount: amount.toFixed(2) }]);
+    }
+    setMobileCartOpen(true);
+  };
+
   const fetchProducts = useCallback(async () => {
     if (!selectedId) return;
 
@@ -437,12 +490,14 @@ export default function POSPage() {
         setSuccess(true);
         setMobileCartOpen(false);
         setLastInvoiceId(created.id);
-        toast.success('¡Venta procesada!');
+        toast.success('¡Venta procesada!', {
+          description: 'Inventario actualizado automáticamente.',
+        });
         await fetchProducts();
         setTimeout(() => {
           setSuccess(false);
           setLastInvoiceId(null);
-        }, 10000);
+        }, 8000);
       }
     } catch (error: unknown) {
       const msg =
@@ -583,15 +638,19 @@ export default function POSPage() {
   return (
     <AdminPageShell
       animate={false}
-      eyebrow="Ventas"
-      title="Punto de Venta"
+      eyebrow={isPosOnlySeller ? undefined : 'Ventas'}
+      title={isPosOnlySeller ? 'Caja' : 'Punto de Venta'}
       subtitle={
-        <>
-          {canManageFiscal && (
-            <FiscalIntegrationStrip variant="pos" className="mb-2 hidden sm:block md:mb-3" />
-          )}
-          <span className="hidden text-sm md:text-base sm:block">Procesa ventas rápidamente</span>
-        </>
+        isPosOnlySeller ? (
+          <span className="text-xs text-muted-foreground sm:text-sm">Modo cajero · venta rápida</span>
+        ) : (
+          <>
+            {canManageFiscal && (
+              <FiscalIntegrationStrip variant="pos" className="mb-2 hidden sm:block md:mb-3" />
+            )}
+            <span className="hidden text-sm md:text-base sm:block">Procesa ventas rápidamente</span>
+          </>
+        )
       }
       className="admin-pos-shell admin-pos-mobile-pad flex min-h-0 flex-1 flex-col"
       contentClassName="admin-pos-page-body flex min-h-0 flex-1 flex-col gap-0 !space-y-0"
@@ -637,7 +696,7 @@ export default function POSPage() {
         </Button>
       </div>
 
-      {success && (
+      {success && !isPosOnlySeller && (
         <div className="mb-3 shrink-0 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-900/20 sm:mb-4 sm:p-4">
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-1 md:flex-row md:items-center md:gap-2">
@@ -713,7 +772,7 @@ export default function POSPage() {
           >
               {/* Filtro rápido + búsqueda */}
               <div className="mb-3 space-y-2 shrink-0 sm:mb-4 sm:space-y-3">
-                <div className="flex flex-wrap gap-2">
+                <div className="admin-pos-toolbar">
                   <Button
                     type="button"
                     size="sm"
@@ -721,7 +780,7 @@ export default function POSPage() {
                     className="min-h-[44px] touch-manipulation text-xs"
                     onClick={() => setCatalogFilter('all')}
                   >
-                    Todo el inventario
+                    Todo
                   </Button>
                   <Button
                     type="button"
@@ -731,7 +790,27 @@ export default function POSPage() {
                     onClick={() => setCatalogFilter('special')}
                   >
                     <Layers className="h-3.5 w-3.5" />
-                    Combos y servicios
+                    Combos
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    className="min-h-[44px] gap-1.5 touch-manipulation text-xs"
+                    onClick={() => setQuickProductOpen(true)}
+                  >
+                    <PackagePlus className="h-3.5 w-3.5" />
+                    Nuevo
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="min-h-[44px] gap-1.5 touch-manipulation text-xs lg:hidden"
+                    onClick={() => setCalculatorOpen(true)}
+                  >
+                    <Calculator className="h-3.5 w-3.5" />
+                    Calc
                   </Button>
                 </div>
                 <div className="relative">
@@ -752,7 +831,7 @@ export default function POSPage() {
                 </div>
               ) : (
                 <div className="admin-pos-catalog-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3 md:grid-cols-3 md:gap-4">
+                  <div className="admin-pos-product-grid">
                     {filteredProducts.map((product) => (
                       <div
                         key={product.id}
@@ -856,6 +935,21 @@ export default function POSPage() {
           </div>
         </SheetContent>
       </Sheet>
+
+      <PosCalculatorFab
+        className="admin-pos-fab-calc lg:bottom-6 lg:left-6"
+        onClick={() => setCalculatorOpen(true)}
+      />
+      <PosCalculatorDrawer
+        open={calculatorOpen}
+        onOpenChange={setCalculatorOpen}
+        onApplyAmount={handleCalculatorApply}
+      />
+      <QuickProductSheet
+        open={quickProductOpen}
+        onOpenChange={setQuickProductOpen}
+        onCreated={handleQuickProductCreated}
+      />
     </AdminPageShell>
   );
 }

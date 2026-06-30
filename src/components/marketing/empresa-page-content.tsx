@@ -22,7 +22,7 @@ export function EmpresaPageContent() {
       <section className="markyl-hero">
         <MarketingHeroGlow />
         <div className="marketing-container markyl-hero__grid">
-          <div className="markyl-hero__copy">
+          <div className="markyl-hero__copy min-w-0">
             <MarketingStagger onMount stagger={0.12}>
               <MarketingStaggerItem>
                 <p className="markyl-hero-eyebrow">{hero.eyebrow}</p>
@@ -48,7 +48,7 @@ export function EmpresaPageContent() {
               </MarketingStaggerItem>
             </MarketingStagger>
           </div>
-          <div className="markyl-hero__widget">
+          <div className="markyl-hero__widget min-w-0 w-full">
             <MarketingReveal variant="slide-left">
               <MarketingChatSimulator />
             </MarketingReveal>

@@ -1,430 +1,246 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
+import { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
-import { MoreVertical, TrendingUp, Users, FileText, AlertCircle, Loader2, ListTodo, ExternalLink, Receipt, Percent, Banknote } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ListTodo, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { AdminPageHeader } from '@/components/admin/admin-page-header';
+import { AdminCard } from '@/components/admin/admin-card';
+import { AdminPanel } from '@/components/admin/admin-panel';
+import { AdminMotionStagger, AdminMotionItem } from '@/components/admin/admin-motion';
 import { useAuthStore } from '@/store/useAuthStore';
 import { isFiscalPreviewMode, seedFiscalPreviewAuth } from '@/lib/fiscal-preview';
 import { getApiErrorMessage, isNetworkFailure, PREVIEW_OFFLINE_HINT } from '@/lib/api/get-error-message';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
-import MetricCard from '@/components/metric-card';
-import NotificationsSection from '@/components/notifications-section';
-import { AdminPageHeader, AdminSection } from '@/components/admin/admin-page-header';
-import { AdminCard, AdminChartCard } from '@/components/admin/admin-card';
-import { AdminPanel } from '@/components/admin/admin-panel';
-import { AdminMotionStagger, AdminMotionItem } from '@/components/admin/admin-motion';
-import apiClient from '@/lib/api';
 import { usePermission } from '@/hooks/usePermission';
 import { useNotificationFeed } from '@/hooks/useNotificationFeed';
+import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
-
-// Cargar componentes pesados de Recharts solo en el cliente
-const ResponsiveContainer = dynamic<any>(
-  () => import('recharts').then((m) => m.ResponsiveContainer as any),
-  { ssr: false }
-);
-const CartesianGrid = dynamic<any>(
-  () => import('recharts').then((m) => m.CartesianGrid as any),
-  { ssr: false }
-);
-const XAxis = dynamic<any>(
-  () => import('recharts').then((m) => m.XAxis as any),
-  { ssr: false }
-);
-const YAxis = dynamic<any>(
-  () => import('recharts').then((m) => m.YAxis as any),
-  { ssr: false }
-);
-const Tooltip = dynamic<any>(
-  () => import('recharts').then((m) => m.Tooltip as any),
-  { ssr: false }
-);
-const Legend = dynamic<any>(
-  () => import('recharts').then((m) => m.Legend as any),
-  { ssr: false }
-);
-const AreaChart = dynamic<any>(
-  () => import('recharts').then((m) => m.AreaChart as any),
-  { ssr: false }
-);
-const Area = dynamic<any>(
-  () => import('recharts').then((m) => m.Area as any),
-  { ssr: false }
-);
-const BarChart = dynamic<any>(
-  () => import('recharts').then((m) => m.BarChart as any),
-  { ssr: false }
-);
-const Bar = dynamic<any>(
-  () => import('recharts').then((m) => m.Bar as any),
-  { ssr: false }
-);
-const ComposedChart = dynamic<any>(
-  () => import('recharts').then((m) => m.ComposedChart as any),
-  { ssr: false }
-);
-const Line = dynamic<any>(
-  () => import('recharts').then((m) => m.Line as any),
-  { ssr: false }
-);
-const ScatterChart = dynamic<any>(
-  () => import('recharts').then((m) => m.ScatterChart as any),
-  { ssr: false }
-);
-const Scatter = dynamic<any>(
-  () => import('recharts').then((m) => m.Scatter as any),
-  { ssr: false }
-);
-const ZAxis = dynamic<any>(
-  () => import('recharts').then((m) => m.ZAxis as any),
-  { ssr: false }
-);
-
-interface DashboardSummary {
-  totalSalesToday: number;
-  productsCount: number;
-  lowStockCount: number;
-  recentTransactions: {
-    id: number;
-    customerName: string;
-    amount: number;
-    status: string;
-    createdAt: string;
-  }[];
-}
-
-const formatDate = (dateString: string) => {
-  try {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('es-VE', {
-      day: '2-digit',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(date);
-  } catch {
-    return '';
-  }
-};
-
-// Datos por defecto para mostrar siempre contenido
-const DEFAULT_SUMMARY: DashboardSummary = {
-  totalSalesToday: 0,
-  productsCount: 0,
-  lowStockCount: 0,
-  recentTransactions: [],
-};
-
-interface DashboardHealth {
-  salesChartLastMonth: { date: string; ventasUsd: number; ventasBs: number }[];
-  topProductsByMargin: { productId: number; productName: string; margin: number }[];
-  ticketPromedio: number;
-  crecimientoMensual: number;
-  totalVentasMes: number;
-}
-
-const DEFAULT_HEALTH: DashboardHealth = {
-  salesChartLastMonth: [],
-  topProductsByMargin: [],
-  ticketPromedio: 0,
-  crecimientoMensual: 0,
-  totalVentasMes: 0,
-};
-
-interface MarginErosionProduct {
-  productId: number;
-  productName: string;
-  costPrice: number;
-  salePrice: number;
-  marginPct: number;
-  marginCritical: boolean;
-}
-
-interface DebtAgeCustomer {
-  customerId: number;
-  customerName: string;
-  aTiempo: number;
-  vencidas1_15: number;
-  criticas30: number;
-}
-
-interface DashboardDiagnosis {
-  marginErosion: MarginErosionProduct[];
-  debtAgeByCustomer: DebtAgeCustomer[];
-}
-
-const DEFAULT_DIAGNOSIS: DashboardDiagnosis = {
-  marginErosion: [],
-  debtAgeByCustomer: [],
-};
-
-interface ParetoCustomer {
-  customerId: number;
-  customerName: string;
-  volume: number;
-  frequency: number;
-  segment: 'Leales' | 'En Riesgo' | 'Transaccionales';
-}
-
-interface FrictionFunnel {
-  totalCreadas: number;
-  totalPagadas: number;
-  tiempoPromedioHoras: number;
-  tiempoPromedioDias: number;
-  cuelloDeBotella: 'cobranza' | 'despacho' | null;
-  mensajeAlerta: string | null;
-}
-
-interface StrategyInsight {
-  tipo: string;
-  texto: string;
-  entidad?: string;
-}
-
-interface DashboardStrategy {
-  paretoCustomers: ParetoCustomer[];
-  frictionFunnel: FrictionFunnel;
-  insights: StrategyInsight[];
-}
-
-const DEFAULT_STRATEGY: DashboardStrategy = {
-  paretoCustomers: [],
-  frictionFunnel: {
-    totalCreadas: 0,
-    totalPagadas: 0,
-    tiempoPromedioHoras: 0,
-    tiempoPromedioDias: 0,
-    cuelloDeBotella: null,
-    mensajeAlerta: null,
-  },
-  insights: [],
-};
-
-interface PendingTask {
-  id: number;
-  title: string;
-  description?: string | null;
-  status: string;
-  priority: string;
-  createdAt: string;
-  createdBy: { id: number; fullName: string | null; email: string };
-  organization: { id: number; nombre: string };
-  invoice?: { id: number; totalAmount: unknown; status: string } | null;
-}
-
-interface CreatedByMeTask {
-  id: number;
-  title: string;
-  description?: string | null;
-  status: string;
-  priority: string;
-  createdAt: string;
-  updatedAt: string;
-  assignedTo: { id: number; fullName: string | null; email: string };
-  organization: { id: number; nombre: string };
-  invoice?: { id: number; totalAmount: unknown; status: string } | null;
-}
+import {
+  withDemoSummary,
+  withDemoHealth,
+  withDemoDiagnosis,
+  withDemoStrategy,
+  DEMO_SUMMARY,
+  DEMO_HEALTH,
+  DEMO_DIAGNOSIS,
+  DEMO_STRATEGY,
+} from '@/components/dashboard/demo-data';
+import { DashboardHealthSection } from '@/components/dashboard/dashboard-health-section';
+import { OperationalKpiGrid } from '@/components/dashboard/operational-kpi-grid';
+import { PendingTasksPanel } from '@/components/dashboard/pending-tasks-panel';
+import { RecentTransactionsPanel } from '@/components/dashboard/recent-transactions-panel';
+import type {
+  CreatedByMeTask,
+  DashboardDiagnosis,
+  DashboardHealth,
+  DashboardStrategy,
+  DashboardSummary,
+  PendingTask,
+} from '@/components/dashboard/types';
 
 export default function DashboardPage() {
   const router = useRouter();
   const { isAuthenticated, user, selectedOrganizationId, selectedCompanyId } = useAuthStore();
   const { myTasks, loading: feedTasksLoading, refetch: refetchFeedTasks } = useNotificationFeed();
   const selectedId = selectedOrganizationId || selectedCompanyId;
-  const { canViewFinancialCharts, isSuperAdmin, isAdmin, isManager } = usePermission();
-  const [summary, setSummary] = useState<DashboardSummary>(DEFAULT_SUMMARY);
+  const { canViewFinancialCharts, isSuperAdmin, isAdmin, isManager, isPosOnlySeller } = usePermission();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (isPosOnlySeller) router.replace('/pos');
+  }, [isPosOnlySeller, router]);
+
+  // ── State para datos transformados (demo data, etc.) ──
+  const [summary, setSummary] = useState<DashboardSummary>(DEMO_SUMMARY);
   const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([]);
   const [createdByMeTasks, setCreatedByMeTasks] = useState<CreatedByMeTask[]>([]);
-  const [loadingTasks, setLoadingTasks] = useState(false);
-  const [loadingCreatedByMe, setLoadingCreatedByMe] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [health, setHealth] = useState<DashboardHealth>(DEMO_HEALTH);
+  const [diagnosis, setDiagnosis] = useState<DashboardDiagnosis>(DEMO_DIAGNOSIS);
+  const [strategy, setStrategy] = useState<DashboardStrategy>(DEMO_STRATEGY);
   const [error, setError] = useState<string | null>(null);
-  const [health, setHealth] = useState<DashboardHealth>(DEFAULT_HEALTH);
-  const [loadingHealth, setLoadingHealth] = useState(false);
-  const [diagnosis, setDiagnosis] = useState<DashboardDiagnosis>(DEFAULT_DIAGNOSIS);
-  const [loadingDiagnosis, setLoadingDiagnosis] = useState(false);
-  const [strategy, setStrategy] = useState<DashboardStrategy>(DEFAULT_STRATEGY);
-  const [loadingStrategy, setLoadingStrategy] = useState(false);
-  const [taskCategoryFilter, setTaskCategoryFilter] = useState<string>('');
+  const [useDemoData, setUseDemoData] = useState(false);
+  const [taskCategoryFilter, setTaskCategoryFilter] = useState('');
+
   const canSeeCreatedByMe = isSuperAdmin || isAdmin || isManager;
-  const { formatForDisplay, displayCurrency } = useDisplayCurrency();
-  const selectedIdRef = useRef<number | null>(selectedId);
-  selectedIdRef.current = selectedId;
-
-  const displayedTasks = taskCategoryFilter ? pendingTasks : myTasks;
-  const tasksLoading = taskCategoryFilter ? loadingTasks : feedTasksLoading;
-
-  const ventasMesHealth = useMemo(() => {
-    const value = health.totalVentasMes;
-    return { value, sparkline: [value * 0.5, value * 0.7, value * 0.85, value, value * 1.05, value] };
-  }, [health.totalVentasMes]);
-
+  const { formatForDisplay } = useDisplayCurrency();
   const canLoadDashboard = isAuthenticated || isFiscalPreviewMode();
 
-  useLayoutEffect(() => {
-    if (isFiscalPreviewMode()) seedFiscalPreviewAuth();
-  }, []);
+  // ── React Query hooks (staleTime 30s via queryClient default) ──
 
-  const loadDashboard = useCallback(async () => {
-    if (!canLoadDashboard || !selectedId) {
-      if (!selectedId) {
-        setLoading(false);
-        setError('No hay empresa seleccionada. Por favor, selecciona una empresa.');
-        setSummary(DEFAULT_SUMMARY);
-      }
+  const summaryQuery = useQuery({
+    queryKey: ['dashboard-summary', selectedId],
+    queryFn: () => apiClient.get<DashboardSummary>('/dashboard/summary').then((r) => r.data),
+    enabled: canLoadDashboard && !!selectedId,
+  });
+
+  const healthQuery = useQuery({
+    queryKey: ['dashboard-health', selectedId],
+    queryFn: () => apiClient.get<DashboardHealth>('/dashboard/health').then((r) => r.data),
+    enabled: canLoadDashboard && !!selectedId,
+  });
+
+  const diagnosisQuery = useQuery({
+    queryKey: ['dashboard-diagnosis', selectedId],
+    queryFn: () => apiClient.get<DashboardDiagnosis>('/dashboard/diagnosis').then((r) => r.data),
+    enabled: canLoadDashboard && !!selectedId && canViewFinancialCharts,
+  });
+
+  const strategyQuery = useQuery({
+    queryKey: ['dashboard-strategy', selectedId],
+    queryFn: () => apiClient.get<DashboardStrategy>('/dashboard/strategy').then((r) => r.data),
+    enabled: canLoadDashboard && !!selectedId && canViewFinancialCharts,
+  });
+
+  const createdByMeQuery = useQuery({
+    queryKey: ['tasks-created-by-me', selectedId],
+    queryFn: () =>
+      apiClient.get<CreatedByMeTask[]>('/tasks/created-by-me').then((r) =>
+        Array.isArray(r.data) ? r.data : [],
+      ),
+    enabled: canLoadDashboard && !!selectedId && canSeeCreatedByMe,
+  });
+
+  const filteredTasksQuery = useQuery({
+    queryKey: ['tasks-filtered', selectedId, taskCategoryFilter],
+    queryFn: () =>
+      apiClient
+        .get<PendingTask[]>(`/tasks/my-pending?category=${encodeURIComponent(taskCategoryFilter)}`)
+        .then((r) => (Array.isArray(r.data) ? r.data : [])),
+    enabled: canLoadDashboard && !!selectedId && !!taskCategoryFilter,
+  });
+
+  // ── Loading flags (derivados de queries) ──
+  // isLoading equivale a isPending && isFetching en react-query v5
+  const loading = (summaryQuery.isPending && summaryQuery.isFetching);
+  const loadingHealth = (healthQuery.isPending && healthQuery.isFetching);
+  const loadingDiagnosis = canViewFinancialCharts ? (diagnosisQuery.isPending && diagnosisQuery.isFetching) : false;
+  const loadingStrategy = canViewFinancialCharts ? (strategyQuery.isPending && strategyQuery.isFetching) : false;
+  const loadingCreatedByMe = canSeeCreatedByMe ? (createdByMeQuery.isPending && createdByMeQuery.isFetching) : false;
+  const loadingTasks = taskCategoryFilter ? (filteredTasksQuery.isPending && filteredTasksQuery.isFetching) : false;
+
+  // ── Sincronizar queries → estado con lógica demo ──
+
+  // Summary + detección de demo
+  useEffect(() => {
+    if (canLoadDashboard && !selectedId) {
+      setError('No hay empresa seleccionada. Por favor, selecciona una empresa.');
+      setSummary(DEMO_SUMMARY);
+      setHealth(DEMO_HEALTH);
+      setDiagnosis(DEMO_DIAGNOSIS);
+      setStrategy(DEMO_STRATEGY);
       return;
     }
+    if (!summaryQuery.data && !summaryQuery.isError) return;
 
-    const idAtStart = selectedId;
-    setLoading(true);
-    setError(null);
-    if (canViewFinancialCharts) {
-      setLoadingHealth(true);
-      setLoadingDiagnosis(true);
-      setLoadingStrategy(true);
-    }
-    if (canSeeCreatedByMe) setLoadingCreatedByMe(true);
-
-    const summaryReq = apiClient.get<DashboardSummary>('/dashboard/summary');
-    const healthReq = canViewFinancialCharts
-      ? apiClient.get<DashboardHealth>('/dashboard/health')
-      : null;
-    const diagnosisReq = canViewFinancialCharts
-      ? apiClient.get<DashboardDiagnosis>('/dashboard/diagnosis')
-      : null;
-    const strategyReq = canViewFinancialCharts
-      ? apiClient.get<DashboardStrategy>('/dashboard/strategy')
-      : null;
-    const createdByMeReq =
-      canSeeCreatedByMe ? apiClient.get<CreatedByMeTask[]>('/tasks/created-by-me') : null;
-
-    const [summaryRes, healthRes, diagnosisRes, strategyRes, createdRes] = await Promise.allSettled([
-      summaryReq,
-      healthReq ?? Promise.resolve(null),
-      diagnosisReq ?? Promise.resolve(null),
-      strategyReq ?? Promise.resolve(null),
-      createdByMeReq ?? Promise.resolve(null),
-    ]);
-
-    if (selectedIdRef.current !== idAtStart) return;
-
-    if (summaryRes.status === 'fulfilled' && summaryRes.value) {
-      setSummary(summaryRes.value.data);
-    } else {
-      const err = summaryRes.status === 'rejected' ? summaryRes.reason : null;
-      const offline = err != null && isNetworkFailure(err);
+    if (summaryQuery.isError) {
+      const err = summaryQuery.error;
+      const offline = isNetworkFailure(err);
       setError(
         offline && isFiscalPreviewMode()
           ? PREVIEW_OFFLINE_HINT
           : getApiErrorMessage(err, 'Error al cargar los datos del dashboard'),
       );
-      setSummary(DEFAULT_SUMMARY);
+      setSummary(DEMO_SUMMARY);
+      return;
     }
-    setLoading(false);
 
-    if (healthRes.status === 'fulfilled' && healthRes.value) {
-      setHealth(healthRes.value.data);
-    } else {
-      setHealth(DEFAULT_HEALTH);
-    }
-    setLoadingHealth(false);
+    setError(null);
+    const rawSummary = {
+      ...DEMO_SUMMARY,
+      ...summaryQuery.data,
+      totalSalesYesterday: summaryQuery.data!.totalSalesYesterday ?? 0,
+    };
+    const isEmpty =
+      rawSummary.totalSalesToday === 0 &&
+      rawSummary.productsCount === 0 &&
+      rawSummary.recentTransactions.length === 0;
+    setUseDemoData(isEmpty);
+    setSummary(withDemoSummary(rawSummary, isEmpty));
+  }, [summaryQuery.data, summaryQuery.isError, summaryQuery.error, canLoadDashboard, selectedId]);
 
-    if (diagnosisRes.status === 'fulfilled' && diagnosisRes.value) {
-      setDiagnosis(diagnosisRes.value.data);
-    } else {
-      setDiagnosis(DEFAULT_DIAGNOSIS);
-    }
-    setLoadingDiagnosis(false);
-
-    if (strategyRes.status === 'fulfilled' && strategyRes.value) {
-      setStrategy(strategyRes.value.data);
-    } else {
-      setStrategy(DEFAULT_STRATEGY);
-    }
-    setLoadingStrategy(false);
-
-    if (createdRes.status === 'fulfilled' && createdRes.value) {
-      setCreatedByMeTasks(Array.isArray(createdRes.value.data) ? createdRes.value.data : []);
-    } else {
-      setCreatedByMeTasks([]);
-    }
-    setLoadingCreatedByMe(false);
-  }, [canLoadDashboard, selectedId, canViewFinancialCharts, canSeeCreatedByMe]);
-
-  const fetchFilteredTasks = useCallback(async () => {
-    if (!canLoadDashboard || !selectedId || !taskCategoryFilter) return;
-    try {
-      setLoadingTasks(true);
-      const res = await apiClient.get<PendingTask[]>(
-        `/tasks/my-pending?category=${encodeURIComponent(taskCategoryFilter)}`,
-      );
-      setPendingTasks(Array.isArray(res.data) ? res.data : []);
-    } catch {
-      setPendingTasks([]);
-    } finally {
-      setLoadingTasks(false);
-    }
-  }, [canLoadDashboard, selectedId, taskCategoryFilter]);
-
+  // Health
   useEffect(() => {
-    if (canLoadDashboard) loadDashboard();
-  }, [canLoadDashboard, loadDashboard]);
+    if (canLoadDashboard && !selectedId) return;
+    if (!healthQuery.data && !healthQuery.isError) return;
+    const rawHealth = { ...DEMO_HEALTH, ...(healthQuery.data ?? {}) };
+    const healthEmpty = rawHealth.totalVentasMes === 0 && rawHealth.salesChartLastMonth.length === 0;
+    setHealth(withDemoHealth(rawHealth, useDemoData || healthEmpty));
+  }, [healthQuery.data, healthQuery.isError, useDemoData, canLoadDashboard, selectedId]);
 
+  // Diagnosis
   useEffect(() => {
-    if (taskCategoryFilter) fetchFilteredTasks();
-  }, [taskCategoryFilter, fetchFilteredTasks]);
+    if (!diagnosisQuery.data && !diagnosisQuery.isError) return;
+    const rawDiagnosis = { ...DEMO_DIAGNOSIS, ...(diagnosisQuery.data ?? {}) };
+    setDiagnosis(withDemoDiagnosis(rawDiagnosis, useDemoData));
+  }, [diagnosisQuery.data, diagnosisQuery.isError, useDemoData]);
 
+  // Strategy
+  useEffect(() => {
+    if (!strategyQuery.data && !strategyQuery.isError) return;
+    const rawStrategy = { ...DEMO_STRATEGY, ...(strategyQuery.data ?? {}) };
+    setStrategy(withDemoStrategy(rawStrategy, useDemoData));
+  }, [strategyQuery.data, strategyQuery.isError, useDemoData]);
+
+  // Created-by-me tasks
+  useEffect(() => {
+    if (createdByMeQuery.isPending) return;
+    setCreatedByMeTasks(createdByMeQuery.data ?? []);
+  }, [createdByMeQuery.data, createdByMeQuery.isPending]);
+
+  // Filtered tasks
+  useEffect(() => {
+    if (filteredTasksQuery.isPending) return;
+    setPendingTasks(filteredTasksQuery.data ?? []);
+  }, [filteredTasksQuery.data, filteredTasksQuery.isPending]);
+
+  // ── Render helpers ──
+
+  const displayedTasks: PendingTask[] = taskCategoryFilter
+    ? pendingTasks
+    : myTasks.map((t) => {
+        const task = t as unknown as PendingTask;
+        return {
+          ...task,
+          createdAt: task.createdAt ?? new Date().toISOString(),
+          createdBy: task.createdBy ?? { id: 0, fullName: null, email: '' },
+          organization: task.organization ?? { id: 0, nombre: '' },
+        };
+      });
+  const tasksLoadingFlag = taskCategoryFilter ? loadingTasks : feedTasksLoading;
+
+  useLayoutEffect(() => {
+    if (isFiscalPreviewMode()) seedFiscalPreviewAuth();
+  }, []);
+
+  // Evento: tareas actualizadas → invalidar caché + refetch feed
   useEffect(() => {
     const onTasksUpdated = () => {
       refetchFeedTasks();
-      if (taskCategoryFilter) fetchFilteredTasks();
+      if (taskCategoryFilter) {
+        queryClient.invalidateQueries({ queryKey: ['tasks-filtered', selectedId] });
+      }
       if (canSeeCreatedByMe && selectedId) {
-        apiClient.get<CreatedByMeTask[]>('/tasks/created-by-me').then((res) => {
-          setCreatedByMeTasks(Array.isArray(res.data) ? res.data : []);
-        }).catch(() => setCreatedByMeTasks([]));
+        queryClient.invalidateQueries({ queryKey: ['tasks-created-by-me', selectedId] });
       }
     };
     window.addEventListener('tasks-updated', onTasksUpdated);
     return () => window.removeEventListener('tasks-updated', onTasksUpdated);
-  }, [refetchFeedTasks, taskCategoryFilter, fetchFilteredTasks, canSeeCreatedByMe, selectedId]);
+  }, [refetchFeedTasks, taskCategoryFilter, canSeeCreatedByMe, selectedId, queryClient]);
 
   useEffect(() => {
-    if (!isAuthenticated && !isFiscalPreviewMode()) {
-      router.push('/login');
-    }
+    if (!isAuthenticated && !isFiscalPreviewMode()) router.push('/login');
   }, [isAuthenticated, router]);
 
-  useEffect(() => {
-    if (!selectedId) return;
-    setSummary(DEFAULT_SUMMARY);
-    setHealth(DEFAULT_HEALTH);
-    setDiagnosis(DEFAULT_DIAGNOSIS);
-    setStrategy(DEFAULT_STRATEGY);
-    setError(null);
-    setLoadingHealth(true);
-    setLoadingDiagnosis(true);
-    setLoadingStrategy(true);
-  }, [selectedId]);
-
-  if (!isAuthenticated && !isFiscalPreviewMode()) {
-    return null;
-  }
+  if (!isAuthenticated && !isFiscalPreviewMode()) return null;
 
   const greeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Buenos días';
     if (hour < 18) return 'Buenas tardes';
     return 'Buenas noches';
-  };
-
-  const generateSparklineData = (value: number) => {
-    return Array.from({ length: 6 }, (_, i) => {
-      const factor = 0.8 + (i * 0.04);
-      return Math.max(0, Math.round(value * factor));
-    });
   };
 
   const userName = user?.fullName?.split(' ')[0] || user?.email?.split('@')[0] || 'Usuario';
@@ -434,11 +250,10 @@ export default function DashboardPage() {
       <AdminPageHeader
         eyebrow="Panel de control"
         title={`${greeting()}, ${userName}.`}
-        subtitle="Resumen operativo, tareas y salud financiera de tu negocio hoy."
+        subtitle="Resumen operativo, alertas fiscales y salud estratégica de tu negocio hoy."
         className="mb-6 md:mb-8"
       />
 
-      {/* Estado de carga */}
       {loading && (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -446,680 +261,128 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Aviso si el API no responde (vista previa puede seguir mostrando la UI) */}
       {error && !loading && (() => {
         const previewOffline =
           isFiscalPreviewMode() &&
           (error.includes('Vista previa') || error.includes('puerto 3001') || error.includes('conexión'));
         return (
-        <AdminCard
-          className={cn(
-            'mb-8',
-            previewOffline
-              ? 'border-amber-500/40 bg-amber-500/10'
-              : 'border-destructive bg-destructive/10',
-          )}
-          title={
-            <span className={previewOffline ? 'text-amber-200' : 'text-destructive'}>
-              {previewOffline ? 'Datos no disponibles (vista previa)' : 'Error'}
-            </span>
-          }
-        >
-          <p
-            className={cn(
-              'mb-4 text-sm leading-relaxed',
-              previewOffline ? 'text-amber-100/90' : 'text-destructive',
-            )}
+          <AdminCard
+            className={cn('mb-8', previewOffline ? 'border-amber-500/40 bg-amber-500/10' : 'border-destructive bg-destructive/10')}
+            title={<span className={previewOffline ? 'text-amber-200' : 'text-destructive'}>{previewOffline ? 'Datos no disponibles (vista previa)' : 'Error'}</span>}
           >
-            {error}
-          </p>
-          <Button onClick={() => loadDashboard()} variant="outline" className="cursor-pointer">
-            Reintentar conexión
-          </Button>
-        </AdminCard>
+            <p className={cn('mb-4 text-sm leading-relaxed', previewOffline ? 'text-amber-100/90' : 'text-destructive')}>{error}</p>
+            <Button onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ['dashboard-summary', selectedId] });
+              queryClient.invalidateQueries({ queryKey: ['dashboard-health', selectedId] });
+              if (canViewFinancialCharts) {
+                queryClient.invalidateQueries({ queryKey: ['dashboard-diagnosis', selectedId] });
+                queryClient.invalidateQueries({ queryKey: ['dashboard-strategy', selectedId] });
+              }
+              if (canSeeCreatedByMe && selectedId) {
+                queryClient.invalidateQueries({ queryKey: ['tasks-created-by-me', selectedId] });
+              }
+            }} variant="outline" className="cursor-pointer">Reintentar conexión</Button>
+          </AdminCard>
         );
       })()}
 
-      {/* Contenido del dashboard - key por organización para evitar estado viejo al cambiar de empresa */}
       {!loading && (
         <AdminMotionStagger key={selectedId ?? 'none'} className="admin-page-body">
+          {useDemoData && (
+            <AdminMotionItem>
+              <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                Mostrando datos de demostración. Registra ventas e inventario para ver métricas reales.
+              </div>
+            </AdminMotionItem>
+          )}
+
           <AdminMotionItem>
-          <div className="admin-kpi-grid">
-            <MetricCard
-              title="Ventas de Hoy"
-              value={formatForDisplay(summary.totalSalesToday)}
-              change="+0%"
-              changeType={summary.totalSalesToday > 0 ? 'positive' : 'negative'}
-              icon={TrendingUp}
-              sparklineData={generateSparklineData(summary.totalSalesToday)}
+            <OperationalKpiGrid
+              summary={summary}
+              health={health}
+              formatForDisplay={formatForDisplay}
+              loadingHealth={loadingHealth}
+              isDemo={useDemoData}
             />
-            <MetricCard
-              title="Total Productos"
-              value={summary.productsCount.toString()}
-              change="+0%"
-              changeType="positive"
-              icon={FileText}
-              sparklineData={generateSparklineData(summary.productsCount)}
-            />
-            <MetricCard
-              title="Productos en Stock Bajo"
-              value={summary.lowStockCount.toString()}
-              change="0%"
-              changeType={summary.lowStockCount > 0 ? 'negative' : 'positive'}
-              icon={AlertCircle}
-              sparklineData={generateSparklineData(summary.lowStockCount)}
-            />
-            <MetricCard
-              title="Facturas Recientes"
-              value={summary.recentTransactions.length.toString()}
-              change="0%"
-              changeType="positive"
-              icon={Users}
-              sparklineData={generateSparklineData(summary.recentTransactions.length)}
-            />
-          </div>
           </AdminMotionItem>
 
           <AdminMotionItem>
-          <AdminPanel className="mb-2 md:mb-4">
-            <div className="p-4 sm:p-6">
-            <div className="mb-4 sm:mb-5">
-              <h2 className="flex items-center gap-2 text-base sm:text-lg font-semibold text-foreground">
-                <ListTodo className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                <span className="min-w-0">Mis Tareas Pendientes</span>
-              </h2>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1">Tareas asignadas a ti (pendientes o en progreso)</p>
-              <div className="flex flex-wrap gap-2 pt-3">
-                <Button
-                  variant={taskCategoryFilter === '' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setTaskCategoryFilter('')}
-                >
-                  Todas
-                </Button>
-                <Button
-                  variant={taskCategoryFilter === 'COBRANZA' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setTaskCategoryFilter('COBRANZA')}
-                >
-                  Cobranza
-                </Button>
-              </div>
-            </div>
-            <div>
-              {tasksLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : displayedTasks.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">No tienes tareas pendientes</p>
-              ) : (
-                <div className="space-y-3">
-                  {displayedTasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-foreground text-sm sm:text-base break-words">{task.title}</p>
-                        {task.description && (
-                          <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-2">{task.description}</p>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-2 truncate">
-                          Asignada por {task.createdBy?.fullName || task.createdBy?.email} • {task.organization?.nombre}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
-                        {task.invoice && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => router.push(`/invoices?highlight=${task.invoice?.id}`)}
-                            className="text-xs shrink-0"
-                          >
-                            <ExternalLink className="h-3 w-3 mr-1 shrink-0" />
-                            Ver factura #{task.invoice.id}
-                          </Button>
-                        )}
-                        <Badge variant={task.status === 'IN_PROGRESS' ? 'default' : 'secondary'} className="text-xs shrink-0">
-                          {task.status === 'PENDING' ? 'Pendiente' : task.status === 'IN_PROGRESS' ? 'En progreso' : task.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            </div>
-          </AdminPanel>
+            <PendingTasksPanel
+              tasks={displayedTasks}
+              loading={tasksLoadingFlag}
+              taskCategoryFilter={taskCategoryFilter}
+              onFilterChange={setTaskCategoryFilter}
+            />
           </AdminMotionItem>
 
           {canSeeCreatedByMe && (
             <AdminMotionItem>
-            <AdminPanel className="mb-2 md:mb-4">
-              <div className="p-4 sm:p-6">
-                <h2 className="flex items-center gap-2 text-base sm:text-lg font-semibold">
-                  <ListTodo className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                  Tareas que asigné
-                </h2>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1 mb-4">Estado actualizado por el equipo (En progreso / Completada)</p>
-                <div>
-                {loadingCreatedByMe ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : createdByMeTasks.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">No has asignado tareas aún</p>
-                ) : (
-                  <div className="space-y-3">
-                    {createdByMeTasks.map((t) => (
-                      <div
-                        key={t.id}
-                        className="flex items-start justify-between gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-foreground">{t.title}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Asignada a: {t.assignedTo?.fullName || t.assignedTo?.email} • {t.organization?.nombre}
-                          </p>
+              <AdminPanel className="mb-2 md:mb-4">
+                <div className="p-4 sm:p-6">
+                  <h2 className="flex items-center gap-2 text-base sm:text-lg font-semibold">
+                    <ListTodo className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+                    Tareas que asigné
+                  </h2>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1 mb-4">Estado actualizado por el equipo</p>
+                  {loadingCreatedByMe ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : createdByMeTasks.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">No has asignado tareas aún</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {createdByMeTasks.map((t) => (
+                        <div key={t.id} className="flex items-start justify-between gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-foreground">{t.title}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Asignada a: {t.assignedTo?.fullName || t.assignedTo?.email} • {t.organization?.nombre}
+                            </p>
+                          </div>
+                          <Badge
+                            variant="secondary"
+                            className={
+                              t.status === 'DONE'
+                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                                : t.status === 'IN_PROGRESS'
+                                  ? 'bg-blue-500/20 text-blue-400 border-blue-500/40'
+                                  : 'bg-slate-500/20 text-slate-400 border-slate-500/40'
+                            }
+                          >
+                            {t.status === 'PENDING' ? 'Pendiente' : t.status === 'IN_PROGRESS' ? 'En progreso' : 'Completada'}
+                          </Badge>
                         </div>
-                        <Badge
-                          variant="secondary"
-                          className={
-                            t.status === 'DONE'
-                              ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/40'
-                              : t.status === 'IN_PROGRESS'
-                                ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/40'
-                                : 'bg-slate-500/20 text-slate-600 dark:text-slate-400 border-slate-500/40'
-                          }
-                        >
-                          {t.status === 'PENDING' ? 'Pendiente' : t.status === 'IN_PROGRESS' ? 'En progreso' : 'Completada'}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            </AdminPanel>
+              </AdminPanel>
             </AdminMotionItem>
           )}
 
           {canViewFinancialCharts && (
             <AdminMotionItem>
-            <AdminSection
-              title="Salud General"
-              description="Visión rápida de ventas, márgenes e impuestos del último mes."
-            >
-
-              {/* KPI Cards: Venta promedio, Crecimiento mensual, Ventas del mes (cobro real) */}
-              <div className="admin-kpi-grid-3">
-                <MetricCard
-                  title="Venta promedio por factura"
-                  value={loadingHealth ? '—' : formatForDisplay(health.ticketPromedio)}
-                  change={health.crecimientoMensual >= 0 ? `+${health.crecimientoMensual}%` : `${health.crecimientoMensual}%`}
-                  changeType={health.crecimientoMensual >= 0 ? 'positive' : 'negative'}
-                  icon={Receipt}
-                  sparklineData={[health.ticketPromedio * 0.9, health.ticketPromedio * 0.95, health.ticketPromedio, health.ticketPromedio * 1.02, health.ticketPromedio * 0.98, health.ticketPromedio]}
-                />
-                <MetricCard
-                  title="Crecimiento mensual"
-                  value={loadingHealth ? '—' : `${health.crecimientoMensual >= 0 ? '+' : ''}${health.crecimientoMensual}%`}
-                  change="vs mes anterior"
-                  changeType={health.crecimientoMensual >= 0 ? 'positive' : 'negative'}
-                  icon={Percent}
-                  sparklineData={[0, Math.max(0, health.crecimientoMensual * 0.3), health.crecimientoMensual * 0.6, health.crecimientoMensual, health.crecimientoMensual * 1.05, health.crecimientoMensual]}
-                />
-                <MetricCard
-                  title="Ventas del mes"
-                  value={loadingHealth ? '—' : formatForDisplay(ventasMesHealth.value)}
-                  change="Mes en curso"
-                  changeType="positive"
-                  icon={Banknote}
-                  sparklineData={ventasMesHealth.sparkline}
-                />
-              </div>
-
-              <div className="admin-grid-charts">
-                {/* Gráfico de áreas: Ventas $ vs Ventas Bs (último mes) */}
-                <AdminChartCard
-                  className="lg:col-span-2"
-                  title="Ventas: USD esperadas vs Bs reales"
-                  description="Último mes por día"
-                >
-                    {loadingHealth ? (
-                      <div className="flex items-center justify-center h-[240px] sm:h-[280px] md:h-[300px] min-h-[200px]">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : health.salesChartLastMonth.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-8 sm:py-12">Sin datos del último mes</p>
-                    ) : (
-                      <div className="h-[240px] sm:h-[280px] md:h-[300px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart
-                          data={health.salesChartLastMonth.map((d) => ({
-                            ...d,
-                            fecha: new Date(d.date).toLocaleDateString('es-VE', { day: '2-digit', month: 'short' }),
-                          }))}
-                          margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                        >
-                          <defs>
-                            <linearGradient id="colorVentasUsd" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
-                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                            </linearGradient>
-                            <linearGradient id="colorVentasBs" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
-                              <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                          <XAxis dataKey="fecha" className="text-muted-foreground" tick={{ fontSize: 12 }} />
-                          <YAxis
-                            className="text-muted-foreground"
-                            tick={{ fontSize: 12 }}
-                            tickFormatter={(v: number) =>
-                              v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)
-                            }
-                          />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: 'hsl(var(--card))',
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: '8px',
-                            }}
-                            formatter={(value: number) => [value.toFixed(2), '']}
-                            labelFormatter={(label: string) => `Fecha: ${label}`}
-                          />
-                          <Legend />
-                          <Area type="monotone" dataKey="ventasUsd" name="Ventas en $" stroke="#3b82f6" fillOpacity={1} fill="url(#colorVentasUsd)" />
-                          <Area type="monotone" dataKey="ventasBs" name="Ventas en Bs" stroke="#10b981" fillOpacity={1} fill="url(#colorVentasBs)" />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                      </div>
-                    )}
-                </AdminChartCard>
-
-                <AdminChartCard
-                  title="Top 5 por margen"
-                  description="Productos que más ganancia neta generan"
-                >
-                    {loadingHealth ? (
-                      <div className="flex items-center justify-center h-[240px] sm:h-[280px] md:h-[300px] min-h-[200px]">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : health.topProductsByMargin.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-8 sm:py-12">Sin ventas en el último mes</p>
-                    ) : (
-                      <div className="h-[240px] sm:h-[280px] md:h-[300px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={health.topProductsByMargin.map((p) => ({ ...p, name: p.productName.length > 18 ? p.productName.slice(0, 18) + '…' : p.productName }))}
-                          layout="vertical"
-                          margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                          <XAxis
-                            type="number"
-                            className="text-muted-foreground"
-                            tickFormatter={(v: number) => formatForDisplay(v)}
-                          />
-                          <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11 }} />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: 'hsl(var(--card))',
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: '8px',
-                            }}
-                            formatter={(value: number) => [formatForDisplay(value), 'Margen']}
-                          />
-                          <Bar dataKey="margin" name="Margen" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                      </div>
-                    )}
-                </AdminChartCard>
-              </div>
-
-              <NotificationsSection />
-
-              <AdminSection
-                title="Diagnóstico"
-                description="Detecta dónde se erosiona el margen y qué clientes priorizar para cobro."
-              >
-
-                <div className="admin-grid-charts-2">
-                  {/* Erosión de margen: líneas costo vs precio, puntos rojos si margen &lt; 15% */}
-                  <AdminChartCard
-                    title="Erosión de margen"
-                    description="Costo de reposición vs precio de venta. Puntos en rojo = margen < 15% (riesgo por tasa BCV)."
-                  >
-                      {loadingDiagnosis ? (
-                        <div className="flex items-center justify-center h-[240px] sm:h-[280px] md:h-[300px] min-h-[200px]">
-                          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                        </div>
-                      ) : diagnosis.marginErosion.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-8 sm:py-12">Sin productos con precio de venta</p>
-                      ) : (
-                        <div className="h-[260px] sm:h-[280px] md:h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <ComposedChart
-                            data={diagnosis.marginErosion.map((p) => ({
-                              ...p,
-                              name: p.productName.length > 14 ? p.productName.slice(0, 14) + '…' : p.productName,
-                            }))}
-                            margin={{ top: 10, right: 20, left: 0, bottom: 60 }}
-                          >
-                            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                            <XAxis dataKey="name" className="text-muted-foreground" angle={-35} textAnchor="end" interval={0} tick={{ fontSize: 10 }} />
-                            <YAxis
-                              className="text-muted-foreground"
-                              tick={{ fontSize: 11 }}
-                              tickFormatter={(v: number) => formatForDisplay(v)}
-                            />
-                            <Tooltip
-                              contentStyle={{
-                                backgroundColor: 'hsl(var(--card))',
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '8px',
-                              }}
-                              formatter={(value: number) => [formatForDisplay(value), '']}
-                              labelFormatter={(_: string, payload: any[]) =>
-                                payload?.[0]?.payload?.productName
-                              }
-                            />
-                            <Legend />
-                            <Line type="monotone" dataKey="costPrice" name="Costo reposición" stroke="#f59e0b" strokeWidth={2} dot={false} />
-                            <Line
-                              type="monotone"
-                              dataKey="salePrice"
-                              name="Precio venta"
-                              stroke="#3b82f6"
-                              strokeWidth={2}
-                              dot={({ cx, cy, payload }: { cx: number; cy: number; payload: any }) =>
-                                payload.marginCritical ? (
-                                  <circle
-                                    cx={cx}
-                                    cy={cy}
-                                    r={5}
-                                    fill="#ef4444"
-                                    stroke="#b91c1c"
-                                    strokeWidth={2}
-                                  />
-                                ) : (
-                                  <circle cx={cx} cy={cy} r={3} fill="#3b82f6" />
-                                )
-                              }
-                            />
-                          </ComposedChart>
-                        </ResponsiveContainer>
-                        </div>
-                      )}
-                  </AdminChartCard>
-
-                  <AdminChartCard
-                    title="Antigüedad de deuda"
-                    description="Cuentas por cobrar: A tiempo, vencidas 1-15 días y críticas +30. Identifica a quién llamar hoy."
-                  >
-                      {loadingDiagnosis ? (
-                        <div className="flex items-center justify-center h-[240px] sm:h-[280px] md:h-[300px] min-h-[200px]">
-                          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                        </div>
-                      ) : diagnosis.debtAgeByCustomer.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-8 sm:py-12">No hay facturas pendientes de cobro</p>
-                      ) : (
-                        <div className="h-[260px] sm:h-[280px] md:h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart
-                            data={diagnosis.debtAgeByCustomer.slice(0, 10).map((c) => ({
-                              ...c,
-                              name: c.customerName.length > 12 ? c.customerName.slice(0, 12) + '…' : c.customerName,
-                            }))}
-                            margin={{ top: 10, right: 10, left: 0, bottom: 40 }}
-                            layout="vertical"
-                          >
-                            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                            <XAxis
-                              type="number"
-                              className="text-muted-foreground"
-                              tickFormatter={(v: number) => formatForDisplay(v)}
-                            />
-                            <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 11 }} />
-                            <Tooltip
-                              contentStyle={{
-                                backgroundColor: 'hsl(var(--card))',
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '8px',
-                              }}
-                              formatter={(value: number) => [formatForDisplay(value), '']}
-                              labelFormatter={(_: string, payload: any[]) =>
-                                payload?.[0]?.payload?.customerName
-                              }
-                            />
-                            <Legend />
-                            <Bar dataKey="aTiempo" name="A tiempo" stackId="deuda" fill="#22c55e" radius={[0, 0, 0, 0]} />
-                            <Bar dataKey="vencidas1_15" name="Vencidas 1-15 días" stackId="deuda" fill="#eab308" radius={[0, 0, 0, 0]} />
-                            <Bar dataKey="criticas30" name="Críticas +30 días" stackId="deuda" fill="#ef4444" radius={[0, 4, 4, 0]} />
-                          </BarChart>
-                        </ResponsiveContainer>
-                        </div>
-                      )}
-                  </AdminChartCard>
-                </div>
-              </AdminSection>
-
-              <AdminSection
-                title="Estrategia"
-                description="Consultoría automática: Pareto de clientes, fricción operativa e insights en lenguaje natural."
-              >
-
-                <div className="admin-grid-charts">
-                  {/* Pareto 80/20: dispersión volumen vs frecuencia, etiquetas Leales / En Riesgo / Transaccionales */}
-                  <AdminChartCard
-                    className="lg:col-span-2"
-                    title="Pareto 80/20 — Clientes"
-                    description="Volumen de compra vs frecuencia. Leales, transaccionales y en riesgo."
-                  >
-                      {loadingStrategy ? (
-                        <div className="flex items-center justify-center h-[240px] sm:h-[280px] md:h-[300px] min-h-[200px]">
-                          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                        </div>
-                      ) : strategy.paretoCustomers.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-8 sm:py-12">Sin datos de clientes en el último año</p>
-                      ) : (
-                        <div className="h-[260px] sm:h-[280px] md:h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <ScatterChart margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
-                            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                            <XAxis type="number" dataKey="frequency" name="Frecuencia" className="text-muted-foreground" tick={{ fontSize: 11 }} />
-                            <YAxis
-                              type="number"
-                              dataKey="volume"
-                              name="Volumen"
-                              className="text-muted-foreground"
-                              tick={{ fontSize: 11 }}
-                              tickFormatter={(v: number) =>
-                                v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)
-                              }
-                            />
-                            <ZAxis type="number" dataKey="customerId" range={[80, 400]} name="" />
-                            <Tooltip
-                              contentStyle={{
-                                backgroundColor: 'hsl(var(--card))',
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '8px',
-                              }}
-                              formatter={(value: number, name: string) => [
-                                name === 'Volumen' ? formatForDisplay(value) : value,
-                                name,
-                              ]}
-                              labelFormatter={(_: string, payload: any[]) =>
-                                payload?.[0]?.payload?.customerName
-                              }
-                            />
-                            <Legend />
-                            <Scatter name="Leales" data={strategy.paretoCustomers.filter((c) => c.segment === 'Leales')} fill="#22c55e" fillOpacity={0.8} />
-                            <Scatter name="Transaccionales" data={strategy.paretoCustomers.filter((c) => c.segment === 'Transaccionales')} fill="#3b82f6" fillOpacity={0.8} />
-                            <Scatter name="En Riesgo" data={strategy.paretoCustomers.filter((c) => c.segment === 'En Riesgo')} fill="#f59e0b" fillOpacity={0.8} />
-                          </ScatterChart>
-                        </ResponsiveContainer>
-                        </div>
-                      )}
-                  </AdminChartCard>
-
-                  <AdminChartCard
-                    title="Embudo de fricción"
-                    description="Tiempo desde creación de la factura hasta que se marca como Pagada."
-                    bodyClassName="space-y-4"
-                  >
-                      {loadingStrategy ? (
-                        <div className="flex items-center justify-center h-[180px] sm:h-[200px] min-h-[160px]">
-                          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Creadas (Presupuesto/Orden)</span>
-                            <span className="font-medium">{strategy.frictionFunnel.totalCreadas}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Pagadas</span>
-                            <span className="font-medium text-green-600 dark:text-green-400">{strategy.frictionFunnel.totalPagadas}</span>
-                          </div>
-                          <div className="pt-2 border-t border-border">
-                            <p className="text-sm text-muted-foreground">Tiempo promedio hasta pago</p>
-                            <p className="text-xl font-semibold">
-                              {strategy.frictionFunnel.tiempoPromedioDias >= 1
-                                ? `${strategy.frictionFunnel.tiempoPromedioDias} días`
-                                : `${strategy.frictionFunnel.tiempoPromedioHoras} h`}
-                            </p>
-                          </div>
-                          {strategy.frictionFunnel.mensajeAlerta && (
-                            <div className={`rounded-lg p-3 text-xs sm:text-sm ${strategy.frictionFunnel.cuelloDeBotella === 'cobranza' ? 'bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300' : 'bg-blue-500/10 border border-blue-500/30 text-blue-700 dark:text-blue-300'}`}>
-                              <p className="font-medium">Cuello de botella: {strategy.frictionFunnel.cuelloDeBotella === 'cobranza' ? 'Cobranza' : 'Despacho'}</p>
-                              <p className="mt-1 text-muted-foreground break-words">{strategy.frictionFunnel.mensajeAlerta}</p>
-                            </div>
-                          )}
-                        </>
-                      )}
-                  </AdminChartCard>
-                </div>
-
-                <AdminChartCard
-                  title="Insights para tu negocio"
-                  description="Recomendaciones automáticas según ventas, márgenes y cobranza."
-                >
-                    {loadingStrategy ? (
-                      <div className="flex items-center justify-center py-6 sm:py-8 min-h-[120px]">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : strategy.insights.length === 0 ? (
-                      <p className="text-xs sm:text-sm text-muted-foreground text-center py-6">No hay insights aún. Genera ventas y márgenes para recibir recomendaciones.</p>
-                    ) : (
-                      <ul className="space-y-2 sm:space-y-3">
-                        {strategy.insights.map((insight, i) => (
-                          <li
-                            key={i}
-                            className="flex gap-2 sm:gap-3 p-3 rounded-lg bg-secondary/50 border border-border/50 min-w-0"
-                          >
-                            {insight.tipo === 'producto_margen' && (
-                              <span className="flex-shrink-0 rounded-full bg-amber-500/20 p-1.5" title="Producto / margen">
-                                <FileText className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                              </span>
-                            )}
-                            {insight.tipo === 'cliente_riesgo' && (
-                              <span className="flex-shrink-0 rounded-full bg-blue-500/20 p-1.5" title="Cliente">
-                                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                              </span>
-                            )}
-                            {insight.tipo === 'cuello_botella' && (
-                              <span className="flex-shrink-0 rounded-full bg-red-500/20 p-1.5" title="Fricción">
-                                <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-                              </span>
-                            )}
-                            {!['producto_margen', 'cliente_riesgo', 'cuello_botella'].includes(insight.tipo) && (
-                              <span className="flex-shrink-0 rounded-full bg-primary/20 p-1.5" title="Insight">
-                                <TrendingUp className="h-4 w-4 text-primary" />
-                              </span>
-                            )}
-                            <p className="text-xs sm:text-sm text-foreground leading-relaxed break-words min-w-0">{insight.texto}</p>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                </AdminChartCard>
-              </AdminSection>
-            </AdminSection>
+              <DashboardHealthSection
+                summary={summary}
+                health={health}
+                diagnosis={diagnosis}
+                strategy={strategy}
+                loadingHealth={loadingHealth}
+                loadingDiagnosis={loadingDiagnosis}
+                loadingStrategy={loadingStrategy}
+                formatForDisplay={formatForDisplay}
+                isDemo={useDemoData}
+                onProductClick={(id) => router.push(`/products?highlight=${id}`)}
+              />
             </AdminMotionItem>
           )}
 
           <AdminMotionItem>
-          <AdminPanel className="overflow-hidden mb-2">
-            <div className="p-4 sm:p-6">
-            <div className="flex flex-row items-center justify-between gap-3 mb-4">
-              <div className="min-w-0">
-                <h2 className="text-base sm:text-lg font-semibold">Transacciones Recientes</h2>
-                <p className="text-xs sm:text-sm text-muted-foreground">Últimas facturas y pagos</p>
-              </div>
-              <Button variant="ghost" size="icon" className="hover:bg-secondary shrink-0 h-9 w-9 cursor-pointer">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </div>
-            <div>
-              <div className="space-y-3 sm:space-y-4">
-                {summary.recentTransactions.length > 0 ? (
-                  summary.recentTransactions.map((transaction) => {
-                    const initials = (transaction.customerName || '')
-                      .split(' ')
-                      .map((n) => n[0] || '')
-                      .filter(Boolean)
-                      .join('')
-                      .toUpperCase()
-                      .slice(0, 2) || 'C';
-                    return (
-                      <div
-                        key={transaction.id}
-                        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 sm:p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors min-w-0"
-                      >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <Avatar className="h-9 w-9 sm:h-10 sm:w-10 shrink-0">
-                            <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-xs sm:text-sm">
-                              {initials}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0">
-                            <p className="font-medium text-foreground text-sm sm:text-base truncate">{transaction.customerName || 'Cliente'}</p>
-                            <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                              {formatForDisplay(transaction.amount)} • {formatDate(transaction.createdAt)}
-                            </p>
-                          </div>
-                        </div>
-                        <Badge
-                          variant={transaction.status === 'PAID' ? 'default' : 'secondary'}
-                          className={
-                            transaction.status === 'PAID'
-                              ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                              : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-                          }
-                        >
-                          {transaction.status === 'PAID' ? 'Pagado' : transaction.status === 'PENDING' ? 'Pendiente' : 'Cancelado'}
-                        </Badge>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    No hay transacciones recientes
-                  </p>
-                )}
-              </div>
-            </div>
-            </div>
-          </AdminPanel>
+            <RecentTransactionsPanel transactions={summary.recentTransactions} formatForDisplay={formatForDisplay} />
           </AdminMotionItem>
         </AdminMotionStagger>
       )}
-
     </div>
   );
 }

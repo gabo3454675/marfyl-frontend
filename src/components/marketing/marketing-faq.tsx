@@ -38,7 +38,7 @@ export function MarketingFaq({
                 {item.question}
                 <ChevronDown
                   className={cn(
-                    'h-4 w-4 shrink-0 transition-transform text-[hsl(var(--marketing-accent))]',
+                    'h-4 w-4 shrink-0 transition-transform text-[#10b981]',
                     open && 'rotate-180',
                   )}
                 />

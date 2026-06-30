@@ -3,7 +3,6 @@ import {
   Grid2x2,
   ShoppingCart,
   Box,
-  Wine,
   PackageMinus,
   BarChart3,
   Users,
@@ -47,7 +46,6 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: Grid2x2, href: '/', permission: 'canViewDashboard' },
   { id: 'pos', label: 'POS', icon: ShoppingCart, href: '/pos', permission: 'canAccessPOS' },
   { id: 'products', label: 'Inventario', icon: Box, href: '/products', permission: 'canManageProducts' },
-  { id: 'servicios-combos', label: 'Servicios y combos', icon: Wine, href: '/servicios-combos', permission: 'canManageProducts' },
   { id: 'movements', label: 'Movimientos inventario', icon: PackageMinus, href: '/inventory/movements', permission: 'canManageInventory' },
   { id: 'autoconsumo', label: 'Autoconsumo', icon: BarChart3, href: '/autoconsumo', permission: 'canManageInventory' },
   { id: 'alertas-stock', label: 'Alertas inventario', icon: AlertTriangle, href: '/alertas-stock', permission: 'canManageInventory' },
@@ -69,22 +67,22 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     id: 'ventas',
     label: 'Ventas y caja',
     defaultOpen: true,
-    itemIds: ['invoices', 'history', 'cierre-caja'],
+    itemIds: ['invoices', 'history', 'cierre-caja', 'credits'],
   },
   {
     id: 'clientes',
     label: 'Clientes',
-    itemIds: ['customers', 'credits'],
+    itemIds: ['customers'],
   },
   {
     id: 'inventario',
     label: 'Inventario',
-    itemIds: ['products', 'servicios-combos', 'movements', 'autoconsumo', 'alertas-stock'],
+    itemIds: ['products', 'movements', 'autoconsumo', 'alertas-stock'],
   },
   {
     id: 'finanzas',
     label: 'Finanzas',
-    itemIds: ['expenses', 'suppliers', 'accounts-payable', 'tasas'],
+    itemIds: ['expenses', 'suppliers', 'accounts-payable'],
   },
   {
     id: 'rrhh',
@@ -94,14 +92,14 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
   {
     id: 'sistema',
     label: 'Sistema',
-    itemIds: ['settings'],
+    itemIds: ['settings', 'tasas'],
   },
 ];
 
 export function resolveAppNavId(pathname: string): string {
   if (pathname === '/') return 'dashboard';
   if (pathname.startsWith('/pos')) return 'pos';
-  if (pathname.startsWith('/servicios-combos')) return 'servicios-combos';
+  if (pathname.startsWith('/servicios-combos')) return 'products';
   if (pathname.startsWith('/products')) return 'products';
   if (pathname.startsWith('/inventory/movements')) return 'movements';
   if (pathname.startsWith('/autoconsumo')) return 'autoconsumo';

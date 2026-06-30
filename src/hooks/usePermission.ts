@@ -28,6 +28,8 @@ export type UsePermissionReturn = PermissionMap & {
   isFiscal: boolean;
   /** true si el rol es exactamente POS_OPERATOR */
   isPosOperator: boolean;
+  /** Cajero (SELLER): solo POS a pantalla completa */
+  isPosOnlySeller: boolean;
 
   // ── Aliases legacy (backward compatibility) ──
   /** @deprecated Usa canDeleteInvoices o canManageTeam según contexto */
@@ -134,10 +136,11 @@ export function usePermission(): UsePermissionReturn {
         isSeller: true,
         isWarehouse: true,
         isFiscal: true,
-        isPosOperator: false,
-        // Legacy aliases
-        canDelete: true,
-      } satisfies UsePermissionReturn;
+      isPosOperator: false,
+      isPosOnlySeller: false,
+      // Legacy aliases
+      canDelete: true,
+    } satisfies UsePermissionReturn;
     }
 
     // ── Normal path ──
@@ -195,6 +198,8 @@ export function usePermission(): UsePermissionReturn {
       isWarehouse,
       isFiscal,
       isPosOperator,
+      /** Cajero (SELLER): solo POS a pantalla completa, sin menú ni dashboard. */
+      isPosOnlySeller: isSeller && !isSuperAdmin && !isAdmin && !isManager,
       // Legacy aliases (backward compatibility)
       canDelete: base.canManageTeam || base.canDeleteInvoices,
     } satisfies UsePermissionReturn;
