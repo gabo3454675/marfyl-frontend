@@ -96,7 +96,7 @@ interface TicketSummary {
 export default function POSPage() {
   const { selectedOrganizationId, selectedCompanyId, getCurrentOrganization } = useAuthStore();
   const selectedId = selectedOrganizationId || selectedCompanyId;
-  const { canManageCustomers, canManageFiscal } = usePermission();
+  const { canManageInvoices, canManageFiscal, canAccessPOS } = usePermission();
   const rawRate = useExchangeRate();
   const tasaBcv = Number.isFinite(rawRate) && rawRate > 0 ? rawRate : 1;
   const [products, setProducts] = useState<Product[]>([]);
@@ -568,7 +568,7 @@ export default function POSPage() {
     },
   };
 
-  if (!canManageCustomers) {
+  if (!canManageInvoices && !canAccessPOS) {
     return (
       <AdminPageShell eyebrow="Ventas" title="Punto de Venta" subtitle="Acceso restringido" animate={false}>
         <AdminCard>

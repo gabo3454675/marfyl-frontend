@@ -17,7 +17,14 @@ import {
   switchAssistantConversation,
   type AssistantConversation,
 } from './assistant-chat-storage';
-import { ChatBubble, StreamBubble, TypingIndicator } from './chat-bubble';
+import { AnimatePresence } from 'framer-motion';
+import {
+  ChatBubble,
+  ChatMessageRow,
+  ChatWelcome,
+  StreamBubble,
+  TypingIndicator,
+} from './chat-bubble';
 import { AssistantMessageContent } from './assistant-message-content';
 import { AssistantAuditWarnings } from './assistant-audit-warnings';
 import { AssistantSummaryCard } from './assistant-summary-card';
@@ -356,29 +363,40 @@ export function AssistantPanel({
             className="ai-chat-scroll relative flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 py-3 sm:px-4"
           >
             <div className="mt-auto flex flex-col gap-3 pb-2">
-              {onlyStarter && (
-                <div className="ai-welcome mb-2 shrink-0">
-                  <AssistantMessageContent content={ASSISTANT_STARTER_MESSAGE.content} />
-                  <p className="mt-2 text-xs text-white/45">
-                    Elija una acción rápida o escriba su consulta abajo. El historial se guarda en
-                    este dispositivo.
-                  </p>
-                </div>
-              )}
-              {!onlyStarter &&
-                messages.map((m, i) => (
-                  <div
-                    key={`${activeConversationId ?? 'local'}-${i}-${m.content.slice(0, 16)}`}
-                    className="flex flex-col gap-2"
-                  >
-                    {m.role === 'assistant' && m.auditWarnings && m.auditWarnings.length > 0 && (
-                      <AssistantAuditWarnings warnings={m.auditWarnings} />
-                    )}
-                    <ChatBubble content={m.content} isUser={m.role === 'user'} />
-                  </div>
-                ))}
-              {loading && streamingText && <StreamBubble content={streamingText} />}
-              {loading && !streamingText && <TypingIndicator label={loadingLabel} />}
+              <AnimatePresence initial={false} mode="popLayout">
+                {onlyStarter && (
+                  <ChatWelcome key="welcome" className="ai-welcome mb-2 shrink-0">
+                    <AssistantMessageContent content={ASSISTANT_STARTER_MESSAGE.content} />
+                    <p className="mt-2 text-xs text-white/45">
+                      Elija una acción rápida o escriba su consulta abajo. El historial se guarda en
+                      este dispositivo.
+                    </p>
+                  </ChatWelcome>
+                )}
+                {!onlyStarter &&
+                  messages.map((m, i) => (
+                    <ChatMessageRow
+                      key={`${activeConversationId ?? 'local'}-${i}-${m.content.slice(0, 16)}`}
+                      isUser={m.role === 'user'}
+                      className="flex flex-col gap-2"
+                    >
+                      {m.role === 'assistant' && m.auditWarnings && m.auditWarnings.length > 0 && (
+                        <AssistantAuditWarnings warnings={m.auditWarnings} />
+                      )}
+                      <ChatBubble
+                        content={m.content}
+                        isUser={m.role === 'user'}
+                        animated={false}
+                      />
+                    </ChatMessageRow>
+                  ))}
+                {loading && streamingText && (
+                  <StreamBubble key="stream" content={streamingText} />
+                )}
+                {loading && !streamingText && (
+                  <TypingIndicator key="typing" label={loadingLabel} />
+                )}
+              </AnimatePresence>
               {error && (
                 <div className="space-y-2 rounded-xl border border-red-400/35 bg-red-950/50 px-3 py-2.5 text-sm text-red-100">
                   <p>{error}</p>

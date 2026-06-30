@@ -459,7 +459,7 @@ export default function Sidebar() {
           </div>
         ) : (
           <div className="p-2 space-y-1">
-            {['dashboard', 'pos', 'products']
+            {['pos']
               .map((id) => getNavItem(id))
               .filter(Boolean)
               .filter((item) => canShowNavItem(item as NavItem, permissions))

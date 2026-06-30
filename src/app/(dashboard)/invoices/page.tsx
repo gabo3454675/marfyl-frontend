@@ -59,7 +59,7 @@ export default function InvoicesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { selectedCompanyId, user } = useAuthStore();
-  const { canManageCustomers, canManageFiscal } = usePermission();
+  const { canManageInvoices, canManageFiscal } = usePermission();
   const { formatForDisplay } = useDisplayCurrency();
   const isSuperAdmin = !!user?.isSuperAdmin;
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -166,7 +166,7 @@ export default function InvoicesPage() {
 
   const displayNumber = (invoice: Invoice) => invoice.consecutiveNumber ?? invoice.id;
 
-  if (!canManageCustomers) {
+  if (!canManageInvoices) {
     return (
       <AdminPageShell eyebrow="Ventas" title="Facturas" subtitle="Acceso restringido">
         <AdminCard>

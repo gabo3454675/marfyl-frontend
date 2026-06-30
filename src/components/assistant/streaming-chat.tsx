@@ -11,7 +11,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Bot, MoreHorizontal, Sparkles, Wifi, WifiOff, Loader2 } from 'lucide-react';
 import { useGeminiChat } from '@/hooks/useGeminiChat';
-import { ChatBubble, TypingIndicator, StreamBubble } from './chat-bubble';
+import { AnimatePresence } from 'framer-motion';
+import { ChatBubble, ChatWelcome, StreamBubble, TypingIndicator } from './chat-bubble';
 import { useAssistantLoadingLabel } from './assistant-loading-phases';
 import { AssistantSummaryCard } from './assistant-summary-card';
 import { AssistantComposer } from './assistant-composer';
@@ -200,31 +201,33 @@ export function StreamingChat({
             ref={scrollRef}
             className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 sm:px-4 py-3 ai-chat-scroll flex flex-col justify-end gap-2"
           >
-            {onlyStarter && (
-              <div className="ai-welcome mb-2 shrink-0">
-                <p className="text-sm text-white/80 leading-relaxed">{STARTER_MESSAGE.content}</p>
-                <p className="text-xs text-white/45 mt-2">
-                  Elija una acción rápida o escriba su consulta abajo.
-                </p>
-              </div>
-            )}
+            <AnimatePresence initial={false} mode="popLayout">
+              {onlyStarter && (
+                <ChatWelcome key="welcome" className="ai-welcome mb-2 shrink-0">
+                  <p className="text-sm text-white/80 leading-relaxed">{STARTER_MESSAGE.content}</p>
+                  <p className="text-xs text-white/45 mt-2">
+                    Elija una acción rápida o escriba su consulta abajo.
+                  </p>
+                </ChatWelcome>
+              )}
 
-            {/* Render messages */}
-            {!onlyStarter && displayMessages.map((m, i) => (
-              <ChatBubble
-                key={`${i}-${m.content.slice(0, 16)}`}
-                content={m.content}
-                isUser={m.role === 'user'}
-              />
-            ))}
+              {!onlyStarter &&
+                displayMessages.map((m, i) => (
+                  <ChatBubble
+                    key={`${i}-${m.content.slice(0, 16)}`}
+                    content={m.content}
+                    isUser={m.role === 'user'}
+                  />
+                ))}
 
-            {/* Streaming text (in progress) */}
-            {isLoading && streamingText && (
-              <StreamBubble content={streamingText} />
-            )}
+              {isLoading && streamingText && (
+                <StreamBubble key="stream" content={streamingText} />
+              )}
 
-            {/* Typing indicator */}
-            {(isLoading && !streamingText) && <TypingIndicator label={loadingLabel} />}
+              {isLoading && !streamingText && (
+                <TypingIndicator key="typing" label={loadingLabel} />
+              )}
+            </AnimatePresence>
             
             {/* Connection status typing */}
             {isTyping && !isLoading && (

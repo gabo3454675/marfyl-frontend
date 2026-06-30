@@ -7,8 +7,7 @@ export function isFiscalPreviewMode(): boolean {
     const w = window as Window & { __MARFYL_FISCAL_PREVIEW__?: boolean };
     if (w.__MARFYL_FISCAL_PREVIEW__ === true) return true;
   }
-  if (process.env.NEXT_PUBLIC_FISCAL_PREVIEW === 'false') return false;
-  return process.env.NODE_ENV === 'development';
+  return false;
 }
 
 /** Solo vista previa dev; no usar org real de producción. */

@@ -14,9 +14,6 @@ export function filterOrganizationsForLogin<T extends { slug: string }>(
   isPlatformSuperAdmin: boolean,
 ): T[] {
   if (isPlatformSuperAdmin) return organizations;
-  const hasFounding = organizations.some((o) => isFoundingOrgSlug(o.slug));
-  if (hasFounding) {
-    return organizations.filter((o) => isFoundingOrgSlug(o.slug));
-  }
+  // Todos los usuarios ven TODAS sus membresías (sin filtrar por founding org)
   return organizations;
 }

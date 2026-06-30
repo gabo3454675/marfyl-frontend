@@ -46,7 +46,7 @@ interface Member {
   email: string;
   fullName: string | null;
   avatarUrl: string | null;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR';
   status: string;
   joinedAt: string;
 }
@@ -64,12 +64,13 @@ interface AuditLogEntry {
   createdAt: string;
 }
 
-const ROLES_FOR_SELECT: { value: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE'; label: string }[] = [
+const ROLES_FOR_SELECT: { value: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR'; label: string }[] = [
   { value: 'SUPER_ADMIN', label: 'Super Administrador' },
   { value: 'ADMIN', label: 'Administrador' },
   { value: 'MANAGER', label: 'Gerente' },
   { value: 'SELLER', label: 'Cajero/Vendedor' },
   { value: 'WAREHOUSE', label: 'Almacén' },
+  { value: 'POS_OPERATOR', label: 'Punto de Venta (POS)' },
 ];
 
 function getAuditActionLabel(action: string): string {
@@ -96,7 +97,7 @@ export default function TeamPage() {
   const [inviteFormData, setInviteFormData] = useState({
     email: '',
     fullName: '',
-    role: 'SELLER' as 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE',
+    role: 'SELLER' as 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR',
   });
   const [tempPasswordModal, setTempPasswordModal] = useState<{ tempPassword: string; email: string } | null>(null);
   const [copiedPassword, setCopiedPassword] = useState(false);
@@ -326,6 +327,7 @@ export default function TeamPage() {
       MANAGER: 'Gerente',
       SELLER: 'Cajero/Vendedor',
       WAREHOUSE: 'Almacén',
+      POS_OPERATOR: 'Punto de Venta (POS)',
     };
     return labels[role] || role;
   };
@@ -344,6 +346,8 @@ export default function TeamPage() {
         return `${base} bg-slate-500/20 text-slate-600 dark:text-slate-400 border-slate-500/40`;
       case 'WAREHOUSE':
         return `${base} bg-slate-400/20 text-slate-500 dark:text-slate-400 border-slate-400/40`;
+      case 'POS_OPERATOR':
+        return `${base} bg-violet-500/20 text-violet-600 dark:text-violet-400 border-violet-500/40`;
       default:
         return `${base} bg-muted text-muted-foreground border-border`;
     }
@@ -375,7 +379,7 @@ export default function TeamPage() {
     return canManageTeam;
   };
 
-  const handleRoleChange = async (member: Member, newRole: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE') => {
+  const handleRoleChange = async (member: Member, newRole: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR') => {
     if (newRole === member.role) return;
     setUpdatingRoleMemberId(member.id);
     try {
@@ -545,7 +549,7 @@ export default function TeamPage() {
                               {canChangeRole(member) ? (
                                 <Select
                                   value={member.role}
-                                  onValueChange={(value: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE') =>
+                                  onValueChange={(value: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR') =>
                                     handleRoleChange(member, value)
                                   }
                                   disabled={updatingRoleMemberId === member.id}
@@ -655,7 +659,7 @@ export default function TeamPage() {
                             {canChangeRole(member) ? (
                               <Select
                                 value={member.role}
-                                onValueChange={(value: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE') =>
+                                onValueChange={(value: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR') =>
                                   handleRoleChange(member, value)
                                 }
                                 disabled={updatingRoleMemberId === member.id}
@@ -856,7 +860,7 @@ export default function TeamPage() {
               <Label htmlFor="role">Rol</Label>
               <Select
                 value={inviteFormData.role}
-                onValueChange={(value: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE') =>
+                onValueChange={(value: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR') =>
                   setInviteFormData({ ...inviteFormData, role: value })
                 }
               >
@@ -873,10 +877,11 @@ export default function TeamPage() {
                   <SelectItem value="MANAGER">Gerente (MANAGER)</SelectItem>
                   <SelectItem value="SELLER">Cajero/Vendedor (SELLER)</SelectItem>
                   <SelectItem value="WAREHOUSE">Almacén (WAREHOUSE)</SelectItem>
+                  <SelectItem value="POS_OPERATOR">Punto de Venta (POS)</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                El Gerente puede gestionar el equipo. El Cajero/Vendedor solo puede realizar ventas. Almacén gestiona inventario.
+                El Gerente puede gestionar el equipo. El Cajero/Vendedor solo puede realizar ventas. Almacén gestiona inventario. Punto de Venta gestiona caja y cobros.
               </p>
             </div>
           </div>

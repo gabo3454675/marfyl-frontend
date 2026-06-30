@@ -48,7 +48,7 @@ function getDefaultDateRange(): { start: string; end: string } {
 
 export default function HistoryPage() {
   const { selectedOrganizationId, selectedCompanyId, getOrganizations, selectOrganization, user } = useAuthStore();
-  const { canManageCustomers } = usePermission();
+  const { canManageInvoices } = usePermission();
   const { formatForDisplay } = useDisplayCurrency();
   const isSuperAdmin = !!user?.isSuperAdmin;
   const organizations = getOrganizations();
@@ -157,7 +157,7 @@ export default function HistoryPage() {
   const totalSalesPeriod = data?.invoices?.reduce((sum, inv) => sum + Number(inv.totalAmount), 0) ?? 0;
   const invoicesCount = data?.invoices?.length ?? 0;
 
-  if (!canManageCustomers) {
+  if (!canManageInvoices) {
     return (
       <AdminPageShell eyebrow="Ventas" title="Historial de Ventas" subtitle="Acceso restringido">
         <AdminCard>

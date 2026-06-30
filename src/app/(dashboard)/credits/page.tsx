@@ -47,7 +47,7 @@ interface CreditTransaction {
 export default function CreditsPage() {
   const { selectedCompanyId } = useAuthStore();
   const exchangeRate = useExchangeRate();
-  const { canManageCustomers, isSuperAdmin, isAdmin } = usePermission();
+  const { canViewCredits, isSuperAdmin, isAdmin } = usePermission();
   const { formatForDisplay } = useDisplayCurrency();
   const canEditCreditLimit = isSuperAdmin || isAdmin;
   const [credits, setCredits] = useState<CustomerCredit[]>([]);
@@ -115,7 +115,7 @@ export default function CreditsPage() {
     return name.toLowerCase().includes(search.toLowerCase());
   });
 
-  if (!canManageCustomers) {
+  if (!canViewCredits) {
     return (
       <AdminPageShell eyebrow="Finanzas" title="Cuentas por Cobrar" subtitle="Acceso restringido" maxWidth="medium">
         <AdminCard>

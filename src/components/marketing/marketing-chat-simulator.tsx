@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { AnimatePresence } from 'framer-motion';
+import { ChatMessageRow, ChatWelcome } from '@/components/assistant/chat-bubble';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -17,6 +19,21 @@ const RESPONSES: Record<string, string> = {
 };
 
 const TYPING_SPEED_MS = 12;
+
+function MessageLines({ content, showCursor = false }: { content: string; showCursor?: boolean }) {
+  const lines = content.split('\n');
+
+  return (
+    <>
+      {lines.map((line, j) => (
+        <p key={j}>
+          {line}
+          {showCursor && j === lines.length - 1 && <span className="markyl-chat-cursor" />}
+        </p>
+      ))}
+    </>
+  );
+}
 
 export function MarketingChatSimulator() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -66,19 +83,15 @@ export function MarketingChatSimulator() {
         }
       }
 
-      const finalElapsed = Math.round(
-        performance.now() - startTimeRef.current,
-      );
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: response },
-      ]);
+      setMessages((prev) => [...prev, { role: 'assistant', content: response }]);
       setStreamingText('');
       setIsStreaming(false);
       setShowLatency(true);
     },
     [isStreaming],
   );
+
+  const showWelcome = messages.length === 0 && !isStreaming;
 
   return (
     <div className="markyl-chat-simulator">
@@ -92,60 +105,59 @@ export function MarketingChatSimulator() {
         </div>
         {showLatency && (
           <div className="markyl-chat-badge">
-            Llama 3.3 · 100% Precisión Legal · {Math.round(performance.now() - (startTimeRef.current || performance.now())) + 140}ms
+            Llama 3.3 · 100% Precisión Legal ·{' '}
+            {Math.round(performance.now() - (startTimeRef.current || performance.now())) + 140}ms
           </div>
         )}
       </div>
 
       <div className="markyl-chat-messages">
-        {messages.length === 0 && !isStreaming && (
-          <div className="markyl-chat-welcome">
-            <p className="text-sm font-medium mb-2">Selecciona una consulta para ver a Marfyl en acción:</p>
-            <div className="flex flex-col gap-2">
-              {Object.keys(RESPONSES).map((q) => (
-                <button
-                  key={q}
-                  onClick={() => handleQuestionClick(q)}
-                  className="markyl-chat-question-btn"
-                >
-                  <span className="text-xs opacity-70">❯</span> {q}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        <AnimatePresence initial={false} mode="popLayout">
+          {showWelcome && (
+            <ChatWelcome key="welcome" className="markyl-chat-welcome">
+              <p className="text-sm font-medium mb-2">
+                Selecciona una consulta para ver a Marfyl en acción:
+              </p>
+              <div className="flex flex-col gap-2">
+                {Object.keys(RESPONSES).map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => handleQuestionClick(q)}
+                    className="markyl-chat-question-btn"
+                  >
+                    <span className="text-xs opacity-70">❯</span> {q}
+                  </button>
+                ))}
+              </div>
+            </ChatWelcome>
+          )}
 
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`markyl-chat-message markyl-chat-message--${msg.role}`}
-          >
-            {msg.role === 'assistant' && (
+          {messages.map((msg, i) => (
+            <ChatMessageRow
+              key={`${i}-${msg.content.slice(0, 16)}`}
+              isUser={msg.role === 'user'}
+              className={`markyl-chat-message markyl-chat-message--${msg.role}`}
+            >
+              {msg.role === 'assistant' && <div className="markyl-chat-message-avatar">M</div>}
+              <div className="markyl-chat-bubble">
+                <MessageLines content={msg.content} />
+              </div>
+            </ChatMessageRow>
+          ))}
+
+          {isStreaming && streamingText && (
+            <ChatMessageRow
+              key="stream"
+              isUser={false}
+              className="markyl-chat-message markyl-chat-message--assistant"
+            >
               <div className="markyl-chat-message-avatar">M</div>
-            )}
-            <div className="markyl-chat-bubble">
-              {msg.content.split('\n').map((line, j) => (
-                <p key={j}>{line}</p>
-              ))}
-            </div>
-          </div>
-        ))}
-
-        {isStreaming && streamingText && (
-          <div className="markyl-chat-message markyl-chat-message--assistant">
-            <div className="markyl-chat-message-avatar">M</div>
-            <div className="markyl-chat-bubble markyl-chat-bubble--streaming">
-              {streamingText.split('\n').map((line, j) => (
-                <p key={j}>
-                  {line}
-                  {j === streamingText.split('\n').length - 1 && (
-                    <span className="markyl-chat-cursor" />
-                  )}
-                </p>
-              ))}
-            </div>
-          </div>
-        )}
+              <div className="markyl-chat-bubble markyl-chat-bubble--streaming">
+                <MessageLines content={streamingText} showCursor />
+              </div>
+            </ChatMessageRow>
+          )}
+        </AnimatePresence>
 
         <div ref={chatEndRef} />
       </div>

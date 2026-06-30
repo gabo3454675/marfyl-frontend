@@ -19,22 +19,17 @@ import {
   Settings,
   UsersRound,
 } from 'lucide-react';
+import type { PermissionKey } from '@/config/permissions';
 
-export type NavPermission =
-  | 'canViewDashboard'
-  | 'canManageCustomers'
-  | 'canManageProducts'
-  | 'canManageInventory'
-  | 'canManageExpenses'
-  | 'canManageTeam'
-  | 'canManageFiscal';
+/** @deprecated Use `PermissionKey` directly. Kept as alias for backward compatibility. */
+export type NavPermission = PermissionKey;
 
 export type AppNavItem = {
   id: string;
   label: string;
   href: string;
   icon: LucideIcon;
-  permission: NavPermission;
+  permission: PermissionKey;
 };
 
 export type AppNavSection = {
@@ -50,22 +45,22 @@ export const APP_NAV_QUICK_ACCESS_IDS = ['dashboard', 'pos'] as const;
 
 export const APP_NAV_ITEMS: AppNavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: Grid2x2, href: '/', permission: 'canViewDashboard' },
-  { id: 'pos', label: 'POS', icon: ShoppingCart, href: '/pos', permission: 'canManageCustomers' },
+  { id: 'pos', label: 'POS', icon: ShoppingCart, href: '/pos', permission: 'canAccessPOS' },
   { id: 'products', label: 'Inventario', icon: Box, href: '/products', permission: 'canManageProducts' },
   { id: 'servicios-combos', label: 'Servicios y combos', icon: Wine, href: '/servicios-combos', permission: 'canManageProducts' },
   { id: 'movements', label: 'Movimientos inventario', icon: PackageMinus, href: '/inventory/movements', permission: 'canManageInventory' },
   { id: 'autoconsumo', label: 'Autoconsumo', icon: BarChart3, href: '/autoconsumo', permission: 'canManageInventory' },
   { id: 'alertas-stock', label: 'Alertas inventario', icon: AlertTriangle, href: '/alertas-stock', permission: 'canManageInventory' },
   { id: 'customers', label: 'Clientes', icon: Users, href: '/customers', permission: 'canManageCustomers' },
-  { id: 'invoices', label: 'Facturas', icon: FileText, href: '/invoices', permission: 'canManageCustomers' },
-  { id: 'history', label: 'Historial de ventas', icon: History, href: '/history', permission: 'canManageCustomers' },
-  { id: 'cierre-caja', label: 'Cierre de caja', icon: Wallet, href: '/cierre-caja', permission: 'canManageCustomers' },
-  { id: 'credits', label: 'Cuentas por cobar', icon: CreditCard, href: '/credits', permission: 'canManageCustomers' },
+  { id: 'invoices', label: 'Facturas', icon: FileText, href: '/invoices', permission: 'canManageInvoices' },
+  { id: 'history', label: 'Historial de ventas', icon: History, href: '/history', permission: 'canManageInvoices' },
+  { id: 'cierre-caja', label: 'Cierre de caja', icon: Wallet, href: '/cierre-caja', permission: 'canManageCierreCaja' },
+  { id: 'credits', label: 'Cuentas por cobar', icon: CreditCard, href: '/credits', permission: 'canViewCredits' },
   { id: 'expenses', label: 'Gastos', icon: DollarSign, href: '/expenses', permission: 'canManageExpenses' },
   { id: 'suppliers', label: 'Proveedores', icon: Truck, href: '/suppliers', permission: 'canManageExpenses' },
   { id: 'accounts-payable', label: 'Cuentas por pagar', icon: Landmark, href: '/accounts-payable', permission: 'canManageExpenses' },
   { id: 'tasas', label: 'Tasas BCV / Diferencial', icon: TrendingUp, href: '/tasas', permission: 'canManageExpenses' },
-  { id: 'settings', label: 'Configuración', icon: Settings, href: '/settings', permission: 'canManageTeam' },
+  { id: 'settings', label: 'Configuración', icon: Settings, href: '/settings', permission: 'canManageSettings' },
   { id: 'nomina', label: 'Nómina', icon: UsersRound, href: '/nomina', permission: 'canManageTeam' },
 ];
 

@@ -92,7 +92,13 @@ export const useAuthStore = create<AuthState>()(
         const organizations = user.organizations || [];
         const companies = user.companies || [];
         // Default Tenant: Super Admin sin org seleccionada → asignar la primera disponible
-        const defaultOrgId = organizations.length > 0 ? organizations[0].id : (companies.length > 0 ? companies[0].id : null);
+        // Seleccionar la primera org donde el usuario NO sea solo POS_OPERATOR, o la primera disponible
+        const defaultOrgId = organizations.length > 0
+          ? (organizations.find(o => {
+              const r = (o.role || '').toUpperCase();
+              return r !== 'POS_OPERATOR';
+            })?.id ?? organizations[0].id)
+          : (companies.length > 0 ? companies[0].id : null);
         // Super Admin: poblar superAdminOrganizations con todas las orgs para que el switcher muestre todas de inmediato
         const superAdminOrgs = user.isSuperAdmin && organizations.length > 0 ? organizations : undefined;
         set({

@@ -16,6 +16,7 @@ import { DevAppSwitcher } from '@/components/marketing/dev-app-switcher';
 import { useSync } from '@/hooks/useSync';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { RouteGuard } from '@/components/RouteGuard';
 import { Loader2 } from 'lucide-react';
 
 const Sidebar = dynamic(() => import('@/components/sidebar'), { ssr: false });
@@ -48,6 +49,10 @@ export default function DashboardLayout({
 
   const selectedId = selectedOrganizationId || selectedCompanyId;
 
+  // Detectar si el usuario es POS_OPERATOR en la org actual
+  const currentOrgForRole = user?.organizations?.find((o) => o.id === selectedId);
+  const isPosOperator = currentOrgForRole?.role === 'POS_OPERATOR';
+
   // Sincronizar facturas pendientes al volver online
   useSync();
 
@@ -71,13 +76,13 @@ export default function DashboardLayout({
   }, []);
 
   useEffect(() => {
-    if (!mounted || !hasHydrated || !isAuthenticated || !selectedId) return;
+    if (!mounted || !hasHydrated || !isAuthenticated || !selectedId || isPosOperator) return;
     syncOrganizationRate();
-  }, [mounted, hasHydrated, isAuthenticated, selectedId, syncOrganizationRate]);
+  }, [mounted, hasHydrated, isAuthenticated, selectedId, syncOrganizationRate, isPosOperator]);
 
-  /** Refrescar tasa al volver a la pestaña + cada 15 min (backend cachea 60s) */
+  /** Refrescar tasa al volver a la pestaña + cada 15 min (backend cachea 60s) — no necesario para POS_OPERATOR */
   useEffect(() => {
-    if (!isAuthenticated || !selectedId) return;
+    if (!isAuthenticated || !selectedId || isPosOperator) return;
     const onVisible = () => {
       if (document.visibilityState === 'visible') syncOrganizationRate();
     };
@@ -87,7 +92,7 @@ export default function DashboardLayout({
       document.removeEventListener('visibilitychange', onVisible);
       window.clearInterval(timer);
     };
-  }, [isAuthenticated, selectedId, syncOrganizationRate]);
+  }, [isAuthenticated, selectedId, syncOrganizationRate, isPosOperator]);
 
   // Cliente montado + auth lista (useLayoutEffect evita pantalla congelada en SSR)
   useLayoutEffect(() => {
@@ -123,6 +128,12 @@ export default function DashboardLayout({
         return;
       }
       if (devPreview) return;
+
+      // POS_OPERATOR: redirigir al POS si está en el dashboard
+      if (isPosOperator && (pathname === '/' || pathname === '')) {
+        router.replace('/pos');
+        return;
+      }
 
       if (
         isAuthenticated &&
@@ -238,16 +249,37 @@ export default function DashboardLayout({
     );
   }
 
+  // POS_OPERATOR: layout ligero — sin Assistant, sin RateConfigModal, sin MarfylAssistant
+  if (isPosOperator) {
+    return (
+      <NotificationFeedProvider>
+        <div className="dm-app-shell flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden md:flex-row md:gap-0">
+          <DmAmbientMotion palette="a" intensity="subtle" />
+          <Sidebar />
+          <main className="admin-main-pane flex flex-1 flex-col min-h-0 min-w-0 w-full bg-background">
+            <AdminTopbar onOpenRateConfig={() => setRateConfigModalOpen(true)} />
+            <div className={cn('app-main-scroll', isPosRoute && 'app-main-scroll--pos')}>
+              <div className={cn('app-page-shell', isPosRoute && 'app-page-shell--pos')}>
+                <RouteGuard pathname={pathname}>
+                  {children}
+                </RouteGuard>
+              </div>
+            </div>
+          </main>
+          <BottomNav />
+        </div>
+      </NotificationFeedProvider>
+    );
+  }
+
+  // Layout completo para otros roles
   return (
     <NotificationFeedProvider>
       <AssistantProvider>
       <>
       <div className="dm-app-shell flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden md:flex-row md:gap-0">
         <DmAmbientMotion palette="a" intensity="subtle" />
-        {/* Desktop Sidebar */}
         <Sidebar />
-
-        {/* Main Content */}
         <main className="admin-main-pane flex flex-1 flex-col min-h-0 min-w-0 w-full bg-background">
           <AdminTopbar onOpenRateConfig={() => setRateConfigModalOpen(true)} />
           {devPreview && <DevAppSwitcher />}
@@ -265,19 +297,15 @@ export default function DashboardLayout({
                   : cn('app-page-shell', isPosRoute && 'app-page-shell--pos')
               }
             >
-              {children}
+              <RouteGuard pathname={pathname}>
+                {children}
+              </RouteGuard>
             </div>
           </div>
         </main>
-
-        {/* Modal de configuración de tasa (abierto desde el indicador o la campanita) */}
         <RateConfigModal open={rateConfigModalOpen} onOpenChange={setRateConfigModalOpen} />
-
-        {/* Mobile Bottom Navigation */}
         <BottomNav />
       </div>
-
-      {/* Fuera del flex shell: evita recorte por overflow-hidden en desktop */}
       {!isAssistantRoute && <MarfylAssistant hideOnMobile={isPosRoute} />}
       </>
       </AssistantProvider>
