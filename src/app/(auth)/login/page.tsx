@@ -16,8 +16,17 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  console.log('[login-page] LoginForm rendered', {
+    fiscalPreview: isFiscalPreviewMode(),
+    explicitLogout: isExplicitLogout(),
+  });
+
   useEffect(() => {
-    if (isFiscalPreviewMode() && !isExplicitLogout()) {
+    const preview = isFiscalPreviewMode();
+    const logout = isExplicitLogout();
+    console.log('[login-page] useEffect check:', { preview, logout, willRedirect: preview && !logout });
+    if (preview && !logout) {
+      console.log('[login-page] REDIRECT: fiscal preview mode -> /');
       router.replace('/');
     }
   }, [router]);
@@ -38,10 +47,14 @@ function LoginForm() {
     e.preventDefault();
     setError('');
     setLoading(true);
+    console.log('[login-page] handleSubmit START', { email });
 
     try {
+      console.log('[login-page] Calling authService.login...');
       const { access_token, user } = await authService.login({ email, password });
+      console.log('[login-page] authService.login SUCCESS', { hasToken: !!access_token, userId: user?.id, email: user?.email, companies: (user as any)?.companies?.length, organizations: (user as any)?.organizations?.length });
       setAuth(user as unknown as Parameters<typeof setAuth>[0], access_token);
+      console.log('[login-page] setAuth called, now pushing to /');
       if ((user as { companies?: unknown[] }).companies?.length) {
         router.push('/');
       } else {
@@ -49,6 +62,7 @@ function LoginForm() {
         router.push('/');
       }
     } catch (err: any) {
+      console.error('[login-page] authService.login FAILED', { status: err.response?.status, message: err.response?.data?.message, error: err.message });
       setError(
         err.response?.data?.message || 'Error al iniciar sesión. Verifica tus credenciales.'
       );

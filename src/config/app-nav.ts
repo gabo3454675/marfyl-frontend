@@ -17,6 +17,7 @@ import {
   TrendingUp,
   Settings,
   UsersRound,
+  FileUp,
 } from 'lucide-react';
 import type { PermissionKey } from '@/config/permissions';
 
@@ -47,6 +48,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
   { id: 'pos', label: 'POS', icon: ShoppingCart, href: '/pos', permission: 'canAccessPOS' },
   { id: 'products', label: 'Inventario', icon: Box, href: '/products', permission: 'canManageProducts' },
   { id: 'movements', label: 'Movimientos inventario', icon: PackageMinus, href: '/inventory/movements', permission: 'canManageInventory' },
+  { id: 'invoice-upload', label: 'Subir Factura', icon: FileUp, href: '/inventory/invoice-upload', permission: 'canManageInventory' },
   { id: 'autoconsumo', label: 'Autoconsumo', icon: BarChart3, href: '/autoconsumo', permission: 'canManageInventory' },
   { id: 'alertas-stock', label: 'Alertas inventario', icon: AlertTriangle, href: '/alertas-stock', permission: 'canManageInventory' },
   { id: 'customers', label: 'Clientes', icon: Users, href: '/customers', permission: 'canManageCustomers' },
@@ -77,7 +79,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
   {
     id: 'inventario',
     label: 'Inventario',
-    itemIds: ['products', 'movements', 'autoconsumo', 'alertas-stock'],
+    itemIds: ['products', 'movements', 'invoice-upload', 'autoconsumo', 'alertas-stock'],
   },
   {
     id: 'finanzas',
@@ -104,6 +106,7 @@ export function resolveAppNavId(pathname: string): string {
   if (pathname.startsWith('/inventory/movements')) return 'movements';
   if (pathname.startsWith('/autoconsumo')) return 'autoconsumo';
   if (pathname.startsWith('/alertas-stock')) return 'alertas-stock';
+  if (pathname.startsWith('/inventory/invoice-upload')) return 'invoice-upload';
   if (pathname.startsWith('/inventory')) return 'products';
   if (pathname.startsWith('/customers')) return 'customers';
   if (pathname.startsWith('/invoices')) return 'invoices';

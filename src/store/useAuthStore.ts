@@ -80,11 +80,13 @@ export const useAuthStore = create<AuthState>()(
       setAuth: (user, token) => {
         // Bloquear sesión si requiere cambio de contraseña (no debería llegar aquí; backend retorna 403)
         if (user.requiresPasswordChange) {
+          console.log('[authStore] setAuth BLOCKED: requiresPasswordChange', { email: user.email });
           if (typeof window !== 'undefined') {
             window.location.href = `/reset-password?email=${encodeURIComponent(user.email)}`;
           }
           return;
         }
+        console.log('[authStore] setAuth SUCCESS', { userId: user.id, email: user.email, hasOrganizations: (user.organizations?.length ?? 0) > 0, hasCompanies: (user.companies?.length ?? 0) > 0 });
         if (typeof window !== 'undefined') {
           localStorage.setItem('auth_token', token);
           setSessionCookie();

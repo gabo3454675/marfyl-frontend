@@ -6,11 +6,13 @@ const MAX_AGE_SEC = 60 * 60 * 24 * 30; // 30 días
 export function setSessionCookie(): void {
   if (typeof document === 'undefined') return;
   const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+  console.log('[auth-session-cookie] setSessionCookie: setting marfyl_session=1');
   document.cookie = `${SESSION_COOKIE_NAME}=1; path=/; max-age=${MAX_AGE_SEC}; SameSite=Lax${secure}`;
 }
 
 export function clearSessionCookie(): void {
   if (typeof document === 'undefined') return;
+  console.log('[auth-session-cookie] clearSessionCookie: clearing marfyl_session');
   document.cookie = `${SESSION_COOKIE_NAME}=; path=/; max-age=0; SameSite=Lax`;
 }
 

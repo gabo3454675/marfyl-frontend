@@ -74,6 +74,12 @@ apiClient.interceptors.response.use(
   (error: AxiosError) => {
     if (typeof window !== 'undefined') {
       if (error.response?.status === 401 && !isFiscalPreviewMode()) {
+        // Don't redirect on 401 during login attempt — let the login form handle the error
+        const requestUrl = error.config?.url || '';
+        if (requestUrl.includes('/auth/login')) {
+          return Promise.reject(error);
+        }
+        console.log('[apiClient] 401 response -> clearing session and redirecting to /login');
         clearSessionCookie();
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth-storage');

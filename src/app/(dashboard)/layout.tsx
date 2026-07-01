@@ -122,10 +122,13 @@ export default function DashboardLayout({
   useEffect(() => {
     // Solo redirigir después de que el estado se haya hidratado y montado
     if (mounted && hasHydrated) {
+      console.log('[dashboard-layout] auth redirect check:', { isAuthenticated, devPreview, pathname });
       if (!isAuthenticated && !devPreview) {
         if (pathname === '/' || pathname === '') {
+          console.log('[dashboard-layout] REDIRECT: not authenticated, root path -> /empresa');
           router.replace('/empresa');
         } else {
+          console.log('[dashboard-layout] REDIRECT: not authenticated, other path -> /login');
           router.push('/login');
         }
         return;

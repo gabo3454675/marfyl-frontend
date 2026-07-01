@@ -73,3 +73,15 @@ export type {
   ClosePeriodResponse,
   CargaRapidaCompraPayload,
 } from './fiscal';
+
+export { invoiceUploadService } from './invoice-upload';
+export type {
+  InvoicePreviewLine,
+  InvoicePreviewResult,
+  InvoiceConfirmLine,
+  InvoiceConfirmPayload,
+  InvoiceConfirmResult,
+  ProductSearchResult,
+  InvoiceHistoryItem,
+  InvoiceHistoryResponse,
+} from './invoice-upload';

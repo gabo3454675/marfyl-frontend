@@ -1,6 +1,12 @@
 /** Detección de vista previa fiscal usable en middleware (sin `window`). */
 export function isFiscalPreviewModeServer(): boolean {
-  if (process.env.NEXT_PUBLIC_FISCAL_PREVIEW === 'true') return true;
-  if (process.env.NEXT_PUBLIC_FISCAL_PREVIEW === 'false') return false;
-  return process.env.NODE_ENV === 'development';
+  const envVar = process.env.NEXT_PUBLIC_FISCAL_PREVIEW;
+  const nodeEnv = process.env.NODE_ENV;
+  let result = false;
+  if (envVar === 'true') result = true;
+  else if (envVar === 'false') result = false;
+  else result = nodeEnv === 'development';
+
+  console.log('[fiscal-preview-server] isFiscalPreviewModeServer:', { envVar, nodeEnv, result });
+  return result;
 }
