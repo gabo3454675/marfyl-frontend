@@ -169,6 +169,7 @@ export function usePermission(): UsePermissionReturn {
           canViewFinancialCharts: true,
           canViewReports: true,
           canManageProducts: true,
+          canViewProducts: true,
           canManageInventory: true,
           canManageCustomers: true,
           canManageInvoices: true,

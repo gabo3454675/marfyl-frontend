@@ -14,6 +14,7 @@ export type PermissionKey =
   | 'canViewReports'
   // Productos
   | 'canManageProducts'
+  | 'canViewProducts'
   | 'canManageInventory'
   // Clientes y Ventas
   | 'canManageCustomers'
@@ -49,6 +50,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
     canViewFinancialCharts: true,
     canViewReports: true,
     canManageProducts: true,
+    canViewProducts: true,
     canManageInventory: true,
     canManageCustomers: true,
     canManageInvoices: true,
@@ -71,6 +73,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
     canViewFinancialCharts: true,
     canViewReports: true,
     canManageProducts: true,
+    canViewProducts: true,
     canManageInventory: true,
     canManageCustomers: true,
     canManageInvoices: true,
@@ -93,6 +96,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
     canViewFinancialCharts: true,
     canViewReports: true,
     canManageProducts: true,
+    canViewProducts: true,
     canManageInventory: true,
     canManageCustomers: true,
     canManageInvoices: true,
@@ -115,6 +119,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
     canViewFinancialCharts: false,
     canViewReports: false,
     canManageProducts: false,
+    canViewProducts: true,
     canManageInventory: false,
     canManageCustomers: true,
     canManageInvoices: true,
@@ -137,6 +142,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
     canViewFinancialCharts: false,
     canViewReports: false,
     canManageProducts: true,
+    canViewProducts: true,
     canManageInventory: true,
     canManageCustomers: false,
     canManageInvoices: false,
@@ -159,6 +165,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
     canViewFinancialCharts: false,
     canViewReports: false,
     canManageProducts: false,
+    canViewProducts: true,
     canManageInventory: false,
     canManageCustomers: false,
     canManageInvoices: false,
@@ -181,6 +188,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
     canViewFinancialCharts: false,
     canViewReports: false,
     canManageProducts: false,
+    canViewProducts: false,
     canManageInventory: false,
     canManageCustomers: false,
     canManageInvoices: false,
@@ -212,6 +220,7 @@ export function getPermissionsForRole(role: string): PermissionMap {
       canViewFinancialCharts: false,
       canViewReports: false,
       canManageProducts: false,
+      canViewProducts: false,
       canManageInventory: false,
       canManageCustomers: false,
       canManageInvoices: false,

@@ -34,6 +34,7 @@ import { PosCartPanel } from '@/components/pos/pos-cart-panel';
 import { QuickProductSheet, type QuickProductResult } from '@/components/pos/quick-product-sheet';
 import { PosCalculatorDrawer, PosCalculatorFab } from '@/components/pos/pos-calculator-drawer';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { PosToolbar } from '@/components/pos/pos-toolbar';
 
 interface Product {
   id: number;
@@ -616,7 +617,9 @@ export default function POSPage() {
   }
 
   return (
-    <AdminPageShell
+    <>
+      {isPosOnlySeller && <PosToolbar />}
+      <AdminPageShell
       animate={false}
       eyebrow={isPosOnlySeller ? undefined : 'Ventas'}
       title={isPosOnlySeller ? 'Caja' : 'Punto de Venta'}
@@ -956,5 +959,6 @@ export default function POSPage() {
         onCreated={handleQuickProductCreated}
       />
     </AdminPageShell>
+    </>
   );
 }
