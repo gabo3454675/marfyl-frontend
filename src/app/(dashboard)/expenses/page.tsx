@@ -39,6 +39,7 @@ import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePaginatedQuery } from '@/hooks/usePaginatedQuery';
 import { usePermission } from '@/hooks/usePermission';
+import { Supplier, supplierService } from '@/lib/api/suppliers';
 
 // Lazy load del componente de gráficos pesados
 const ExpenseCharts = dynamic(() => import('@/components/expense-charts'), {
@@ -63,15 +64,6 @@ interface Expense {
   };
   amountPaid?: number;
   balanceDue?: number;
-}
-
-interface Supplier {
-  id: number;
-  name: string;
-  taxId?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  address?: string | null;
 }
 
 interface ExpenseCategory {
@@ -141,10 +133,7 @@ export default function ExpensesPage() {
   // Auxiliary data queries
   const { data: suppliers = [], refetch: refetchSuppliers } = useQuery<Supplier[]>({
     queryKey: ['suppliers'],
-    queryFn: async () => {
-      const res = await apiClient.get<Supplier[]>('/suppliers');
-      return res.data;
-    },
+    queryFn: () => supplierService.getAll(),
     enabled: !!selectedCompanyId && canManageExpenses,
   });
 
@@ -403,10 +392,10 @@ export default function ExpensesPage() {
     setSubmitting(true);
     try {
       if (editingSupplier) {
-        await apiClient.patch(`/suppliers/${editingSupplier.id}`, supplierFormData);
+        await supplierService.update(editingSupplier.id, supplierFormData);
         alert('Proveedor actualizado exitosamente');
       } else {
-        await apiClient.post('/suppliers', supplierFormData);
+        await supplierService.create(supplierFormData);
         alert('Proveedor creado exitosamente');
       }
 
@@ -426,7 +415,7 @@ export default function ExpensesPage() {
     }
 
     try {
-      await apiClient.delete(`/suppliers/${id}`);
+      await supplierService.remove(id);
       alert('Proveedor eliminado exitosamente');
       refetchSuppliers();
     } catch (error: any) {
@@ -730,21 +719,38 @@ export default function ExpensesPage() {
                       onChange={(e) => setImportMeta((m) => ({ ...m, date: e.target.value }))}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Proveedor (opcional)</Label>
-                    <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                      value={importMeta.supplierId}
-                      onChange={(e) => setImportMeta((m) => ({ ...m, supplierId: e.target.value }))}
-                    >
-                      <option value="">—</option>
-                      {suppliers.map((s) => (
-                        <option key={s.id} value={String(s.id)}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  {suppliers.length === 0 ? (
+                    <div className="space-y-2">
+                      <Label>Proveedor</Label>
+                      <p className="text-sm text-muted-foreground">No hay proveedores registrados</p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenSupplierDialog()}
+                        className="cursor-pointer"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Agregar Proveedor
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label>Proveedor (opcional)</Label>
+                      <select
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                        value={importMeta.supplierId}
+                        onChange={(e) => setImportMeta((m) => ({ ...m, supplierId: e.target.value }))}
+                      >
+                        <option value="">—</option>
+                        {suppliers.map((s) => (
+                          <option key={s.id} value={String(s.id)}>
+                            {s.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label>Referencia / N° factura (opcional)</Label>
                     <Input
@@ -884,7 +890,16 @@ export default function ExpensesPage() {
             >
                 {suppliers.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
-                    No hay proveedores registrados
+                    <p>No hay proveedores registrados</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenSupplierDialog()}
+                      className="mt-4 cursor-pointer"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Agregar Proveedor
+                    </Button>
                   </div>
                 ) : (
                   <AdminTableWrap>
@@ -993,24 +1008,41 @@ export default function ExpensesPage() {
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="supplierId">Proveedor (Opcional)</Label>
-                <select
-                  id="supplierId"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={expenseFormData.supplierId}
-                  onChange={(e) =>
-                    setExpenseFormData({ ...expenseFormData, supplierId: e.target.value })
-                  }
-                >
-                  <option value="">Sin proveedor</option>
-                  {suppliers.map((supplier) => (
-                    <option key={supplier.id} value={supplier.id}>
-                      {supplier.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {suppliers.length === 0 ? (
+                <div className="space-y-2">
+                  <Label>Proveedor</Label>
+                  <p className="text-sm text-muted-foreground">No hay proveedores registrados</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleOpenSupplierDialog()}
+                    className="cursor-pointer"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Agregar Proveedor
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="supplierId">Proveedor (Opcional)</Label>
+                  <select
+                    id="supplierId"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={expenseFormData.supplierId}
+                    onChange={(e) =>
+                      setExpenseFormData({ ...expenseFormData, supplierId: e.target.value })
+                    }
+                  >
+                    <option value="">Sin proveedor</option>
+                    {suppliers.map((supplier) => (
+                      <option key={supplier.id} value={supplier.id}>
+                        {supplier.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="referenceNumber">Número de Referencia</Label>

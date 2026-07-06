@@ -85,7 +85,27 @@ export interface InvoiceHistoryItem {
   referenceNumber: string | null;
   status: string;
   supplier: { id: number; name: string } | null;
+  createdAt: string;
+}
+
+export interface InvoiceHistoryDetail {
+  id: number;
+  date: string;
+  amount: number;
+  description: string;
+  referenceNumber: string | null;
+  status: string;
+  supplier: { id: number; name: string; taxId?: string | null; email?: string | null; phone?: string | null } | null;
+  category: { id: number; name: string } | null;
+  baseExempt: number;
+  baseReduced: number;
+  baseGeneral: number;
+  ivaAmount: number;
+  supplierControlNumber: string | null;
+  supplierInvoiceNumber: string | null;
+  payments: { id: number; amount: number; paidAt: string; notes: string | null }[];
   amountPaid: number;
+  products: { productId: number; productName: string; productSku: string | null; quantity: number; unitCost: number | null; total: number | null }[];
   createdAt: string;
 }
 
@@ -120,5 +140,9 @@ export const invoiceUploadService = {
   getHistory(params?: { page?: number; limit?: number; dateFrom?: string; dateTo?: string }): Promise<InvoiceHistoryResponse> {
     return apiClient.get<InvoiceHistoryResponse>('/invoice-upload/history', { params })
       .then((res) => res.data);
+  },
+
+  getHistoryDetail(id: number): Promise<InvoiceHistoryDetail> {
+    return apiClient.get<InvoiceHistoryDetail>(`/invoice-upload/history/${id}`).then((res) => res.data);
   },
 };

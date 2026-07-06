@@ -25,6 +25,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
 import { Badge } from '@/components/ui/badge';
@@ -38,7 +46,12 @@ import {
   History,
   Trash2,
   ShoppingCart,
+  Plus,
+  DollarSign,
+  Info,
 } from 'lucide-react';
+import apiClient from '@/lib/api';
+import { expenseService } from '@/lib/api/expenses';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePermission } from '@/hooks/usePermission';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -47,7 +60,10 @@ import {
   type InvoiceConfirmResult,
   type ProductSearchResult,
   type InvoiceHistoryResponse,
+  type InvoiceHistoryItem,
+  type InvoiceHistoryDetail,
 } from '@/lib/api/invoice-upload';
+import { supplierService, type Supplier } from '@/lib/api/suppliers';
 
 /* ─────────── Currency / Date helpers ─────────── */
 
@@ -60,13 +76,6 @@ const formatDate = (dateString: string) =>
     month: 'short',
     day: 'numeric',
   });
-
-/* ─────────── Types ─────────── */
-
-interface Supplier {
-  id: number;
-  name: string;
-}
 
 interface PurchaseLine {
   productId: number;
@@ -103,6 +112,28 @@ export default function InvoiceUploadPage() {
   const [history, setHistory] = useState<InvoiceHistoryResponse | null>(null);
   const [historyPage, setHistoryPage] = useState(1);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [isSupplierDialogOpen, setIsSupplierDialogOpen] = useState(false);
+  const [supplierFormData, setSupplierFormData] = useState({
+    name: '',
+    taxId: '',
+    email: '',
+    phone: '',
+    address: '',
+  });
+  const [supplierSubmitting, setSupplierSubmitting] = useState(false);
+
+  /* ── Payment dialog state ── */
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [paymentTarget, setPaymentTarget] = useState<{ id: number; amount: number; amountPaid: number } | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentNotes, setPaymentNotes] = useState('');
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentHistory, setPaymentHistory] = useState<{ id: number; amount: number; paidAt: string; notes: string | null }[]>([]);
+
+  /* ── Details dialog state ── */
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsTarget, setDetailsTarget] = useState<InvoiceHistoryDetail | null>(null);
 
   /* ── Refs ── */
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -114,9 +145,8 @@ export default function InvoiceUploadPage() {
   const fetchSuppliers = useCallback(async () => {
     if (!selectedCompanyId) return;
     try {
-      const { default: apiClient } = await import('@/lib/api');
-      const response = await apiClient.get<Supplier[]>('/suppliers');
-      setSuppliers(response.data);
+      const data = await supplierService.getAll();
+      setSuppliers(data);
     } catch {
       // non-critical
     }
@@ -135,6 +165,126 @@ export default function InvoiceUploadPage() {
       setHistoryLoading(false);
     }
   }, [selectedCompanyId]);
+
+  /* ── Supplier dialog handlers ── */
+  const handleOpenSupplierDialog = () => {
+    setSupplierFormData({ name: '', taxId: '', email: '', phone: '', address: '' });
+    setIsSupplierDialogOpen(true);
+  };
+
+  const handleSaveSupplier = async () => {
+    if (!supplierFormData.name) {
+      alert('El nombre es requerido');
+      return;
+    }
+    setSupplierSubmitting(true);
+    try {
+      const newSupplier = await supplierService.create(supplierFormData);
+      alert('Proveedor creado exitosamente');
+      setIsSupplierDialogOpen(false);
+      // Add the new supplier to the list and select it
+      setSuppliers((prev) => [...prev, newSupplier].sort((a, b) => a.name.localeCompare(b.name)));
+      setSupplierId(String(newSupplier.id));
+    } catch (error: any) {
+      console.error('Error saving supplier:', error);
+      alert(error.response?.data?.message || 'Error al guardar el proveedor');
+    } finally {
+      setSupplierSubmitting(false);
+    }
+  };
+
+  const handleDeleteExpense = async (id: number) => {
+    if (!confirm('¿Eliminar esta factura importada? Se revertirá el stock de los productos.')) return;
+    try {
+      await apiClient.delete(`/expenses/${id}`);
+      alert('Factura eliminada y stock revertido');
+      fetchHistory(historyPage);
+    } catch (error: any) {
+      console.error('Error deleting expense:', error);
+      alert(error.response?.data?.message || 'Error al eliminar la factura');
+    }
+  };
+
+  // Called from table row — needs to fetch detail first
+  const openPaymentDialogFromTable = async (item: { id: number }) => {
+    setPaymentLoading(true);
+    setPaymentDialogOpen(true);
+    try {
+      const detail = await invoiceUploadService.getHistoryDetail(item.id);
+      const remaining = Math.max(0, detail.amount - detail.amountPaid);
+      setPaymentTarget({ id: item.id, amount: detail.amount, amountPaid: detail.amountPaid });
+      setPaymentHistory(detail.payments);
+      setPaymentAmount(remaining > 0 ? String(remaining.toFixed(2)) : '');
+      setPaymentNotes('');
+    } catch (error) {
+      console.error('Error loading detail for payment:', error);
+      setPaymentDialogOpen(false);
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  // Called from details dialog — data already available, instant open
+  const openPaymentDialogFromDetail = (detail: InvoiceHistoryDetail) => {
+    const remaining = Math.max(0, detail.amount - detail.amountPaid);
+    setPaymentTarget({ id: detail.id, amount: detail.amount, amountPaid: detail.amountPaid });
+    setPaymentHistory(detail.payments);
+    setPaymentAmount(remaining > 0 ? String(remaining.toFixed(2)) : '');
+    setPaymentNotes('');
+    setDetailsDialogOpen(false);
+    setPaymentDialogOpen(true);
+  };
+
+  const openDetailsDialog = async (item: InvoiceHistoryItem) => {
+    setDetailsDialogOpen(true);
+    setDetailsLoading(true);
+    try {
+      const detail = await invoiceUploadService.getHistoryDetail(item.id);
+      setDetailsTarget(detail);
+    } catch (error) {
+      console.error('Error loading detail:', error);
+      setDetailsDialogOpen(false);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
+  const handleRegisterPayment = async () => {
+    if (!paymentTarget || !paymentAmount) return;
+    const amount = parseFloat(paymentAmount);
+    if (isNaN(amount) || amount <= 0) return;
+
+    setPaymentLoading(true);
+    try {
+      await expenseService.registerPayment(paymentTarget.id, {
+        amount,
+        notes: paymentNotes || undefined,
+      });
+      setPaymentDialogOpen(false);
+      setPaymentHistory([]);
+      fetchHistory(historyPage);
+    } catch (error) {
+      console.error('Error registering payment:', error);
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const handleDeleteSupplier = async (id: number, name: string) => {
+    if (!confirm(`¿Eliminar el proveedor "${name}"?`)) return;
+    try {
+      await supplierService.remove(id);
+      alert('Proveedor eliminado exitosamente');
+      setSuppliers((prev) => prev.filter((s) => s.id !== id));
+      // If the deleted supplier was selected, clear the selection
+      if (supplierId === String(id)) {
+        setSupplierId('');
+      }
+    } catch (error: any) {
+      console.error('Error deleting supplier:', error);
+      alert(error.response?.data?.message || 'Error al eliminar el proveedor');
+    }
+  };
 
   useEffect(() => {
     if (selectedCompanyId && canManageInventory) {
@@ -450,18 +600,52 @@ export default function InvoiceUploadPage() {
                   <div className="grid gap-4 md:grid-cols-3">
                     <div className="space-y-2">
                       <Label>Proveedor</Label>
-                      <Select value={supplierId} onValueChange={setSupplierId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar proveedor" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {suppliers.map((s) => (
-                            <SelectItem key={s.id} value={String(s.id)}>
-                              {s.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {suppliers.length === 0 ? (
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm text-muted-foreground">No hay proveedores</p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleOpenSupplierDialog}
+                            className="cursor-pointer shrink-0"
+                          >
+                            <Plus className="mr-1 h-3 w-3" />
+                            Agregar
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Select value={supplierId} onValueChange={setSupplierId} className="flex-1">
+                              <SelectTrigger>
+                                <SelectValue placeholder="Seleccionar proveedor" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {suppliers.map((s) => (
+                                  <SelectItem key={s.id} value={String(s.id)}>
+                                    {s.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {supplierId && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-10 w-10 text-destructive hover:text-destructive hover:bg-destructive/10 cursor-pointer shrink-0"
+                                onClick={() => {
+                                  const selected = suppliers.find((s) => String(s.id) === supplierId);
+                                  if (selected) handleDeleteSupplier(selected.id, selected.name);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label>Fecha</Label>
@@ -653,7 +837,7 @@ export default function InvoiceUploadPage() {
                         <TableHead className="text-right">Monto</TableHead>
                         <TableHead>Referencia</TableHead>
                         <TableHead>Estado</TableHead>
-                        <TableHead className="text-right">Pagado</TableHead>
+                        <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -676,8 +860,35 @@ export default function InvoiceUploadPage() {
                               {item.status === 'PAID' ? 'Pagado' : 'Pendiente'}
                             </span>
                           </TableCell>
-                          <TableCell className="text-right text-sm">
-                            {formatCurrency(item.amountPaid)}
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 cursor-pointer text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                title="Ver detalles"
+                                onClick={() => openDetailsDialog(item)}
+                              >
+                                <Info className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 cursor-pointer text-green-600 hover:text-green-700 hover:bg-green-50"
+                                title="Registrar abono"
+                                onClick={() => openPaymentDialogFromTable(item)}
+                              >
+                                <DollarSign className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                                onClick={() => handleDeleteExpense(item.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -718,6 +929,357 @@ export default function InvoiceUploadPage() {
           </AdminCard>
         </TabsContent>
       </Tabs>
+
+      {/* Dialog para Crear Proveedor */}
+      <Dialog open={isSupplierDialogOpen} onOpenChange={setIsSupplierDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nuevo Proveedor</DialogTitle>
+            <DialogDescription>Registra un nuevo proveedor en el sistema</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="supplier-name">Nombre *</Label>
+              <Input
+                id="supplier-name"
+                value={supplierFormData.name}
+                onChange={(e) => setSupplierFormData({ ...supplierFormData, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="supplier-taxId">RIF/ID</Label>
+              <Input
+                id="supplier-taxId"
+                value={supplierFormData.taxId}
+                onChange={(e) => setSupplierFormData({ ...supplierFormData, taxId: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="supplier-email">Email</Label>
+              <Input
+                id="supplier-email"
+                type="email"
+                value={supplierFormData.email}
+                onChange={(e) => setSupplierFormData({ ...supplierFormData, email: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="supplier-phone">Teléfono</Label>
+              <Input
+                id="supplier-phone"
+                value={supplierFormData.phone}
+                onChange={(e) => setSupplierFormData({ ...supplierFormData, phone: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="supplier-address">Dirección</Label>
+              <Input
+                id="supplier-address"
+                value={supplierFormData.address}
+                onChange={(e) => setSupplierFormData({ ...supplierFormData, address: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="cursor-pointer" onClick={() => setIsSupplierDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button className="cursor-pointer" onClick={handleSaveSupplier} disabled={supplierSubmitting}>
+              {supplierSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                'Crear'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Dialog */}
+      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <DialogContent className="w-[calc(100vw-2rem)] sm:w-full max-w-md p-4 sm:p-6">
+          {paymentLoading ? (
+            <div className="flex flex-col items-center justify-center py-8 gap-3">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Cargando información…</p>
+            </div>
+          ) : paymentTarget ? (
+            (() => {
+              const remaining = paymentTarget.amount - paymentTarget.amountPaid;
+              const isFullyPaid = remaining <= 0.01;
+
+              if (isFullyPaid) {
+                return (
+                  <>
+                    <DialogHeader>
+                      <DialogTitle className="text-green-500">Factura Completamente Pagada</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex flex-col items-center justify-center py-4 gap-3">
+                      <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                        <CheckCircle2 className="h-7 w-7 text-green-500" />
+                      </div>
+                      <p className="text-sm text-center text-muted-foreground">
+                        Esta factura ya fue pagada en su totalidad.
+                      </p>
+                    </div>
+                    {paymentHistory.length > 0 && (
+                      <div className="space-y-2">
+                        <span className="text-muted-foreground text-xs font-medium">Registro de pagos ({paymentHistory.length})</span>
+                        <div className="space-y-1 max-h-[200px] overflow-y-auto">
+                          {paymentHistory.map((p) => (
+                            <div key={p.id} className="flex items-center justify-between text-xs bg-muted/50 rounded px-3 py-1.5">
+                              <span className="text-muted-foreground">{new Date(p.paidAt).toLocaleDateString('es-VE')}</span>
+                              <span className="font-medium">{formatCurrency(p.amount)}</span>
+                              {p.notes && <span className="text-muted-foreground italic truncate max-w-[120px]">{p.notes}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>
+                        Cerrar
+                      </Button>
+                    </DialogFooter>
+                  </>
+                );
+              }
+
+              return (
+                <>
+                  <DialogHeader>
+                    <DialogTitle>Registrar Abono</DialogTitle>
+                    <DialogDescription asChild>
+                      <div className="flex flex-col gap-1 mt-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Total</span>
+                          <span className="font-semibold">{formatCurrency(paymentTarget.amount)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Pagado</span>
+                          <span className="font-semibold text-green-500">{formatCurrency(paymentTarget.amountPaid)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Saldo</span>
+                          <span className="font-semibold text-red-500">{formatCurrency(remaining)}</span>
+                        </div>
+                      </div>
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="paymentAmount">Monto a abonar</Label>
+                      <Input
+                        id="paymentAmount"
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        max={remaining}
+                        value={paymentAmount}
+                        onChange={(e) => setPaymentAmount(e.target.value)}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="paymentNotes">Notas (opcional)</Label>
+                      <Input
+                        id="paymentNotes"
+                        value={paymentNotes}
+                        onChange={(e) => setPaymentNotes(e.target.value)}
+                        placeholder="Referencia de pago, banco, etc."
+                      />
+                    </div>
+                  </div>
+                  {paymentHistory.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t">
+                      <span className="text-muted-foreground text-xs font-medium">Pagos anteriores ({paymentHistory.length})</span>
+                      <div className="space-y-1 max-h-[150px] overflow-y-auto">
+                        {paymentHistory.map((p) => (
+                          <div key={p.id} className="flex items-center justify-between text-xs bg-muted/50 rounded px-3 py-1.5">
+                            <span className="text-muted-foreground">{new Date(p.paidAt).toLocaleDateString('es-VE')}</span>
+                            <span className="font-medium">{formatCurrency(p.amount)}</span>
+                            {p.notes && <span className="text-muted-foreground italic text-[10px] sm:text-xs truncate max-w-[80px] sm:max-w-[120px]">{p.notes}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={handleRegisterPayment}
+                      disabled={paymentLoading || !paymentAmount || parseFloat(paymentAmount) <= 0}
+                    >
+                      {paymentLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Registrar Pago
+                    </Button>
+                  </DialogFooter>
+                </>
+              );
+            })()
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      {/* Details Dialog */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="w-[calc(100vw-2rem)] sm:w-full max-w-lg p-0 max-h-[90dvh] flex flex-col">
+          <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-0">
+            <DialogTitle>Detalles de la Importación</DialogTitle>
+            <DialogDescription>
+              {detailsTarget?.supplier?.name || detailsTarget?.category?.name || '—'} · {detailsTarget ? formatDate(detailsTarget.date) : ''}
+            </DialogDescription>
+          </DialogHeader>
+          {detailsLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Cargando detalles…</p>
+            </div>
+          ) : detailsTarget ? (
+            <div className="overflow-y-auto px-4 sm:px-6 pb-4 sm:pb-6 space-y-4 text-sm">
+              {/* General info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <span className="text-muted-foreground text-xs">Descripción</span>
+                  <p className="font-medium break-words">{detailsTarget.description}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-xs">Estado</span>
+                  <p>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      detailsTarget.status === 'PAID'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                    }`}>
+                      {detailsTarget.status === 'PAID' ? 'Pagado' : 'Pendiente'}
+                    </span>
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-xs">Categoría</span>
+                  <p className="font-medium">{detailsTarget.category?.name || '—'}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-xs">Referencia</span>
+                  <p className="font-medium">{detailsTarget.referenceNumber || '—'}</p>
+                </div>
+                {detailsTarget.supplierInvoiceNumber && (
+                  <div>
+                    <span className="text-muted-foreground text-xs">No. Factura</span>
+                    <p className="font-medium">{detailsTarget.supplierInvoiceNumber}</p>
+                  </div>
+                )}
+                {detailsTarget.supplierControlNumber && (
+                  <div>
+                    <span className="text-muted-foreground text-xs">No. Control</span>
+                    <p className="font-medium">{detailsTarget.supplierControlNumber}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Supplier */}
+              {detailsTarget.supplier && (
+                <div className="border rounded-lg p-3 space-y-1">
+                  <span className="text-muted-foreground text-xs">Proveedor</span>
+                  <p className="font-medium">{detailsTarget.supplier.name}</p>
+                  {detailsTarget.supplier.taxId && (
+                    <p className="text-xs text-muted-foreground">RIF: {detailsTarget.supplier.taxId}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Products */}
+              {detailsTarget.products.length > 0 && (
+                <div className="border rounded-lg p-3 space-y-2">
+                  <span className="text-muted-foreground text-xs font-medium">Productos ({detailsTarget.products.length})</span>
+                  <div className="overflow-x-auto -mx-1 px-1">
+                    <Table className="min-w-[380px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs">Producto</TableHead>
+                          <TableHead className="text-xs hidden sm:table-cell">SKU</TableHead>
+                          <TableHead className="text-xs text-right">Cant.</TableHead>
+                          <TableHead className="text-xs text-right">Costo</TableHead>
+                          <TableHead className="text-xs text-right">Total</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {detailsTarget.products.map((p) => (
+                          <TableRow key={p.productId}>
+                            <TableCell className="text-xs font-medium">{p.productName}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">{p.productSku || '—'}</TableCell>
+                            <TableCell className="text-xs text-right">{p.quantity}</TableCell>
+                            <TableCell className="text-xs text-right">{p.unitCost != null ? formatCurrency(p.unitCost) : '—'}</TableCell>
+                            <TableCell className="text-xs text-right font-semibold">{p.total != null ? formatCurrency(p.total) : '—'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {/* Totals */}
+              <div className="border rounded-lg p-3 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="font-medium">Total:</span>
+                  <span className="font-bold">{formatCurrency(detailsTarget.amount)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Pagado:</span>
+                  <span className="font-medium text-green-500">{formatCurrency(detailsTarget.amountPaid)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Saldo:</span>
+                  <span className={`font-medium ${(detailsTarget.amount - detailsTarget.amountPaid) > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                    {formatCurrency(detailsTarget.amount - detailsTarget.amountPaid)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Payments */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground text-xs font-medium">
+                    Pagos {detailsTarget.payments.length > 0 ? `(${detailsTarget.payments.length})` : ''}
+                  </span>
+                  {detailsTarget.amount - detailsTarget.amountPaid > 0.01 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs cursor-pointer"
+                      onClick={() => {
+                        if (detailsTarget) openPaymentDialogFromDetail(detailsTarget);
+                      }}
+                    >
+                      <DollarSign className="h-3 w-3 mr-1" />
+                      Abonar
+                    </Button>
+                  )}
+                </div>
+                {detailsTarget.payments.length > 0 ? (
+                  <div className="space-y-1">
+                    {detailsTarget.payments.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between text-xs bg-muted/50 rounded px-3 py-1.5">
+                        <span className="text-muted-foreground">{new Date(p.paidAt).toLocaleDateString('es-VE')}</span>
+                        <span className="font-medium">{formatCurrency(p.amount)}</span>
+                        {p.notes && <span className="text-muted-foreground italic text-[10px] sm:text-xs truncate max-w-[80px] sm:max-w-[120px]">{p.notes}</span>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Sin abonos registrados</p>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </AdminPageShell>
   );
 }

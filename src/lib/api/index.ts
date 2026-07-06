@@ -83,5 +83,6 @@ export type {
   InvoiceConfirmResult,
   ProductSearchResult,
   InvoiceHistoryItem,
+  InvoiceHistoryDetail,
   InvoiceHistoryResponse,
 } from './invoice-upload';

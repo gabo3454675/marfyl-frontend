@@ -1,6 +1,6 @@
 # Plan de Migración MARFYL — Estado y Handoff
 
-> **Última actualización:** 2026-06-03
+> **Última actualización:** 2026-07-06
 > **Autor:** Documentation Agent (docs-agent)
 > **Objetivo:** Documento de handoff para retomar la migración de mocks → backend real sin perder contexto.
 
@@ -15,6 +15,8 @@ El proyecto está en proceso de **migración de mocks locales a llamadas reales 
 El módulo **concierto** también fue migrado (Opción C) con mock como fallback opcional bajo flag `NEXT_PUBLIC_CONCERT_MOCK`.
 
 **Estado actual:** El módulo fiscal está completamente conectado. Quedan 8 módulos restantes por migrar (dashboard, cierre-caja, tasks, invitations, tenants, notifications, expense-categories, backup). Fase 2 (tests) está pendiente.
+
+**Actualización 2026-07-06:** El módulo de proveedores ahora tiene una página dedicada con CRUD completo (`/suppliers`) y la página de gastos fue refactorizada para usar `supplierService` en lugar de llamadas directas a `apiClient`. Se agregó un índice `taxId` en la tabla `suppliers` para optimizar búsquedas.
 
 ---
 
@@ -699,6 +701,7 @@ Navegar a /fiscal/predeclaracion → "Cerrar período"
 |-------|--------|-------|
 | 2026-06-03 | Creación inicial del handoff | docs-agent |
 | 2026-06-04 | Auditoría integral + security hardening | security-agent, architect-agent, coding-interface-agent |
+| 2026-07-06 | Página CRUD de proveedores + refactor expenses a supplierService + índice taxId | docs-agent |
 
 ---
 
