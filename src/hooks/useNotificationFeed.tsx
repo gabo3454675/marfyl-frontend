@@ -142,7 +142,8 @@ export function NotificationFeedProvider({ children }: { children: ReactNode }) 
   }, [canManageFiscal]);
 
   useEffect(() => {
-    loadData();
+    const timer = setTimeout(() => loadData(), 2000);
+    return () => clearTimeout(timer);
   }, [loadData, selectedId]);
 
   useEffect(() => {

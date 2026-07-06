@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,8 +25,8 @@ import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
 import { Plus, Edit, Trash2, Search, Loader2, AlertCircle } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
+import { usePaginatedQuery } from '@/hooks/usePaginatedQuery';
 
 interface Customer {
   id: number;
@@ -40,9 +40,22 @@ interface Customer {
 export default function CustomersPage() {
   const { selectedCompanyId } = useAuthStore();
   const { canManageCustomers, canDelete } = usePermission();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+
+  const {
+    data: customers,
+    pagination,
+    isLoading: loading,
+    page,
+    setPage,
+    search,
+    setSearch,
+    refetch,
+  } = usePaginatedQuery<Customer>({
+    queryKey: ['customers'],
+    url: '/customers',
+    limit: 20,
+  });
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [formData, setFormData] = useState({
@@ -55,8 +68,6 @@ export default function CustomersPage() {
   const [submitting, setSubmitting] = useState(false);
   const [overdueCustomerIds, setOverdueCustomerIds] = useState<number[]>([]);
 
-  const debouncedSearchQuery = useDebounce(searchQuery, 300);
-
   const fetchOverdueCustomerIds = useCallback(async () => {
     if (!selectedCompanyId) return;
     try {
@@ -66,25 +77,6 @@ export default function CustomersPage() {
       setOverdueCustomerIds([]);
     }
   }, [selectedCompanyId]);
-
-  const fetchCustomers = useCallback(async () => {
-    if (!selectedCompanyId) return;
-
-    try {
-      setLoading(true);
-      const response = await apiClient.get<Customer[]>('/customers');
-      setCustomers(response.data);
-    } catch (error) {
-      console.error('Error fetching customers:', error);
-      alert('Error al cargar los clientes');
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedCompanyId]);
-
-  useEffect(() => {
-    fetchCustomers();
-  }, [fetchCustomers]);
 
   useEffect(() => {
     fetchOverdueCustomerIds();
@@ -153,7 +145,7 @@ export default function CustomersPage() {
       }
 
       handleCloseDialog();
-      fetchCustomers();
+      refetch();
     } catch (error: any) {
       console.error('Error saving customer:', error);
       alert(error.response?.data?.message || 'Error al guardar el cliente');
@@ -170,24 +162,12 @@ export default function CustomersPage() {
     try {
       await apiClient.delete(`/customers/${id}`);
       alert('Cliente eliminado exitosamente');
-      fetchCustomers();
+      refetch();
     } catch (error: any) {
       console.error('Error deleting customer:', error);
       alert(error.response?.data?.message || 'Error al eliminar el cliente');
     }
   };
-
-  const filteredCustomers = useMemo(() => {
-    if (!debouncedSearchQuery) return customers;
-    const query = debouncedSearchQuery.toLowerCase();
-    return customers.filter(
-      (customer) =>
-        customer.name.toLowerCase().includes(query) ||
-        customer.email?.toLowerCase().includes(query) ||
-        customer.phone?.toLowerCase().includes(query) ||
-        customer.taxId?.toLowerCase().includes(query)
-    );
-  }, [customers, debouncedSearchQuery]);
 
   if (!canManageCustomers) {
     return (
@@ -223,8 +203,8 @@ export default function CustomersPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar clientes..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
               />
             </div>
@@ -235,9 +215,9 @@ export default function CustomersPage() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : filteredCustomers.length === 0 ? (
+            ) : customers.length === 0 ? (
               <p className="text-center py-12 text-muted-foreground">
-                {searchQuery ? 'No se encontraron clientes' : 'No hay clientes registrados'}
+                {search ? 'No se encontraron clientes' : 'No hay clientes registrados'}
               </p>
             ) : (
               <AdminTableWrap>
@@ -252,7 +232,7 @@ export default function CustomersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredCustomers.map((customer) => (
+                  {customers.map((customer) => (
                     <TableRow key={customer.id}>
                       <TableCell className="font-medium">
                         <span className="inline-flex items-center gap-2">
@@ -299,6 +279,36 @@ export default function CustomersPage() {
               </Table>
               </AdminTableWrap>
             )}
+
+        {/* Paginación */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t">
+            <div className="text-sm text-muted-foreground">
+              Mostrando {customers.length} de {pagination.total} clientes
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(page - 1)}
+                disabled={page <= 1}
+              >
+                Anterior
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Página {pagination.page} de {pagination.totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(page + 1)}
+                disabled={page >= pagination.totalPages}
+              >
+                Siguiente
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Dialog para crear/editar */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,9 +27,8 @@ import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
 import { Progress } from '@/components/ui/progress';
 import { Plus, Edit, Trash2, Search, Loader2, Upload, FileSpreadsheet, CheckCircle2, XCircle, Package } from 'lucide-react';
 import apiClient from '@/lib/api';
-import { useAuthStore } from '@/store/useAuthStore';
-import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
+import { usePaginatedQuery } from '@/hooks/usePaginatedQuery';
 import { StockAdjustSheet } from '@/components/stock-adjust-sheet';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -58,11 +58,23 @@ interface Product {
 }
 
 export default function ProductsPage() {
-  const { selectedCompanyId } = useAuthStore();
   const { canManageProducts, canDelete } = usePermission();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+
+  const {
+    data: products,
+    pagination,
+    isLoading: loading,
+    page,
+    setPage,
+    search,
+    setSearch,
+    refetch,
+  } = usePaginatedQuery<Product>({
+    queryKey: ['products'],
+    url: '/products',
+    limit: 20,
+  });
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
@@ -89,8 +101,6 @@ export default function ProductsPage() {
     total?: number;
     errors?: string[];
   } | null>(null);
-
-  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   const handleDownloadInventoryTemplate = useCallback(async () => {
     try {
@@ -126,39 +136,25 @@ export default function ProductsPage() {
     }
   }, []);
 
-  const fetchProducts = useCallback(async () => {
-    if (!selectedCompanyId) return;
-
-    try {
-      setLoading(true);
-      const response = await apiClient.get<Product[]>('/products');
-      setProducts(response.data);
-    } catch (error: any) {
-      console.error('Error fetching products:', error);
-      const msg =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Error al cargar los productos';
-      alert(typeof msg === 'string' ? msg : 'Error al cargar los productos');
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedCompanyId]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
-
   /** Catálogo para armar recetas (excluye combos en el editor internamente). */
+  const { data: allProductsForRecipes = [] } = useQuery<Product[]>({
+    queryKey: ['products', 'recipe-catalog'],
+    queryFn: async () => {
+      const res = await apiClient.get<Product[]>('/products');
+      return res.data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const recipeCatalog = useMemo(
     () =>
-      products.map((p) => ({
+      allProductsForRecipes.map((p) => ({
         id: p.id,
         name: p.name,
         sku: p.sku,
         isBundle: p.isBundle,
       })),
-    [products],
+    [allProductsForRecipes],
   );
 
   const handleOpenDialog = (product?: Product) => {
@@ -264,7 +260,7 @@ export default function ProductsPage() {
       }
 
       handleCloseDialog();
-      fetchProducts();
+      refetch();
     } catch (error: any) {
       console.error('Error saving product:', error);
       alert(error.response?.data?.message || 'Error al guardar el producto');
@@ -281,7 +277,7 @@ export default function ProductsPage() {
     try {
       await apiClient.delete(`/products/${id}`);
       alert('Producto eliminado exitosamente');
-      fetchProducts();
+      refetch();
     } catch (error: any) {
       console.error('Error deleting product:', error);
       alert(error.response?.data?.message || 'Error al eliminar el producto');
@@ -295,17 +291,6 @@ export default function ProductsPage() {
       minimumFractionDigits: 2,
     }).format(amount);
   };
-
-  const filteredProducts = useMemo(() => {
-    if (!debouncedSearchQuery) return products;
-    const query = debouncedSearchQuery.toLowerCase();
-    return products.filter(
-      (p) =>
-        p.name.toLowerCase().includes(query) ||
-        p.sku?.toLowerCase().includes(query) ||
-        p.barcode?.toLowerCase().includes(query)
-    );
-  }, [products, debouncedSearchQuery]);
 
   if (!canManageProducts) {
     return (
@@ -394,7 +379,7 @@ export default function ProductsPage() {
 
                   // Recargar productos después de 2 segundos para mostrar el resumen
                   setTimeout(() => {
-                    fetchProducts();
+                    refetch();
                     setImportProgress(null);
                   }, 3000);
                 } catch (error: any) {
@@ -440,8 +425,8 @@ export default function ProductsPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar productos..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
               />
             </div>
@@ -513,15 +498,15 @@ export default function ProductsPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <span className="ml-2 text-muted-foreground">Cargando...</span>
               </div>
-            ) : filteredProducts.length === 0 ? (
+            ) : products.length === 0 ? (
               <p className="text-center py-12 text-muted-foreground">
-                {searchQuery ? 'No se encontraron productos' : 'No hay productos registrados'}
+                {search ? 'No se encontraron productos' : 'No hay productos registrados'}
               </p>
             ) : (
               <>
                 {/* Vista tarjetas: móviles y pantallas pequeñas */}
                 <div className="md:hidden space-y-3">
-                  {filteredProducts.map((product) => (
+                  {products.map((product) => (
                     <Card key={product.id} className="p-4">
                       <div className="flex justify-between items-start gap-2">
                         <div className="min-w-0 flex-1">
@@ -600,7 +585,7 @@ export default function ProductsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredProducts.map((product) => (
+                      {products.map((product) => (
                         <TableRow key={product.id}>
                           <TableCell className="font-medium">{product.name}</TableCell>
                           <TableCell>
@@ -666,6 +651,37 @@ export default function ProductsPage() {
                 </div>
               </>
             )}
+
+        {/* Paginación */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t">
+            <div className="text-sm text-muted-foreground">
+              Mostrando {products.length} de {pagination.total} productos
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(page - 1)}
+                disabled={page <= 1}
+              >
+                Anterior
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Página {pagination.page} de {pagination.totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(page + 1)}
+                disabled={page >= pagination.totalPages}
+              >
+                Siguiente
+              </Button>
+            </div>
+          </div>
+        )}
+
         </AdminCard>
 
         {/* Dialog para crear/editar */}
@@ -878,7 +894,7 @@ export default function ProductsPage() {
           product={stockSheetProduct}
           open={stockSheetOpen}
           onOpenChange={setStockSheetOpen}
-          onSaved={fetchProducts}
+          onSaved={refetch}
         />
     </AdminPageShell>
   );

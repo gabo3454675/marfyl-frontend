@@ -1,17 +1,19 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard } from '@/components/admin/admin-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Search, Loader2, CreditCard, DollarSign, Download, AlertCircle } from 'lucide-react';
+import { Search, Loader2, CreditCard, DollarSign, AlertCircle } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { usePermission } from '@/hooks/usePermission';
+import { usePaginatedQuery } from '@/hooks/usePaginatedQuery';
 import {
   Dialog,
   DialogContent,
@@ -50,12 +52,24 @@ export default function CreditsPage() {
   const { canViewCredits, isSuperAdmin, isAdmin } = usePermission();
   const { formatForDisplay } = useDisplayCurrency();
   const canEditCreditLimit = isSuperAdmin || isAdmin;
-  const [credits, setCredits] = useState<CustomerCredit[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const queryClient = useQueryClient();
+
+  const {
+    data: credits,
+    pagination,
+    isLoading: loading,
+    page,
+    setPage,
+    search,
+    setSearch,
+    refetch: refetchCredits,
+  } = usePaginatedQuery<CustomerCredit>({
+    queryKey: ['credits'],
+    url: '/credits',
+    limit: 20,
+  });
+
   const [selectedCredit, setSelectedCredit] = useState<CustomerCredit | null>(null);
-  const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
-  const [loadingTx, setLoadingTx] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [paymentAmountUsd, setPaymentAmountUsd] = useState('');
   const [paymentAmountBs, setPaymentAmountBs] = useState('');
@@ -66,54 +80,25 @@ export default function CreditsPage() {
   const [savingLimit, setSavingLimit] = useState(false);
   const [detailTab, setDetailTab] = useState<'resumen' | 'movimientos'>('resumen');
 
-  const fetchCredits = useCallback(async () => {
-    // El backend ya filtra por organización vía x-tenant-id;
-    // no dependamos estrictamente de selectedCompanyId para evitar quedar "congelados"
-    try {
-      setLoading(true);
-      const res = await apiClient.get<CustomerCredit[]>('/credits');
-      const list = Array.isArray(res.data) ? res.data : [];
-      setCredits(list);
-
-      // Si hay un crédito seleccionado pero ya no existe en la lista (cambió la cartera),
-      // evitar estados inconsistentes reseteando la selección.
-      if (selectedCredit && !list.some((c) => c.id === selectedCredit.id)) {
-        setSelectedCredit(null);
-        setTransactions([]);
-      }
-    } catch (e: any) {
-      console.error('Error fetching credits:', e);
-      const msg =
-        e?.response?.data?.message ||
-        e?.message ||
-        'Error al cargar cuentas por cobrar';
-      toast.error(typeof msg === 'string' ? msg : 'Error al cargar cuentas por cobrar');
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedCredit]);
-
-  useEffect(() => {
-    fetchCredits();
-  }, [fetchCredits]);
-
-  useEffect(() => {
-    if (!selectedCredit) {
-      setTransactions([]);
-      return;
-    }
-    setLoadingTx(true);
-    apiClient
-      .get<CreditTransaction[]>(`/credits/${selectedCredit.id}/transactions`)
-      .then((res) => setTransactions(res.data))
-      .catch(() => toast.error('Error al cargar movimientos'))
-      .finally(() => setLoadingTx(false));
-  }, [selectedCredit]);
-
-  const filteredCredits = credits.filter((c) => {
-    const name = c.customer?.name ?? '';
-    return name.toLowerCase().includes(search.toLowerCase());
+  // Fetch transacciones con useQuery — solo cuando hay un crédito seleccionado
+  const {
+    data: transactions = [],
+    isLoading: loadingTx,
+  } = useQuery<CreditTransaction[]>({
+    queryKey: ['credit-transactions', selectedCredit?.id],
+    queryFn: async () => {
+      const res = await apiClient.get<CreditTransaction[]>(`/credits/${selectedCredit!.id}/transactions`);
+      return res.data;
+    },
+    enabled: !!selectedCredit,
   });
+
+  // Si el crédito seleccionado ya no está en la página actual, deseleccionarlo
+  useEffect(() => {
+    if (selectedCredit && credits && !credits.some((c) => c.id === selectedCredit.id)) {
+      setSelectedCredit(null);
+    }
+  }, [credits, selectedCredit]);
 
   if (!canViewCredits) {
     return (
@@ -134,7 +119,6 @@ export default function CreditsPage() {
       setSelectedCredit(null);
       return;
     }
-    const balance = Number(selectedCredit.currentBalance);
     setPaymentAmountUsd('');
     setPaymentAmountBs('');
     setPaymentDesc('');
@@ -171,7 +155,11 @@ export default function CreditsPage() {
       });
       toast.success('Abono registrado');
       setPaymentDialogOpen(false);
-      fetchCredits();
+
+      // Invalidar caché para refrescar la lista y el detalle
+      queryClient.invalidateQueries({ queryKey: ['credits'] });
+      queryClient.invalidateQueries({ queryKey: ['credit-transactions', selectedCredit.id] });
+
       const tx = res.data as { id: number };
       try {
         const pdfRes = await apiClient.get(`/credits/transactions/${tx.id}/receipt-pdf`, { responseType: 'blob' });
@@ -227,39 +215,71 @@ export default function CreditsPage() {
               <div className="flex justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
-            ) : filteredCredits.length === 0 ? (
+            ) : !credits || credits.length === 0 ? (
               <p className="text-center py-8 text-muted-foreground">
                 {search ? 'No hay coincidencias' : 'No hay cuentas de crédito'}
               </p>
             ) : (
-              <ul className="space-y-2 max-h-[320px] overflow-y-auto">
-                {filteredCredits.map((c) => (
-                  <li key={c.id}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedCredit(c)}
-                      className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
-                        selectedCredit?.id === c.id
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border hover:bg-muted/50'
-                      }`}
-                    >
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium">{c.customer.name}</span>
-                        <span className="text-sm font-semibold text-primary">
-                          {formatForDisplay(Number(c.currentBalance))} deuda
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        Límite: {formatForDisplay(Number(c.limitAmount))}
-                        {c.status !== 'ACTIVE' && (
-                          <span className="text-destructive ml-2">Suspendido</span>
-                        )}
-                      </div>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ul className="space-y-2 max-h-[320px] overflow-y-auto">
+                  {credits.map((c) => (
+                    <li key={c.id}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCredit(c)}
+                        className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
+                          selectedCredit?.id === c.id
+                            ? 'border-primary bg-primary/10'
+                            : 'border-border hover:bg-muted/50'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">{c.customer.name}</span>
+                          <span className="text-sm font-semibold text-primary">
+                            {formatForDisplay(Number(c.currentBalance))} deuda
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Límite: {formatForDisplay(Number(c.limitAmount))}
+                          {c.status !== 'ACTIVE' && (
+                            <span className="text-destructive ml-2">Suspendido</span>
+                          )}
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Paginación */}
+                {pagination && pagination.totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-3 border-t">
+                    <div className="text-sm text-muted-foreground">
+                      Mostrando {credits.length} de {pagination.total} créditos
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(page - 1)}
+                        disabled={page <= 1}
+                      >
+                        Anterior
+                      </Button>
+                      <span className="text-sm text-muted-foreground">
+                        Página {pagination.page} de {pagination.totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(page + 1)}
+                        disabled={page >= pagination.totalPages}
+                      >
+                        Siguiente
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
         </AdminCard>
 
@@ -447,7 +467,7 @@ export default function CreditsPage() {
                   await apiClient.patch(`/credits/${selectedCredit.id}/limit`, { limitAmount: num });
                   toast.success('Límite actualizado');
                   setLimitDialogOpen(false);
-                  fetchCredits();
+                  queryClient.invalidateQueries({ queryKey: ['credits'] });
                   setSelectedCredit((prev) => prev ? { ...prev, limitAmount: num } : null);
                 } catch (err: any) {
                   toast.error(err.response?.data?.message || 'Error al actualizar límite');

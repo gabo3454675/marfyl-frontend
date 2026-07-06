@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -57,36 +58,26 @@ export default function HistoryPage() {
   const [startDate, setStartDate] = useState(defaultRange.start);
   const [endDate, setEndDate] = useState(defaultRange.end);
   const [filterOrgId, setFilterOrgId] = useState<number | null>(null);
-  const [data, setData] = useState<HistoryResponse | null>(null);
-  const [loading, setLoading] = useState(false);
   const [detailInvoiceId, setDetailInvoiceId] = useState<number | null>(null);
   const [detailSheetOpen, setDetailSheetOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const activeOrgId = selectedOrganizationId || selectedCompanyId;
 
-  const fetchHistory = useCallback(async () => {
-    if (!activeOrgId) return;
-    try {
-      setLoading(true);
-      const params = {
+  const {
+    data,
+    isLoading,
+    refetch,
+  } = useQuery<HistoryResponse>({
+    queryKey: ['history', activeOrgId, startDate, endDate, filterOrgId, isSuperAdmin],
+    queryFn: () =>
+      invoiceService.getHistory({
         startDate: startDate + 'T00:00:00.000Z',
         endDate: endDate + 'T23:59:59.999Z',
         ...(filterOrgId != null && filterOrgId !== activeOrgId && isSuperAdmin && { organizationId: filterOrgId }),
-      };
-      const data = await invoiceService.getHistory(params);
-      setData(data);
-    } catch (error) {
-      console.error('Error fetching history:', error);
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [activeOrgId, startDate, endDate, filterOrgId, isSuperAdmin]);
-
-  useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
+      }),
+    enabled: !!activeOrgId,
+  });
 
   useEffect(() => {
     if (!isSuperAdmin && activeOrgId != null) setFilterOrgId(activeOrgId);
@@ -257,8 +248,8 @@ export default function HistoryPage() {
                   </div>
                 )}
                 <div className="flex items-end">
-                  <Button onClick={fetchHistory} disabled={loading} className="cursor-pointer">
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  <Button onClick={() => refetch()} disabled={isLoading} className="cursor-pointer">
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                     Buscar
                   </Button>
                 </div>
@@ -293,7 +284,7 @@ export default function HistoryPage() {
 
         {/* Tabla de ventas */}
         <AdminCard title="Ventas del periodo">
-            {loading ? (
+            {isLoading ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
@@ -415,7 +406,7 @@ export default function HistoryPage() {
         invoiceId={detailInvoiceId}
         open={detailSheetOpen}
         onOpenChange={setDetailSheetOpen}
-        onRefresh={fetchHistory}
+        onRefresh={() => refetch()}
       />
     </AdminPageShell>
   );

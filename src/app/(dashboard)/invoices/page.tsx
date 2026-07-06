@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { useDebounce } from '@/hooks/useDebounce';
 import {
   Table,
   TableBody,
@@ -19,9 +18,10 @@ import { Download, Loader2, Search, FileText, UserPlus, Trash2 } from 'lucide-re
 import { Input } from '@/components/ui/input';
 import { InvoiceDetailSheet } from '@/components/invoice-detail-sheet';
 import { AssignTaskModal } from '@/components/assign-task-modal';
-import { apiClient, invoiceService } from '@/lib/api';
+import { invoiceService } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePermission } from '@/hooks/usePermission';
+import { usePaginatedQuery } from '@/hooks/usePaginatedQuery';
 import { FiscalIntegrationStrip } from '@/components/fiscal/v2/fiscal-integration-strip';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 import { toast } from 'sonner';
@@ -62,15 +62,26 @@ export default function InvoicesPage() {
   const { canManageInvoices, canManageFiscal } = usePermission();
   const { formatForDisplay } = useDisplayCurrency();
   const isSuperAdmin = !!user?.isSuperAdmin;
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
   const [detailInvoiceId, setDetailInvoiceId] = useState<number | null>(null);
   const [detailSheetOpen, setDetailSheetOpen] = useState(false);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [assignModalInvoiceId, setAssignModalInvoiceId] = useState<number | null>(null);
 
-  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const {
+    data: invoices,
+    pagination,
+    isLoading: loading,
+    page,
+    setPage,
+    search,
+    setSearch,
+    refetch,
+  } = usePaginatedQuery<Invoice>({
+    queryKey: ['invoices'],
+    url: '/invoices',
+    limit: 20,
+    enabled: !!selectedCompanyId,
+  });
 
   /** Deep link desde campanita: /invoices?detalle=ID */
   useEffect(() => {
@@ -83,30 +94,11 @@ export default function InvoicesPage() {
     router.replace('/invoices', { scroll: false });
   }, [searchParams, router]);
 
-  const fetchInvoices = useCallback(async () => {
-    if (!selectedCompanyId) return;
-
-    try {
-      setLoading(true);
-      const data = await invoiceService.getAll();
-      setInvoices(data as unknown as Invoice[]);
-    } catch (error) {
-      console.error('Error fetching invoices:', error);
-      alert('Error al cargar las facturas');
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedCompanyId]);
-
-  useEffect(() => {
-    fetchInvoices();
-  }, [fetchInvoices]);
-
   const handleDeleteInvoice = async (invoiceId: number) => {
     if (!confirm('¿Eliminar esta factura? Esta acción no se puede deshacer.')) return;
     try {
       await invoiceService.delete(invoiceId);
-      fetchInvoices();
+      refetch();
     } catch (error: any) {
       console.error('Error deleting invoice:', error);
       alert(error.response?.data?.message ?? 'No tienes permiso para eliminar facturas');
@@ -151,19 +143,6 @@ export default function InvoicesPage() {
     }).format(new Date(dateString));
   };
 
-  const filteredInvoices = useMemo(() => {
-    const query = (debouncedSearchQuery ?? '').toLowerCase().trim();
-    if (!query) return invoices;
-    const num = query.replace(/\D/g, '');
-    return invoices.filter(
-      (invoice) =>
-        (invoice.consecutiveNumber != null && String(invoice.consecutiveNumber).includes(num)) ||
-        invoice.id.toString().includes(query) ||
-        invoice.customer?.name.toLowerCase().includes(query) ||
-        invoice.totalAmount.toString().includes(query),
-    );
-  }, [invoices, debouncedSearchQuery]);
-
   const displayNumber = (invoice: Invoice) => invoice.consecutiveNumber ?? invoice.id;
 
   if (!canManageInvoices) {
@@ -199,8 +178,8 @@ export default function InvoicesPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar facturas..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
               />
             </div>
@@ -210,15 +189,15 @@ export default function InvoicesPage() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : filteredInvoices.length === 0 ? (
+            ) : invoices.length === 0 ? (
               <p className="text-center py-12 text-muted-foreground">
-                {searchQuery ? 'No se encontraron facturas' : 'No hay facturas registradas'}
+                {search ? 'No se encontraron facturas' : 'No hay facturas registradas'}
               </p>
             ) : (
               <>
                 {/* Vista tarjetas en móvil */}
                 <div className="md:hidden space-y-3">
-                  {filteredInvoices.map((invoice) => (
+                  {invoices.map((invoice) => (
                     <Card key={invoice.id} className="p-4">
                       <div className="flex justify-between items-start gap-2 mb-3">
                         <div>
@@ -274,7 +253,7 @@ export default function InvoicesPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredInvoices.map((invoice) => (
+                      {invoices.map((invoice) => (
                         <TableRow key={invoice.id}>
                           <TableCell className="font-medium">#{displayNumber(invoice)}</TableCell>
                           <TableCell>{invoice.customer?.name || 'Cliente General'}</TableCell>
@@ -355,13 +334,43 @@ export default function InvoicesPage() {
                 </div>
               </>
             )}
+
+        {/* Paginación */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t">
+            <div className="text-sm text-muted-foreground">
+              Mostrando {invoices.length} de {pagination.total} facturas
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(page - 1)}
+                disabled={page <= 1}
+              >
+                Anterior
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Página {pagination.page} de {pagination.totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(page + 1)}
+                disabled={page >= pagination.totalPages}
+              >
+                Siguiente
+              </Button>
+            </div>
+          </div>
+        )}
         </AdminCard>
 
       <InvoiceDetailSheet
         invoiceId={detailInvoiceId}
         open={detailSheetOpen}
         onOpenChange={setDetailSheetOpen}
-        onRefresh={fetchInvoices}
+        onRefresh={refetch}
       />
 
       {assignModalInvoiceId != null && (
@@ -372,7 +381,7 @@ export default function InvoicesPage() {
             if (!open) setAssignModalInvoiceId(null);
           }}
           invoiceId={assignModalInvoiceId}
-          onSuccess={fetchInvoices}
+          onSuccess={refetch}
         />
       )}
     </AdminPageShell>

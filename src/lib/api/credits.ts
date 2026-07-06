@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import type { PaginatedResponse, PaginationParams } from '@/types/pagination';
 
 export interface CustomerCredit {
   id: number;
@@ -27,6 +28,17 @@ export interface CreditTransaction {
 }
 
 export const creditService = {
+  getPaginated(params: PaginationParams = {}): Promise<PaginatedResponse<CustomerCredit>> {
+    const searchParams = new URLSearchParams();
+    if (params.page) searchParams.set('page', String(params.page));
+    if (params.limit) searchParams.set('limit', String(params.limit));
+    if (params.search) searchParams.set('search', params.search);
+
+    const queryString = searchParams.toString();
+    const url = `/credits${queryString ? `?${queryString}` : ''}`;
+
+    return apiClient.get<PaginatedResponse<CustomerCredit>>(url).then((res) => res.data);
+  },
   getAll(): Promise<CustomerCredit[]> {
     return apiClient.get<CustomerCredit[]>('/credits').then((res) => res.data);
   },

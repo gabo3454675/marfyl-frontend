@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import type { PaginatedResponse, PaginationParams } from '@/types/pagination';
 
 export interface Customer {
   id: number;
@@ -23,6 +24,17 @@ export interface CreateCustomerPayload {
 }
 
 export const customerService = {
+  getPaginated(params: PaginationParams = {}): Promise<PaginatedResponse<Customer>> {
+    const searchParams = new URLSearchParams();
+    if (params.page) searchParams.set('page', String(params.page));
+    if (params.limit) searchParams.set('limit', String(params.limit));
+    if (params.search) searchParams.set('search', params.search);
+
+    const queryString = searchParams.toString();
+    const url = `/customers${queryString ? `?${queryString}` : ''}`;
+
+    return apiClient.get<PaginatedResponse<Customer>>(url).then((res) => res.data);
+  },
   getAll(): Promise<Customer[]> {
     return apiClient.get<Customer[]>('/customers').then((res) => res.data);
   },

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard } from '@/components/admin/admin-card';
 import { Button } from '@/components/ui/button';
@@ -103,15 +104,28 @@ export default function POSPage() {
   const { canManageInvoices, canManageFiscal, canAccessPOS, canManageCustomers, isPosOnlySeller } = usePermission();
   const rawRate = useExchangeRate();
   const tasaBcv = Number.isFinite(rawRate) && rawRate > 0 ? rawRate : 1;
-  const [products, setProducts] = useState<Product[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const queryClient = useQueryClient();
+
+  const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
+    queryKey: ['products', 'pos-catalog'],
+    queryFn: () => apiClient.get<Product[]>('/products').then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!selectedId,
+  });
+
+  const { data: customers = [] } = useQuery<Customer[]>({
+    queryKey: ['customers', 'pos-catalog'],
+    queryFn: () => apiClient.get<Customer[]>('/customers').then((r) => r.data),
+    staleTime: 60 * 1000,
+    enabled: !!selectedId,
+  });
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   /** Ver todo el catálogo o acotar a combos/servicios (más rápido de encontrar). */
   const [catalogFilter, setCatalogFilter] = useState<'all' | 'special'>('all');
-  const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
   const [lastInvoiceId, setLastInvoiceId] = useState<number | null>(null);
@@ -149,10 +163,7 @@ export default function POSPage() {
       sku: product.sku,
       isExempt: product.isExempt,
     };
-    setProducts((prev) => {
-      if (prev.some((p) => p.id === product.id)) return prev;
-      return [mapped, ...prev];
-    });
+    queryClient.invalidateQueries({ queryKey: ['products', 'pos-catalog'] });
     setCart((prev) => {
       const existing = prev.find((i) => i.product.id === product.id);
       if (existing) {
@@ -183,37 +194,6 @@ export default function POSPage() {
     }
     setMobileCartOpen(true);
   };
-
-  const fetchProducts = useCallback(async () => {
-    if (!selectedId) return;
-
-    try {
-      setLoading(true);
-      const response = await apiClient.get<Product[]>('/products');
-      setProducts(response.data);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedId]);
-
-  // Cargar clientes
-  const fetchCustomers = useCallback(async () => {
-    if (!selectedId) return;
-
-    try {
-      const response = await apiClient.get<Customer[]>('/customers');
-      setCustomers(response.data);
-    } catch (error) {
-      console.error('Error fetching customers:', error);
-    }
-  }, [selectedId]);
-
-  useEffect(() => {
-    fetchProducts();
-    fetchCustomers();
-  }, [fetchProducts, fetchCustomers]);
 
   // Al elegir cliente, cargar crédito si existe (para mostrar límite disponible al elegir Crédito)
   useEffect(() => {
@@ -493,7 +473,7 @@ export default function POSPage() {
         toast.success('¡Venta procesada!', {
           description: 'Inventario actualizado automáticamente.',
         });
-        await fetchProducts();
+        queryClient.invalidateQueries({ queryKey: ['products', 'pos-catalog'] });
         setTimeout(() => {
           setSuccess(false);
           setLastInvoiceId(null);
@@ -825,7 +805,7 @@ export default function POSPage() {
               </div>
 
               {/* Lista de productos */}
-              {loading ? (
+              {productsLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>

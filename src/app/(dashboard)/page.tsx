@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState, useRef, useLayoutEffect } from 'react';
+import { useEffect, useState, useLayoutEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInViewport } from '@/hooks/useInViewport';
 import { ListTodo, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,10 +30,25 @@ import {
   DEMO_DIAGNOSIS,
   DEMO_STRATEGY,
 } from '@/components/dashboard/demo-data';
-import { DashboardHealthSection } from '@/components/dashboard/dashboard-health-section';
-import { OperationalKpiGrid } from '@/components/dashboard/operational-kpi-grid';
-import { PendingTasksPanel } from '@/components/dashboard/pending-tasks-panel';
-import { RecentTransactionsPanel } from '@/components/dashboard/recent-transactions-panel';
+const DashboardHealthSection = dynamic(
+  () => import('@/components/dashboard/dashboard-health-section').then((m) => ({ default: m.DashboardHealthSection })),
+  { ssr: false, loading: () => <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div> },
+);
+
+const OperationalKpiGrid = dynamic(
+  () => import('@/components/dashboard/operational-kpi-grid').then((m) => ({ default: m.OperationalKpiGrid })),
+  { ssr: false },
+);
+
+const PendingTasksPanel = dynamic(
+  () => import('@/components/dashboard/pending-tasks-panel').then((m) => ({ default: m.PendingTasksPanel })),
+  { ssr: false },
+);
+
+const RecentTransactionsPanel = dynamic(
+  () => import('@/components/dashboard/recent-transactions-panel').then((m) => ({ default: m.RecentTransactionsPanel })),
+  { ssr: false },
+);
 import type {
   CreatedByMeTask,
   DashboardDiagnosis,
@@ -68,6 +85,11 @@ export default function DashboardPage() {
   const { formatForDisplay } = useDisplayCurrency();
   const canLoadDashboard = isAuthenticated || isFiscalPreviewMode();
 
+  // ── Lazy section refs: queries solo se disparan cuando la sección está cerca del viewport ──
+  const [chartsRef, chartsVisible] = useInViewport({ rootMargin: '300px' });
+  const [tasksCreatedRef, tasksCreatedVisible] = useInViewport({ rootMargin: '200px' });
+  const [recentTxRef, recentTxVisible] = useInViewport({ rootMargin: '200px' });
+
   // ── React Query hooks (staleTime 30s via queryClient default) ──
 
   const summaryQuery = useQuery({
@@ -85,13 +107,13 @@ export default function DashboardPage() {
   const diagnosisQuery = useQuery({
     queryKey: ['dashboard-diagnosis', selectedId],
     queryFn: () => apiClient.get<DashboardDiagnosis>('/dashboard/diagnosis').then((r) => r.data),
-    enabled: canLoadDashboard && !!selectedId && canViewFinancialCharts,
+    enabled: canLoadDashboard && !!selectedId && canViewFinancialCharts && chartsVisible,
   });
 
   const strategyQuery = useQuery({
     queryKey: ['dashboard-strategy', selectedId],
     queryFn: () => apiClient.get<DashboardStrategy>('/dashboard/strategy').then((r) => r.data),
-    enabled: canLoadDashboard && !!selectedId && canViewFinancialCharts,
+    enabled: canLoadDashboard && !!selectedId && canViewFinancialCharts && chartsVisible,
   });
 
   const createdByMeQuery = useQuery({
@@ -100,7 +122,7 @@ export default function DashboardPage() {
       apiClient.get<CreatedByMeTask[]>('/tasks/created-by-me').then((r) =>
         Array.isArray(r.data) ? r.data : [],
       ),
-    enabled: canLoadDashboard && !!selectedId && canSeeCreatedByMe,
+    enabled: canLoadDashboard && !!selectedId && canSeeCreatedByMe && tasksCreatedVisible,
   });
 
   const filteredTasksQuery = useQuery({
@@ -317,6 +339,7 @@ export default function DashboardPage() {
 
           {canSeeCreatedByMe && (
             <AdminMotionItem>
+              <div ref={tasksCreatedRef}>
               <AdminPanel className="mb-2 md:mb-4">
                 <div className="p-4 sm:p-6">
                   <h2 className="flex items-center gap-2 text-base sm:text-lg font-semibold">
@@ -358,11 +381,13 @@ export default function DashboardPage() {
                   )}
                 </div>
               </AdminPanel>
+              </div>
             </AdminMotionItem>
           )}
 
           {canViewFinancialCharts && (
             <AdminMotionItem>
+              <div ref={chartsRef}>
               <DashboardHealthSection
                 summary={summary}
                 health={health}
@@ -375,11 +400,14 @@ export default function DashboardPage() {
                 isDemo={useDemoData}
                 onProductClick={(id) => router.push(`/products?highlight=${id}`)}
               />
+              </div>
             </AdminMotionItem>
           )}
 
           <AdminMotionItem>
+            <div ref={recentTxRef}>
             <RecentTransactionsPanel transactions={summary.recentTransactions} formatForDisplay={formatForDisplay} />
+            </div>
           </AdminMotionItem>
         </AdminMotionStagger>
       )}

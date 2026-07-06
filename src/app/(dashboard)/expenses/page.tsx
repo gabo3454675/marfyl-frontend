@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,7 +37,7 @@ import { ReceiptScanSheet } from '@/components/pos/receipt-scan-sheet';
 import apiClient from '@/lib/api';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useDebounce } from '@/hooks/useDebounce';
+import { usePaginatedQuery } from '@/hooks/usePaginatedQuery';
 import { usePermission } from '@/hooks/usePermission';
 
 // Lazy load del componente de gráficos pesados
@@ -119,12 +120,61 @@ export default function ExpensesPage() {
   const { canManageExpenses, canDelete } = usePermission();
   
   // Todos los hooks deben estar antes de cualquier retorno condicional
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
-  const [stats, setStats] = useState<ExpenseStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+
+  // Paginated expenses query (server-side search + pagination)
+  const {
+    data: expenses,
+    pagination,
+    isLoading: loadingExpenses,
+    page,
+    setPage,
+    search,
+    setSearch,
+    refetch: refetchExpenses,
+  } = usePaginatedQuery<Expense>({
+    queryKey: ['expenses'],
+    url: '/expenses',
+    limit: 20,
+    enabled: !!selectedCompanyId && canManageExpenses,
+  });
+
+  // Auxiliary data queries
+  const { data: suppliers = [], refetch: refetchSuppliers } = useQuery<Supplier[]>({
+    queryKey: ['suppliers'],
+    queryFn: async () => {
+      const res = await apiClient.get<Supplier[]>('/suppliers');
+      return res.data;
+    },
+    enabled: !!selectedCompanyId && canManageExpenses,
+  });
+
+  const { data: categories = [] } = useQuery<ExpenseCategory[]>({
+    queryKey: ['expense-categories'],
+    queryFn: async () => {
+      const res = await apiClient.get<ExpenseCategory[]>('/expense-categories');
+      return res.data;
+    },
+    enabled: !!selectedCompanyId && canManageExpenses,
+  });
+
+  const { data: stats = null, refetch: refetchStats } = useQuery<ExpenseStats>({
+    queryKey: ['expenses', 'stats'],
+    queryFn: async () => {
+      const res = await apiClient.get<ExpenseStats>('/expenses/stats');
+      return res.data;
+    },
+    enabled: !!selectedCompanyId && canManageExpenses,
+  });
+
+  const { data: catalogProducts = [] } = useQuery<CatalogProduct[]>({
+    queryKey: ['products', 'catalog'],
+    queryFn: async () => {
+      const res = await apiClient.get<CatalogProduct[]>('/products');
+      return res.data;
+    },
+    enabled: !!selectedCompanyId && canManageExpenses,
+  });
+
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [isSupplierDialogOpen, setIsSupplierDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -132,7 +182,6 @@ export default function ExpensesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('expenses');
   const [receiptScanOpen, setReceiptScanOpen] = useState(false);
-  const [catalogProducts, setCatalogProducts] = useState<CatalogProduct[]>([]);
   const [purchaseLines, setPurchaseLines] = useState<
     { productId: string; quantity: string; unitCostUsd: string }[]
   >([{ productId: '', quantity: '1', unitCostUsd: '' }]);
@@ -148,7 +197,6 @@ export default function ExpensesPage() {
     initialPayment: '',
   });
 
-  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const { formatForDisplay } = useDisplayCurrency();
 
   const [expenseFormData, setExpenseFormData] = useState({
@@ -169,84 +217,6 @@ export default function ExpensesPage() {
     phone: '',
     address: '',
   });
-
-  const fetchExpenses = useCallback(async () => {
-    if (!selectedCompanyId) return;
-
-    try {
-      const response = await apiClient.get<Expense[]>('/expenses');
-      setExpenses(response.data);
-    } catch (error) {
-      console.error('Error fetching expenses:', error);
-      alert('Error al cargar los gastos');
-    }
-  }, [selectedCompanyId]);
-
-  const fetchSuppliers = useCallback(async () => {
-    if (!selectedCompanyId) return;
-
-    try {
-      const response = await apiClient.get<Supplier[]>('/suppliers');
-      setSuppliers(response.data);
-    } catch (error) {
-      console.error('Error fetching suppliers:', error);
-    }
-  }, [selectedCompanyId]);
-
-  const fetchCategories = useCallback(async () => {
-    if (!selectedCompanyId) return;
-
-    try {
-      const response = await apiClient.get<ExpenseCategory[]>('/expense-categories');
-      setCategories(response.data);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-    }
-  }, [selectedCompanyId]);
-
-  const fetchStats = useCallback(async () => {
-    if (!selectedCompanyId) return;
-
-    try {
-      const response = await apiClient.get<ExpenseStats>('/expenses/stats');
-      setStats(response.data);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  }, [selectedCompanyId]);
-
-  const fetchCatalogProducts = useCallback(async () => {
-    if (!selectedCompanyId) return;
-    try {
-      const res = await apiClient.get<CatalogProduct[]>('/products');
-      setCatalogProducts(res.data);
-    } catch {
-      setCatalogProducts([]);
-    }
-  }, [selectedCompanyId]);
-
-  useEffect(() => {
-    if (selectedCompanyId && canManageExpenses) {
-      setLoading(true);
-      Promise.all([
-        fetchExpenses(),
-        fetchSuppliers(),
-        fetchCategories(),
-        fetchStats(),
-        fetchCatalogProducts(),
-      ]).finally(() => {
-        setLoading(false);
-      });
-    }
-  }, [
-    selectedCompanyId,
-    canManageExpenses,
-    fetchExpenses,
-    fetchSuppliers,
-    fetchCategories,
-    fetchStats,
-    fetchCatalogProducts,
-  ]);
 
   useEffect(() => {
     const t = searchParams.get('tab');
@@ -277,19 +247,6 @@ export default function ExpensesPage() {
       alert(err.response?.data?.message || 'No se pudo descargar la plantilla');
     }
   }, []);
-
-  // useMemo debe estar antes del return condicional
-  const filteredExpenses = useMemo(() => {
-    if (!debouncedSearchQuery) return expenses;
-    const query = debouncedSearchQuery.toLowerCase();
-    return expenses.filter(
-      (expense) =>
-        expense.description.toLowerCase().includes(query) ||
-        expense.supplier?.name.toLowerCase().includes(query) ||
-        expense.category.name.toLowerCase().includes(query) ||
-        expense.referenceNumber?.toLowerCase().includes(query)
-    );
-  }, [expenses, debouncedSearchQuery]);
 
   // Si no tiene permisos para gestionar gastos, mostrar mensaje después de todos los hooks
   if (!canManageExpenses) {
@@ -383,8 +340,8 @@ export default function ExpensesPage() {
       }
 
       handleCloseExpenseDialog();
-      fetchExpenses();
-      fetchStats();
+      refetchExpenses();
+      refetchStats();
     } catch (error: any) {
       console.error('Error saving expense:', error);
       alert(error.response?.data?.message || 'Error al guardar el gasto');
@@ -401,8 +358,8 @@ export default function ExpensesPage() {
     try {
       await apiClient.delete(`/expenses/${id}`);
       alert('Gasto eliminado exitosamente');
-      fetchExpenses();
-      fetchStats();
+      refetchExpenses();
+      refetchStats();
     } catch (error: any) {
       console.error('Error deleting expense:', error);
       alert(error.response?.data?.message || 'Error al eliminar el gasto');
@@ -454,7 +411,7 @@ export default function ExpensesPage() {
       }
 
       handleCloseSupplierDialog();
-      fetchSuppliers();
+      refetchSuppliers();
     } catch (error: any) {
       console.error('Error saving supplier:', error);
       alert(error.response?.data?.message || 'Error al guardar el proveedor');
@@ -471,7 +428,7 @@ export default function ExpensesPage() {
     try {
       await apiClient.delete(`/suppliers/${id}`);
       alert('Proveedor eliminado exitosamente');
-      fetchSuppliers();
+      refetchSuppliers();
     } catch (error: any) {
       console.error('Error deleting supplier:', error);
       alert(error.response?.data?.message || 'Error al eliminar el proveedor');
@@ -518,8 +475,8 @@ export default function ExpensesPage() {
       alert('Factura de compra registrada y stock actualizado');
       setImportFile(null);
       setImportPreview(null);
-      fetchExpenses();
-      fetchStats();
+      refetchExpenses();
+      refetchStats();
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
       alert(err.response?.data?.message || 'Error al registrar la compra');
@@ -597,18 +554,18 @@ export default function ExpensesPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Buscar gastos..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
                     className="pl-9"
                   />
                 </div>
               }
             >
-                {loading ? (
+                {loadingExpenses ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ) : filteredExpenses.length === 0 ? (
+                ) : expenses.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     No hay gastos registrados
                   </div>
@@ -630,7 +587,7 @@ export default function ExpensesPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredExpenses.map((expense) => (
+                        {expenses.map((expense) => (
                           <TableRow key={expense.id}>
                             <TableCell>{formatDate(expense.date)}</TableCell>
                             <TableCell>{expense.supplier?.name || '-'}</TableCell>
@@ -686,6 +643,36 @@ export default function ExpensesPage() {
                       </TableBody>
                     </Table>
                   </AdminTableWrap>
+                )}
+
+                {/* Paginación */}
+                {pagination && pagination.totalPages > 1 && (
+                  <div className="flex items-center justify-between px-4 py-3 border-t">
+                    <div className="text-sm text-muted-foreground">
+                      Mostrando {expenses.length} de {pagination.total} gastos
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(page - 1)}
+                        disabled={page <= 1}
+                      >
+                        Anterior
+                      </Button>
+                      <span className="text-sm text-muted-foreground">
+                        Página {pagination.page} de {pagination.totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(page + 1)}
+                        disabled={page >= pagination.totalPages}
+                      >
+                        Siguiente
+                      </Button>
+                    </div>
+                  </div>
                 )}
             </AdminCard>
           </TabsContent>
@@ -1265,8 +1252,8 @@ export default function ExpensesPage() {
           onOpenChange={setReceiptScanOpen}
           categories={categories.map((c) => ({ id: c.id, name: c.name }))}
           onConfirmed={() => {
-            void fetchExpenses();
-            void fetchStats();
+            void refetchExpenses();
+            void refetchStats();
           }}
         />
     </AdminPageShell>
