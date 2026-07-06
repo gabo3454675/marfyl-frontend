@@ -677,29 +677,31 @@ export default function POSPage() {
       </div>
 
       {success && !isPosOnlySeller && (
-        <div className="mb-3 shrink-0 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-900/20 sm:mb-4 sm:p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col gap-1 md:flex-row md:items-center md:gap-2">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
-                <span className="text-green-800 dark:text-green-200 font-medium">
+        <div className="mb-3 shrink-0 rounded-xl border border-emerald-200 bg-emerald-50 p-3 shadow-sm dark:border-emerald-800 dark:bg-emerald-900/20 sm:mb-4 sm:p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-800/40">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <span className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
                   ¡Venta procesada exitosamente!
                 </span>
               </div>
-              <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handlePrintTicket}
                   disabled={!lastTicket}
-                  className="bg-white dark:bg-gray-800"
+                  className="h-9 bg-white/80 text-xs font-semibold dark:bg-gray-800"
                 >
-                  <Printer className="mr-2 h-4 w-4" />
-                  Imprimir Ticket
+                  <Printer className="mr-1.5 h-3.5 w-3.5" />
+                  Ticket
                 </Button>
                 {lastInvoiceId && (
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={async () => {
                       try {
@@ -729,9 +731,10 @@ export default function POSPage() {
                         );
                       }
                     }}
+                    className="h-9 bg-white/80 text-xs font-semibold dark:bg-gray-800"
                   >
-                    <Printer className="mr-2 h-4 w-4" />
-                    PDF de la venta
+                    <Printer className="mr-1.5 h-3.5 w-3.5" />
+                    PDF
                   </Button>
                 )}
               </div>
@@ -752,12 +755,12 @@ export default function POSPage() {
           >
               {/* Filtro rápido + búsqueda */}
               <div className="mb-3 space-y-2 shrink-0 sm:mb-4 sm:space-y-3">
-                <div className="admin-pos-toolbar">
+                <div className="admin-pos-toolbar flex flex-wrap items-center gap-2">
                   <Button
                     type="button"
                     size="sm"
                     variant={catalogFilter === 'all' ? 'default' : 'outline'}
-                    className="min-h-[44px] touch-manipulation text-xs"
+                    className="min-h-[44px] touch-manipulation text-xs font-semibold rounded-xl"
                     onClick={() => setCatalogFilter('all')}
                   >
                     Todo
@@ -766,7 +769,7 @@ export default function POSPage() {
                     type="button"
                     size="sm"
                     variant={catalogFilter === 'special' ? 'default' : 'outline'}
-                    className="min-h-[44px] gap-1.5 touch-manipulation text-xs"
+                    className="min-h-[44px] gap-1.5 touch-manipulation text-xs font-semibold rounded-xl"
                     onClick={() => setCatalogFilter('special')}
                   >
                     <Layers className="h-3.5 w-3.5" />
@@ -776,7 +779,7 @@ export default function POSPage() {
                     type="button"
                     size="sm"
                     variant="secondary"
-                    className="min-h-[44px] gap-1.5 touch-manipulation text-xs"
+                    className="min-h-[44px] gap-1.5 touch-manipulation text-xs font-semibold rounded-xl"
                     onClick={() => setQuickProductOpen(true)}
                   >
                     <PackagePlus className="h-3.5 w-3.5" />
@@ -786,20 +789,21 @@ export default function POSPage() {
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="min-h-[44px] gap-1.5 touch-manipulation text-xs lg:hidden"
+                    className="min-h-[44px] gap-1.5 touch-manipulation text-xs font-semibold rounded-xl lg:hidden"
                     onClick={() => setCalculatorOpen(true)}
                   >
                     <Calculator className="h-3.5 w-3.5" />
                     Calc
                   </Button>
                 </div>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
+                <div className="admin-pos-search-wrap">
+                  <Search className="admin-pos-search-icon h-5 w-5" />
+                  <input
+                    type="text"
                     placeholder="Buscar producto, SKU o código de barras..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="min-h-[44px] pl-10"
+                    className="admin-pos-search-input"
                   />
                 </div>
               </div>
@@ -812,11 +816,23 @@ export default function POSPage() {
               ) : (
                 <div className="admin-pos-catalog-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
                   <div className="admin-pos-product-grid">
-                    {filteredProducts.map((product) => (
+                    {filteredProducts.map((product) => {
+                      const available = sellableUnits(product);
+                      const maxQ = product.isBundle
+                        ? sellableUnits(product)
+                        : product.isService
+                          ? product.bundleComponents?.length
+                            ? sellableUnits(product)
+                            : Infinity
+                          : product.stock;
+                      const stockLevel = maxQ === Infinity ? 'full' : maxQ > product.minStock ? 'full' : maxQ > 0 ? 'low' : 'empty';
+                      const stockDotClass = stockLevel === 'full' ? 'admin-pos-stock-dot--full' : stockLevel === 'low' ? 'admin-pos-stock-dot--low' : 'admin-pos-stock-dot--empty';
+
+                      return (
                       <div
                         key={product.id}
                         role="button"
-                        tabIndex={sellableUnits(product) > 0 ? 0 : -1}
+                        tabIndex={available > 0 ? 0 : -1}
                         className={cn(
                           'admin-pos-product-tile',
                           product.isBundle &&
@@ -824,63 +840,72 @@ export default function POSPage() {
                           product.isService &&
                             !product.isBundle &&
                             'border-sky-500/40 bg-gradient-to-br from-sky-500/[0.07] to-transparent',
-                          sellableUnits(product) === 0 && 'opacity-60 cursor-not-allowed',
+                          available === 0 && 'opacity-60 cursor-not-allowed',
                         )}
-                        onClick={() => sellableUnits(product) > 0 && addToCart(product)}
+                        onClick={() => available > 0 && addToCart(product)}
                         onKeyDown={(e) => {
-                          if (sellableUnits(product) > 0 && (e.key === 'Enter' || e.key === ' ')) {
+                          if (available > 0 && (e.key === 'Enter' || e.key === ' ')) {
                             e.preventDefault();
                             addToCart(product);
                           }
                         }}
                       >
-                          <div className="mb-1.5 flex min-h-[18px] items-center justify-between gap-1">
+                          <div className="mb-2 flex min-h-[20px] items-center justify-between gap-1">
                             {product.isBundle ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
-                                <Layers className="h-3.5 w-3.5" />
+                              <span className="admin-pos-type-badge admin-pos-type-badge--combo">
+                                <Layers className="h-3 w-3" />
                                 Combo
                               </span>
                             ) : product.isService ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-sky-700 dark:text-sky-300">
-                                <Sparkles className="h-3.5 w-3.5" />
+                              <span className="admin-pos-type-badge admin-pos-type-badge--service">
+                                <Sparkles className="h-3 w-3" />
                                 Servicio
                               </span>
                             ) : (
-                              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                              <span className="admin-pos-type-badge admin-pos-type-badge--product">
                                 Producto
                               </span>
                             )}
                           </div>
-                          <div className="mb-1.5 flex items-center justify-center">
-                            <Package className="h-8 w-8 text-muted-foreground/80 sm:h-10 sm:w-10" />
+                          <div className="mb-2 flex items-center justify-center">
+                            <Package className="h-8 w-8 text-muted-foreground/60 sm:h-10 sm:w-10" />
                           </div>
-                          <h3 className="mb-1 line-clamp-2 text-xs font-semibold leading-snug sm:text-sm">{product.name}</h3>
-                          <div className="mb-1 flex items-center justify-between gap-1">
+                          <h3 className="mb-1.5 line-clamp-2 text-xs font-semibold leading-snug text-foreground/90 sm:text-sm">
+                            {product.name}
+                          </h3>
+                          <div className="flex items-center justify-between gap-1">
                             <span className="text-base font-bold tabular-nums text-primary sm:text-lg">
                               {formatCurrency(getUnitPriceDisplay(product))}
                             </span>
-                            <Badge
-                              variant={sellableUnits(product) > 0 ? 'default' : 'destructive'}
-                              className="text-[10px] shrink-0 max-w-[120px] justify-center"
-                            >
-                              {product.isBundle
-                                ? `${sellableUnits(product)} disp.`
-                                : product.isService
-                                  ? product.bundleComponents?.length
-                                    ? `${sellableUnits(product)} disp.`
-                                    : 'Cobro'
-                                  : `Stock ${product.stock}`}
-                            </Badge>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {!product.isService && (
+                                <span className={cn('admin-pos-stock-dot', stockDotClass)} aria-label={`Stock ${stockLevel}`} />
+                              )}
+                              {product.isService && !product.bundleComponents?.length ? (
+                                <span className="text-[10px] font-medium text-muted-foreground/70 uppercase">Cobro</span>
+                              ) : (
+                                <span className="text-[10px] font-medium tabular-nums text-muted-foreground">
+                                  {maxQ === Infinity ? '' : maxQ}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          {sellableUnits(product) === 0 && (
-                            <p className="text-xs text-destructive">Sin disponibilidad</p>
+                          {available === 0 && (
+                            <p className="mt-1 text-xs font-medium text-destructive">Sin disponibilidad</p>
                           )}
                       </div>
-                    ))}
+                    );
+                    })}
                   </div>
                   {filteredProducts.length === 0 && (
-                    <div className="text-center py-12 text-muted-foreground">
-                      No se encontraron productos
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/60">
+                        <Package className="h-7 w-7 text-muted-foreground/50" />
+                      </div>
+                      <p className="text-sm font-medium text-muted-foreground">No se encontraron productos</p>
+                      <p className="mt-1 text-xs text-muted-foreground/60">
+                        {searchQuery ? 'Intenta con otro término de búsqueda' : 'El catálogo está vacío'}
+                      </p>
                     </div>
                   )}
                 </div>

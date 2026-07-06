@@ -147,6 +147,17 @@
   }
 }
 
+@keyframes cartItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @layer utilities {
   .animate-shine {
     animation: shine 4s linear infinite;
@@ -1210,11 +1221,35 @@
     @apply shrink-0 space-y-4;
   }
   .admin-pos-cart-scroll {
-    @apply flex-1 min-h-[8rem] overflow-y-auto overscroll-y-contain border-y border-border/60 my-3 py-1;
+    @apply flex-1 min-h-[8rem] overflow-y-auto overscroll-y-contain border-y border-border/60 my-3 py-2;
     -webkit-overflow-scrolling: touch;
+  }
+  .admin-pos-cart-item {
+    transition: transform 150ms ease-out, box-shadow 150ms ease-out;
+  }
+  .admin-pos-cart-item:active {
+    transform: scale(0.99);
   }
   .admin-pos-cart-footer {
     @apply shrink-0 border-t border-border bg-card pt-3;
+  }
+  .admin-pos-cart-footer .admin-pos-cart-total-row {
+    @apply flex items-center justify-between py-1;
+  }
+  .admin-pos-cart-footer .admin-pos-cart-total-row--final {
+    @apply mt-2 pt-3 border-t-2 border-border text-lg font-bold;
+  }
+  .admin-pos-cart-footer .admin-pos-cart-total-label {
+    @apply text-sm text-muted-foreground;
+  }
+  .admin-pos-cart-footer .admin-pos-cart-total-label--final {
+    @apply text-base text-foreground;
+  }
+  .admin-pos-cart-footer .admin-pos-cart-total-value {
+    @apply text-sm font-semibold tabular-nums;
+  }
+  .admin-pos-cart-footer .admin-pos-cart-total-value--final {
+    @apply text-xl font-bold tabular-nums text-primary;
   }
 
   /* Barra fija de cobro en móvil/tablet (sobre bottom nav) */
@@ -1229,6 +1264,7 @@
     padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
     padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
     min-height: 3.75rem;
+    box-shadow: 0 -4px 20px hsl(0 0% 0% / 0.06);
   }
   /* Tablet: sin bottom nav, barra pegada al borde inferior */
   @media (min-width: 768px) and (max-width: 1023px) {
@@ -1328,6 +1364,19 @@
     }
   }
 
+  /* ——— Checkout button ——— */
+  .admin-pos-checkout-btn {
+    @apply transition-all duration-150 ease-out;
+  }
+  .admin-pos-checkout-btn:not(:disabled):active {
+    transform: scale(0.97);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .admin-pos-checkout-btn:not(:disabled):active {
+      transform: none;
+    }
+  }
+
   .admin-pos-cart-sheet {
     @apply rounded-t-2xl;
   }
@@ -1356,22 +1405,57 @@
   }
 
   .admin-pos-pay-methods {
-    @apply flex gap-2 overflow-x-auto overscroll-x-contain pb-1 -mx-1 px-1;
-    scrollbar-width: thin;
+    @apply flex flex-wrap gap-2;
   }
   .admin-pos-pay-methods > * {
-    @apply shrink-0;
+    @apply shrink-0 min-h-[44px] min-w-[5.5rem] touch-manipulation text-sm font-medium;
+  }
+  .admin-pos-pay-method-btn {
+    @apply rounded-xl border border-border bg-card/60 px-3.5 py-2.5 text-sm font-medium text-muted-foreground transition-all duration-150 ease-out touch-manipulation;
+    box-shadow: 0 1px 2px hsl(0 0% 0% / 0.04);
+  }
+  .admin-pos-pay-method-btn:active {
+    transform: scale(0.97);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .admin-pos-pay-method-btn:hover {
+      @apply border-primary/30 bg-primary/5 text-foreground;
+    }
+  }
+  .admin-pos-pay-method-btn--active {
+    @apply border-primary bg-primary text-primary-foreground shadow-sm;
+    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.15) inset;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .admin-pos-pay-method-btn--active:hover {
+      @apply border-primary bg-primary text-primary-foreground;
+    }
+  }
+  .dark .admin-pos-pay-method-btn {
+    background: hsl(var(--dm-a-elevated) / 0.6);
+  }
+  .dark .admin-pos-pay-method-btn--active {
+    background: hsl(var(--primary));
+    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.15) inset;
   }
 
   .admin-pos-product-tile {
-    @apply cursor-pointer rounded-xl border border-border bg-card/80 p-2.5 transition-all duration-200 ease-out sm:p-4;
+    @apply cursor-pointer rounded-xl border border-border bg-card/80 p-2.5 transition-all duration-200 ease-out select-none sm:p-4;
     box-shadow: 0 1px 2px hsl(0 0% 0% / 0.04);
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+    /* Prevent text selection on fast taps */
+    -webkit-user-select: none;
+    user-select: none;
   }
-  .admin-pos-product-tile:hover {
-    @apply border-primary/45;
-    box-shadow: 0 4px 16px hsl(var(--primary) / 0.12);
+  .admin-pos-product-tile:active {
+    transform: scale(0.97);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .admin-pos-product-tile:hover {
+      @apply border-primary/45;
+      box-shadow: 0 4px 16px hsl(var(--primary) / 0.12);
+    }
   }
   .dark .admin-pos-product-tile {
     background: linear-gradient(
@@ -1381,14 +1465,82 @@
     );
     border-color: hsl(0 0% 100% / 0.18);
   }
-  .dark .admin-pos-product-tile:hover {
-    border-color: hsl(var(--dm-a-accent) / 0.4);
-    box-shadow: 0 8px 24px hsl(0 0% 0% / 0.35);
+  @media (hover: hover) and (pointer: fine) {
+    .dark .admin-pos-product-tile:hover {
+      border-color: hsl(var(--dm-a-accent) / 0.4);
+      box-shadow: 0 8px 24px hsl(0 0% 0% / 0.35);
+    }
   }
   @media (prefers-reduced-motion: reduce) {
-    .admin-pos-product-tile:hover {
-      box-shadow: none;
+    .admin-pos-product-tile {
+      transition-duration: 0ms;
     }
+    .admin-pos-product-tile:active {
+      transform: none;
+    }
+  }
+
+  /* ——— Stock indicator dot ——— */
+  .admin-pos-stock-dot {
+    @apply inline-block h-2 w-2 rounded-full shrink-0;
+  }
+  .admin-pos-stock-dot--full {
+    @apply bg-emerald-500;
+    box-shadow: 0 0 6px hsl(160 84% 39% / 0.4);
+  }
+  .admin-pos-stock-dot--low {
+    @apply bg-amber-500;
+    box-shadow: 0 0 6px hsl(38 92% 50% / 0.4);
+  }
+  .admin-pos-stock-dot--empty {
+    @apply bg-red-500;
+    box-shadow: 0 0 6px hsl(0 84% 60% / 0.4);
+  }
+  .dark .admin-pos-stock-dot--full {
+    box-shadow: 0 0 6px hsl(160 84% 39% / 0.5);
+  }
+  .dark .admin-pos-stock-dot--low {
+    box-shadow: 0 0 6px hsl(38 92% 50% / 0.5);
+  }
+  .dark .admin-pos-stock-dot--empty {
+    box-shadow: 0 0 6px hsl(0 84% 60% / 0.5);
+  }
+
+  /* ——— Type badges for product tiles ——— */
+  .admin-pos-type-badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider;
+  }
+  .admin-pos-type-badge--product {
+    @apply bg-muted/60 text-muted-foreground;
+  }
+  .admin-pos-type-badge--combo {
+    @apply bg-amber-100 text-amber-800;
+  }
+  .dark .admin-pos-type-badge--combo {
+    @apply bg-amber-500/15 text-amber-300;
+  }
+  .admin-pos-type-badge--service {
+    @apply bg-sky-100 text-sky-800;
+  }
+  .dark .admin-pos-type-badge--service {
+    @apply bg-sky-500/15 text-sky-300;
+  }
+
+  /* ——— Search header enhancements ——— */
+  .admin-pos-search-wrap {
+    @apply relative;
+  }
+  .admin-pos-search-wrap .admin-pos-search-icon {
+    @apply absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors;
+  }
+  .admin-pos-search-wrap:focus-within .admin-pos-search-icon {
+    @apply text-primary;
+  }
+  .admin-pos-search-input {
+    @apply min-h-[48px] w-full rounded-xl border border-border bg-background pl-11 pr-4 text-base shadow-sm transition-all duration-200 ease-out placeholder:text-muted-foreground/60;
+  }
+  .admin-pos-search-input:focus {
+    @apply border-primary/50 outline-none ring-2 ring-primary/15;
   }
 
   .admin-metric-card {
