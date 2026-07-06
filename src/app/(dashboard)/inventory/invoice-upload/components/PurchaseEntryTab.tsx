@@ -74,8 +74,8 @@ interface PurchaseEntryTabProps {
   onDeleteSupplier: (id: number, name: string) => void;
 
   // Refs
-  searchInputRef: React.RefObject<HTMLInputElement | null>;
-  dropdownRef: React.RefObject<HTMLDivElement | null>;
+  searchInputRef: React.Ref<HTMLInputElement>;
+  dropdownRef: React.Ref<HTMLDivElement>;
 }
 
 export default function PurchaseEntryTab({
@@ -256,18 +256,20 @@ export default function PurchaseEntryTab({
                   ) : (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Select value={supplierId} onValueChange={onSupplierChange} className="flex-1">
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccionar proveedor" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {suppliers.map((s) => (
-                              <SelectItem key={s.id} value={String(s.id)}>
-                                {s.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="flex-1">
+                          <Select value={supplierId} onValueChange={onSupplierChange}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar proveedor" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {suppliers.map((s) => (
+                                <SelectItem key={s.id} value={String(s.id)}>
+                                  {s.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                         {supplierId && (
                           <Button
                             type="button"
