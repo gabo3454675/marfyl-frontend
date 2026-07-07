@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard } from '@/components/admin/admin-card';
@@ -38,6 +38,9 @@ import { PosCalculatorDrawer, PosCalculatorFab } from '@/components/pos/pos-calc
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { PosToolbar } from '@/components/pos/pos-toolbar';
 import { PosComandaQueue } from '@/components/pos/pos-comanda-queue';
+import { VariantSelector } from '@/components/pos/variant-selector';
+import { variantService } from '@/lib/api/product-variants';
+import type { ProductVariant } from '@/lib/api/product-variants';
 
 interface Product {
   id: number;
@@ -88,6 +91,11 @@ interface Customer {
 interface CartItem {
   product: Product;
   quantity: number;
+  variantId?: number;
+  variantName?: string;
+  variantUnitQuantity?: number;
+  /** Precio efectivo por unidad (precio de variante si aplica, o salePrice del producto). */
+  unitPrice: number;
 }
 
 interface TicketSummary {
@@ -155,6 +163,13 @@ export default function POSPage() {
   const [quickProductOpen, setQuickProductOpen] = useState(false);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
 
+  // Variant selection state
+  const [variantDialogOpen, setVariantDialogOpen] = useState(false);
+  const [variantDialogProduct, setVariantDialogProduct] = useState<Product | null>(null);
+  const [variantDialogVariants, setVariantDialogVariants] = useState<ProductVariant[]>([]);
+  const [variantDialogLoading, setVariantDialogLoading] = useState(false);
+  const variantDialogCancelledRef = useRef(false);
+
   const cartUnits = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
 
   const needsPaymentSetup = splitPayment || paymentMethod === 'CREDIT';
@@ -172,15 +187,15 @@ export default function POSPage() {
     };
     queryClient.invalidateQueries({ queryKey: ['products', 'pos-catalog'] });
     setCart((prev) => {
-      const existing = prev.find((i) => i.product.id === product.id);
+      const existing = prev.find((i) => i.product.id === product.id && !i.variantId);
       if (existing) {
         return prev.map((i) =>
-          i.product.id === product.id
+          i.product.id === product.id && !i.variantId
             ? { ...i, quantity: i.quantity + quantity }
             : i,
         );
       }
-      return [...prev, { product: mapped, quantity }];
+      return [...prev, { product: mapped, quantity, unitPrice: Number(product.salePrice) }];
     });
     toast.success(`${product.name} agregado al carrito`);
   };
@@ -305,8 +320,11 @@ export default function POSPage() {
     [sellableUnitsFromRecipe],
   );
 
-  // Agregar producto al carrito (qtyStep: 12 = 1 tobo de cerveza)
-  const addToCart = (product: Product, qtyStep = 1) => {
+  // Agregar producto al carrito (con o sin variante, qtyStep: 12 = 1 tobo de cerveza)
+  const addToCart = (product: Product, qtyStepOrVariant: number | ProductVariant = 1) => {
+    const isVariant = typeof qtyStepOrVariant === 'object' && qtyStepOrVariant !== null;
+    const variant = isVariant ? qtyStepOrVariant : undefined;
+    const qtyStep = isVariant ? 1 : qtyStepOrVariant;
     const maxQ = sellableUnits(product);
     const step = Math.max(1, qtyStep);
     if (maxQ < step) {
@@ -317,29 +335,91 @@ export default function POSPage() {
       );
       return;
     }
+    const unitPrice = variant ? variant.salePrice : product.salePrice;
+    const variantId = variant?.id;
+    const variantName = variant?.name;
+    const variantUnitQuantity = variant?.unitQuantity;
+
     setCart((prevCart) => {
-      const existingItem = prevCart.find((item) => item.product.id === product.id);
+      const existingItem = prevCart.find(
+        (item) => item.product.id === product.id && item.variantId === variantId,
+      );
       if (existingItem) {
         if (existingItem.quantity + step > maxQ) {
           toast.error('No hay más unidades disponibles');
           return prevCart;
         }
         return prevCart.map((item) =>
-          item.product.id === product.id
+          item.product.id === product.id && item.variantId === variantId
             ? { ...item, quantity: item.quantity + step }
             : item,
         );
       }
-      return [...prevCart, { product, quantity: Math.min(maxQ, step) }];
+      return [...prevCart, { product, quantity: Math.min(maxQ, step), variantId, variantName, variantUnitQuantity, unitPrice }];
     });
   };
 
+  // Manejar click en producto: verificar variantes antes de agregar
+  const handleProductClick = async (product: Product) => {
+    const available = sellableUnits(product);
+    if (available < 1) {
+      toast.error('Sin disponibilidad para este producto');
+      return;
+    }
+
+    // Resetear flag de cancelación
+    variantDialogCancelledRef.current = false;
+
+    // Abrir diálogo con loading inmediatamente para feedback visual
+    setVariantDialogProduct(product);
+    setVariantDialogVariants([]);
+    setVariantDialogLoading(true);
+    setVariantDialogOpen(true);
+
+    try {
+      const variants = await queryClient.fetchQuery({
+        queryKey: ['product-variants', product.id],
+        queryFn: () => variantService.getByProduct(product.id),
+        staleTime: 5 * 60 * 1000,
+      });
+
+      // Si el usuario ya cerró el diálogo, no continuar
+      if (variantDialogCancelledRef.current) return;
+
+      const activeVariants = variants.filter((v) => v.isActive);
+
+      if (activeVariants.length <= 1) {
+        // 0 o 1 variante → agregar directamente y cerrar
+        setVariantDialogOpen(false);
+        addToCart(product, activeVariants[0]);
+      } else {
+        // Múltiples variantes → mostrar selector con datos
+        setVariantDialogVariants(activeVariants);
+      }
+    } catch {
+      if (variantDialogCancelledRef.current) return;
+      // Si falla la consulta, cerrar diálogo y agregar sin variante
+      setVariantDialogOpen(false);
+      addToCart(product);
+    } finally {
+      setVariantDialogLoading(false);
+    }
+  };
+
+  const handleVariantSelect = (variant: ProductVariant) => {
+    if (variantDialogProduct) {
+      addToCart(variantDialogProduct, variant);
+    }
+    setVariantDialogProduct(null);
+    setVariantDialogVariants([]);
+  };
+
   // Actualizar cantidad en el carrito
-  const updateQuantity = (productId: number, delta: number) => {
+  const updateQuantity = (productId: number, delta: number, variantId?: number) => {
     setCart((prevCart) => {
       return prevCart
         .map((item) => {
-          if (item.product.id === productId) {
+          if (item.product.id === productId && item.variantId === variantId) {
             const newQuantity = item.quantity + delta;
             if (newQuantity <= 0) return null;
             const maxQ = sellableUnits(item.product);
@@ -353,13 +433,17 @@ export default function POSPage() {
   };
 
   // Remover item del carrito
-  const removeFromCart = (productId: number) => {
-    setCart((prevCart) => prevCart.filter((item) => item.product.id !== productId));
+  const removeFromCart = (productId: number, variantId?: number) => {
+    setCart((prevCart) =>
+      prevCart.filter(
+        (item) => !(item.product.id === productId && item.variantId === variantId),
+      ),
+    );
   };
 
   const { subtotal, ivaAmount, total } = useMemo(() => {
     const lines = cart.map((item) => ({
-      amount: Number(item.product.salePrice) * item.quantity,
+      amount: Number(item.unitPrice) * item.quantity,
       isExempt: item.product.isExempt,
     }));
     return computeCartIva(lines);
@@ -463,6 +547,7 @@ export default function POSPage() {
       items: cart.map((item) => ({
         productId: item.product.id,
         quantity: item.quantity,
+        ...(item.variantId ? { variantId: item.variantId } : {}),
       })),
     };
 
@@ -479,9 +564,9 @@ export default function POSPage() {
         customerName: customer?.name ?? 'Cliente General',
         createdAt: new Date().toLocaleString('es-VE'),
         items: cart.map((item) => ({
-          name: item.product.name,
+          name: item.variantName ? `${item.product.name} - ${item.variantName}` : item.product.name,
           quantity: item.quantity,
-          unitPrice: Number(item.product.salePrice),
+          unitPrice: Number(item.unitPrice),
         })),
         totalUsd: amountUsd,
         totalBs: amountBs,
@@ -641,7 +726,6 @@ export default function POSPage() {
     splitEquivalentUsd,
     processing,
     formatCurrency,
-    getUnitPriceDisplay: (product: { salePrice: number }) => getUnitPriceDisplay(product as Product),
     sellableUnits: (product: { id: number; stock: number }) => sellableUnits(product as Product),
     onUpdateQuantity: updateQuantity,
     onRemoveFromCart: removeFromCart,
@@ -919,6 +1003,13 @@ export default function POSPage() {
                             'border-amber-400/35 bg-gradient-to-br from-amber-400/[0.06] to-transparent',
                           available === 0 && 'opacity-60',
                         )}
+                        onClick={() => available > 0 && handleProductClick(product)}
+                        onKeyDown={(e) => {
+                          if (available > 0 && (e.key === 'Enter' || e.key === ' ')) {
+                            e.preventDefault();
+                            handleProductClick(product);
+                          }
+                        }}
                       >
                         <button
                           type="button"
@@ -1076,6 +1167,21 @@ export default function POSPage() {
         open={canManageProducts && quickProductOpen}
         onOpenChange={setQuickProductOpen}
         onCreated={handleQuickProductCreated}
+      />
+      <VariantSelector
+        open={variantDialogOpen}
+        onOpenChange={(open) => {
+          setVariantDialogOpen(open);
+          if (!open) {
+            variantDialogCancelledRef.current = true;
+            setVariantDialogProduct(null);
+            setVariantDialogVariants([]);
+          }
+        }}
+        productName={variantDialogProduct?.name ?? ''}
+        variants={variantDialogVariants}
+        loading={variantDialogLoading}
+        onSelect={handleVariantSelect}
       />
     </AdminPageShell>
     </>

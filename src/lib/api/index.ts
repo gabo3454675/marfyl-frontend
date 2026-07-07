@@ -96,3 +96,10 @@ export type {
   SalesImportProvisionResult,
   SalesImportInvoiceStatus,
 } from './sales-import';
+
+export { variantService } from './product-variants';
+export type {
+  ProductVariant,
+  CreateVariantPayload,
+  UpdateVariantPayload,
+} from './product-variants';
