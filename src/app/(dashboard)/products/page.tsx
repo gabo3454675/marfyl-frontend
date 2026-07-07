@@ -37,7 +37,12 @@ import {
   type RecipeLine,
 } from '@/components/bundle-recipe-editor';
 import { VariantManager } from '@/components/products';
+import { InventoryImportPreviewDialog } from '@/components/products/inventory-import-preview-dialog';
 import type { ProductVariant } from '@/types/product-variant';
+import {
+  inventoryService,
+  type InventoryImportPreviewResult,
+} from '@/lib/api/inventory';
 
 type SalePriceCurrency = 'USD' | 'VES';
 
@@ -141,6 +146,10 @@ export default function ProductsPage() {
     total?: number;
     errors?: string[];
   } | null>(null);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<InventoryImportPreviewResult | null>(null);
+  const [importPreviewOpen, setImportPreviewOpen] = useState(false);
+  const [importConfirming, setImportConfirming] = useState(false);
 
   /** Sincroniza salePrice del producto cuando cambia la variante default */
   const handleDefaultVariantChanged = useCallback(
@@ -181,6 +190,75 @@ export default function ProductsPage() {
         error.response?.data?.message ||
           'No se pudo descargar la plantilla. Verifica que estás logueado y tienes una organización seleccionada.',
       );
+    }
+  }, []);
+
+  const handleImportFileSelected = useCallback(async (file: File) => {
+    setImporting(true);
+    setImportFile(file);
+    setImportPreview(null);
+    setImportPreviewOpen(true);
+
+    try {
+      const preview = await inventoryService.previewImport(file);
+      setImportPreview(preview);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      setImportPreviewOpen(false);
+      setImportFile(null);
+      alert(err.response?.data?.message || 'Error al leer el archivo Excel');
+    } finally {
+      setImporting(false);
+    }
+  }, []);
+
+  const handleConfirmImport = useCallback(async () => {
+    if (!importFile || !importPreview || importPreview.errors.length > 0) return;
+
+    setImportConfirming(true);
+    try {
+      const result = await inventoryService.confirmImport(importFile);
+      const created = result.created ?? 0;
+      const updated = result.updated ?? 0;
+
+      setImportPreviewOpen(false);
+      setImportPreview(null);
+      setImportFile(null);
+
+      setImportProgress({
+        uploading: false,
+        created,
+        updated,
+        total: created + updated,
+        errors: [],
+      });
+
+      setTimeout(() => {
+        refetch();
+        setImportProgress(null);
+      }, 3000);
+    } catch (error: unknown) {
+      const errData = (error as { response?: { data?: { message?: string; errors?: Array<{ message?: string } | string> } } })
+        .response?.data;
+      const errors = Array.isArray(errData?.errors)
+        ? errData.errors.map((e) => (typeof e === 'string' ? e : e?.message ?? 'Error'))
+        : [errData?.message || 'Error al importar productos'];
+      setImportProgress({
+        uploading: false,
+        errors,
+      });
+      setImportPreviewOpen(false);
+      setTimeout(() => setImportProgress(null), 3000);
+    } finally {
+      setImportConfirming(false);
+    }
+  }, [importFile, importPreview, refetch]);
+
+  const handleImportPreviewOpenChange = useCallback((open: boolean) => {
+    setImportPreviewOpen(open);
+    if (!open) {
+      setImportPreview(null);
+      setImportFile(null);
     }
   }, []);
 
@@ -394,63 +472,8 @@ export default function ProductsPage() {
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
-
-                setImporting(true);
-                setImportProgress({ uploading: true });
-
-                try {
-                  const formData = new FormData();
-                  formData.append('file', file);
-                  formData.append('confirm', 'true');
-
-                  const response = await apiClient.post('/inventory/import', formData, {
-                    headers: {
-                      'Content-Type': 'multipart/form-data',
-                    },
-                  });
-
-                  const data = response.data as { created?: number; updated?: number; summary?: { toCreate?: number; toUpdate?: number }; errors?: Array<{ message?: string } | string> };
-                  const created = data.created ?? 0;
-                  const updated = data.updated ?? 0;
-                  const total = created + updated;
-                  const errors = Array.isArray(data.errors)
-                    ? data.errors.map((err) => (typeof err === 'string' ? err : err?.message ?? 'Error'))
-                    : [];
-
-                  setImportProgress({
-                    uploading: false,
-                    created,
-                    updated,
-                    total,
-                    errors,
-                  });
-
-                  // Recargar productos después de 2 segundos para mostrar el resumen
-                  setTimeout(() => {
-                    refetch();
-                    setImportProgress(null);
-                  }, 3000);
-                } catch (error: any) {
-                  console.error('Error importing products:', error);
-                  const errData = error.response?.data;
-                  const errors = Array.isArray(errData?.errors)
-                    ? errData.errors.map((e: { message?: string } | string) => (typeof e === 'string' ? e : e?.message ?? 'Error'))
-                    : [errData?.message || 'Error al importar productos'];
-                  setImportProgress({
-                    uploading: false,
-                    errors,
-                  });
-                  
-                  setTimeout(() => {
-                    setImportProgress(null);
-                  }, 3000);
-                } finally {
-                  setImporting(false);
-                  // Reset input
-                  if (e.target) {
-                    e.target.value = '';
-                  }
-                }
+                await handleImportFileSelected(file);
+                if (e.target) e.target.value = '';
               }}
             />
             {canManageProducts && (
@@ -720,7 +743,8 @@ export default function ProductsPage() {
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
                   </AdminTableWrap>
@@ -975,6 +999,15 @@ export default function ProductsPage() {
             </form>
           </DialogContent>
         </Dialog>
+
+        <InventoryImportPreviewDialog
+          open={importPreviewOpen}
+          onOpenChange={handleImportPreviewOpenChange}
+          fileName={importFile?.name ?? null}
+          preview={importPreview}
+          confirming={importConfirming}
+          onConfirm={handleConfirmImport}
+        />
 
         <StockAdjustSheet
           product={stockSheetProduct}

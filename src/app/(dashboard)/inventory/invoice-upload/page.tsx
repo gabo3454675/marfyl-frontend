@@ -23,6 +23,7 @@ import type { PurchaseLine } from './types';
 
 // Components
 import PurchaseEntryTab from './components/PurchaseEntryTab';
+import InvoiceFileImportTab from './components/InvoiceFileImportTab';
 import InvoiceHistoryTab from './components/InvoiceHistoryTab';
 import { CreateSupplierDialog } from './components/CreateSupplierDialog';
 import { PaymentDialog } from './components/PaymentDialog';
@@ -344,6 +345,7 @@ export default function InvoiceUploadPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="entry">Registrar compra</TabsTrigger>
+          <TabsTrigger value="import">Importar archivo</TabsTrigger>
           <TabsTrigger value="history">Historial</TabsTrigger>
         </TabsList>
 
@@ -375,6 +377,14 @@ export default function InvoiceUploadPage() {
           onDeleteSupplier={handleDeleteSupplier}
           searchInputRef={searchInputRef}
           dropdownRef={dropdownRef}
+        />
+
+        <InvoiceFileImportTab
+          suppliers={suppliers}
+          onOpenSupplierDialog={() => setIsSupplierDialogOpen(true)}
+          onImportSuccess={() => {
+            if (activeTab === 'history') fetchHistory(historyPage);
+          }}
         />
 
         <InvoiceHistoryTab
