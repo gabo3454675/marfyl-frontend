@@ -86,3 +86,10 @@ export type {
   InvoiceHistoryDetail,
   InvoiceHistoryResponse,
 } from './invoice-upload';
+
+export { variantService } from './product-variants';
+export type {
+  ProductVariant,
+  CreateVariantPayload,
+  UpdateVariantPayload,
+} from './product-variants';

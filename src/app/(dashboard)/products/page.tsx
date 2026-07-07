@@ -36,6 +36,8 @@ import {
   parseRecipeFromUnknown,
   type RecipeLine,
 } from '@/components/bundle-recipe-editor';
+import { VariantManager } from '@/components/products';
+import type { ProductVariant } from '@/types/product-variant';
 
 type SalePriceCurrency = 'USD' | 'VES';
 
@@ -55,6 +57,44 @@ interface Product {
   isBundle?: boolean;
   isService?: boolean;
   bundleComponents?: unknown;
+  /** Variantes incluidas por el API (opcional — productos sin variantes no tienen este campo) */
+  variants?: ProductVariant[];
+  /** Conteos relacionales del API */
+  _count?: { variants: number };
+}
+
+// ── Helpers de variantes ──────────────────────────────────────────────────
+
+/** Número de variantes activas de un producto (desde _count o variants[]) */
+function getVariantCount(product: Product): number {
+  if (product._count?.variants != null) return product._count.variants;
+  if (product.variants) return product.variants.length;
+  return 0;
+}
+
+/** Precio de la variante default (o primera variante activa) */
+function getDefaultVariantPrice(product: Product): number | null {
+  const variants = product.variants;
+  if (!variants || variants.length === 0) return null;
+  const active = variants.filter((v) => v.isActive);
+  if (active.length === 0) return null;
+  const def = active.find((v) => v.isDefault) ?? active[0];
+  return def.salePrice;
+}
+
+/** Rango de precios formateado para productos con variantes */
+function getVariantPriceRange(
+  product: Product,
+  fmt: (n: number) => string,
+): string | null {
+  const variants = product.variants;
+  if (!variants || variants.length === 0) return null;
+  const active = variants.filter((v) => v.isActive);
+  if (active.length === 0) return null;
+  const prices = active.map((v) => v.salePrice);
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  return min === max ? fmt(min) : `${fmt(min)} – ${fmt(max)}`;
 }
 
 export default function ProductsPage() {
@@ -101,6 +141,14 @@ export default function ProductsPage() {
     total?: number;
     errors?: string[];
   } | null>(null);
+
+  /** Sincroniza salePrice del producto cuando cambia la variante default */
+  const handleDefaultVariantChanged = useCallback(
+    (variant: ProductVariant) => {
+      setFormData((prev) => ({ ...prev, salePrice: String(variant.salePrice) }));
+    },
+    [],
+  );
 
   const handleDownloadInventoryTemplate = useCallback(async () => {
     try {
@@ -524,9 +572,17 @@ export default function ProductsPage() {
                                 Servicio
                               </Badge>
                             ) : null}
+                            {getVariantCount(product) > 0 && (
+                              <Badge variant="secondary" className="text-[10px] shrink-0">
+                                Multi-precio
+                              </Badge>
+                            )}
                           </div>
                           <p className="text-sm text-muted-foreground mt-1">
-                            {formatCurrency(Number(product.salePrice))} · Stock: {product.stock}
+                            {formatCurrency(
+                              getDefaultVariantPrice(product) ?? Number(product.salePrice),
+                            )}{' '}
+                            · Stock: {product.stock}
                             {product.barcode ? ` · ${product.barcode}` : ''}
                           </p>
                         </div>
@@ -578,6 +634,7 @@ export default function ProductsPage() {
                       <TableRow>
                         <TableHead>Nombre</TableHead>
                         <TableHead>Tipo</TableHead>
+                        <TableHead>Variantes</TableHead>
                         <TableHead>Precio</TableHead>
                         <TableHead>Stock</TableHead>
                         <TableHead>Código de Barras</TableHead>
@@ -585,7 +642,10 @@ export default function ProductsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {products.map((product) => (
+                      {products.map((product) => {
+                        const vCount = getVariantCount(product);
+                        const vRange = getVariantPriceRange(product, formatCurrency);
+                        return (
                         <TableRow key={product.id}>
                           <TableCell className="font-medium">{product.name}</TableCell>
                           <TableCell>
@@ -600,6 +660,22 @@ export default function ProductsPage() {
                               </Badge>
                             ) : (
                               <span className="text-muted-foreground text-sm">Inventario</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {vCount > 0 ? (
+                              <div className="flex flex-col gap-0.5">
+                                <Badge variant="secondary" className="text-[10px] w-fit">
+                                  {vCount} variante{vCount !== 1 ? 's' : ''}
+                                </Badge>
+                                {vRange && (
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                    {vRange}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">–</span>
                             )}
                           </TableCell>
                           <TableCell>{formatCurrency(Number(product.salePrice))}</TableCell>
@@ -863,6 +939,16 @@ export default function ProductsPage() {
                     catalog={recipeCatalog}
                     excludeProductId={editingProduct?.id ?? null}
                   />
+                )}
+
+                {/* Variantes — solo visible al editar un producto existente */}
+                {editingProduct && (
+                  <div className="border-t border-border/50 pt-4">
+                    <VariantManager
+                      productId={editingProduct.id}
+                      onDefaultChanged={handleDefaultVariantChanged}
+                    />
+                  </div>
                 )}
               </div>
               <DialogFooter>
