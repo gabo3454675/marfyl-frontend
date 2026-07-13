@@ -51,9 +51,9 @@ function LoginForm() {
 
     try {
       console.log('[login-page] Calling authService.login...');
-      const { access_token, user } = await authService.login({ email, password });
-      console.log('[login-page] authService.login SUCCESS', { hasToken: !!access_token, userId: user?.id, email: user?.email, companies: (user as any)?.companies?.length, organizations: (user as any)?.organizations?.length });
-      setAuth(user as unknown as Parameters<typeof setAuth>[0], access_token);
+      const { access_token, refreshToken, user } = await authService.login({ email, password });
+      console.log('[login-page] authService.login SUCCESS', { hasToken: !!access_token, hasRefreshToken: !!refreshToken, userId: user?.id, email: user?.email, companies: (user as any)?.companies?.length, organizations: (user as any)?.organizations?.length });
+      setAuth(user as unknown as Parameters<typeof setAuth>[0], access_token, refreshToken);
       console.log('[login-page] setAuth called, now pushing to /');
       if ((user as { companies?: unknown[] }).companies?.length) {
         router.push('/');

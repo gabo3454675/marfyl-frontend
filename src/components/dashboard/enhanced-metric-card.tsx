@@ -18,6 +18,7 @@ interface EnhancedMetricCardProps {
     label?: string;
   };
   isDemo?: boolean;
+  loading?: boolean;
 }
 
 function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
@@ -59,6 +60,7 @@ export function EnhancedMetricCard({
   sparklineData,
   progress,
   isDemo,
+  loading,
 }: EnhancedMetricCardProps) {
   const progressPct =
     progress && progress.goal > 0
@@ -76,7 +78,14 @@ export function EnhancedMetricCard({
         <div className="flex items-start justify-between gap-3 mb-3 sm:mb-4">
           <div className="min-w-0 flex-1 pr-1">
             <p className="admin-metric-title">{title}</p>
-            <p className="admin-metric-value mt-2">{value}</p>
+            <p
+              className={cn(
+                'admin-metric-value mt-2',
+                loading && 'inline-block h-8 w-28 animate-pulse rounded-md bg-muted',
+              )}
+            >
+              {loading ? '' : value}
+            </p>
           </div>
           <div className="admin-metric-icon shrink-0 transition-colors duration-200">
             <Icon className="h-5 w-5" aria-hidden />

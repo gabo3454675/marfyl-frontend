@@ -17,8 +17,11 @@ export const ROUTE_PERMISSIONS: Record<string, PermissionKey> = {
   '/products': 'canManageProducts',
   '/servicios-combos': 'canManageProducts',
   '/inventory/movements': 'canManageInventory',
+  '/inventory/invoice-upload': 'canManageInventory',
+  '/inventory/purchases-import': 'canManageInventory',
   '/autoconsumo': 'canManageInventory',
   '/alertas-stock': 'canManageInventory',
+  '/sales/import': 'canManageInventory',
 
   // Clientes y Ventas
   '/customers': 'canManageCustomers',

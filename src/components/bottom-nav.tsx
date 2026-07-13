@@ -43,7 +43,7 @@ export default function BottomNav() {
   const pathname = usePathname();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const permissions = usePermission();
-  const { clearAuth } = useAuthStore();
+  const { logout } = useAuthStore();
   const concertNavItems = useConcertNavItems();
 
   const activeItem = (() => {
@@ -63,10 +63,10 @@ export default function BottomNav() {
     setIsSheetOpen(false);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setIsSheetOpen(false);
     markExplicitLogout();
-    clearAuth();
+    await logout();
     window.location.assign('/login');
   };
 

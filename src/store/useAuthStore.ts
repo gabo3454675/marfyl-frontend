@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { clearSessionCookie, setSessionCookie } from '@/lib/auth-session-cookie';
 import { filterOrganizationsForLogin } from '@/lib/founding-orgs';
+import { authService } from '@/lib/api';
 
 export interface Company {
   id: number;
@@ -44,16 +45,20 @@ interface User {
 interface AuthState {
   user: User | null;
   token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   selectedCompanyId: number | null; // Mantener compatibilidad con "companies"
   selectedOrganizationId: number | null; // Nuevo sistema - preferir organizations
   /** Lista de todas las orgs (solo Super Admin). Se carga por fetch a /tenants/organizations-all. */
   superAdminOrganizations: Organization[];
   _hasHydrated: boolean;
-  setAuth: (user: User, token: string) => void;
+  setAuth: (user: User, token: string, refreshToken?: string) => void;
   /** Actualiza solo el token (ej. tras POST /auth/switch-organization). El tenantId va en el JWT. */
   setToken: (token: string) => void;
+  /** Actualiza solo el refresh token (ej. tras refresh exitoso). */
+  setRefreshToken: (token: string | null) => void;
   clearAuth: () => void;
+  logout: () => Promise<void>;
   selectCompany: (companyId: number) => void; // Legacy
   selectOrganization: (organizationId: number) => void; // Nuevo
   setSuperAdminOrganizations: (orgs: Organization[]) => void;
@@ -72,12 +77,13 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       token: null,
+      refreshToken: null,
       isAuthenticated: false,
       selectedCompanyId: null,
       selectedOrganizationId: null,
       superAdminOrganizations: [],
       _hasHydrated: false,
-      setAuth: (user, token) => {
+      setAuth: (user, token, refreshToken?) => {
         // Bloquear sesión si requiere cambio de contraseña (no debería llegar aquí; backend retorna 403)
         if (user.requiresPasswordChange) {
           console.log('[authStore] setAuth BLOCKED: requiresPasswordChange', { email: user.email });
@@ -89,6 +95,9 @@ export const useAuthStore = create<AuthState>()(
         console.log('[authStore] setAuth SUCCESS', { userId: user.id, email: user.email, hasOrganizations: (user.organizations?.length ?? 0) > 0, hasCompanies: (user.companies?.length ?? 0) > 0 });
         if (typeof window !== 'undefined') {
           localStorage.setItem('auth_token', token);
+          if (refreshToken) {
+            localStorage.setItem('auth_refresh_token', refreshToken);
+          }
           setSessionCookie();
         }
         const organizations = user.organizations || [];
@@ -106,6 +115,7 @@ export const useAuthStore = create<AuthState>()(
         set({
           user,
           token,
+          refreshToken: refreshToken ?? null,
           isAuthenticated: true,
           selectedOrganizationId: defaultOrgId,
           selectedCompanyId: companies.length > 0 ? companies[0].id : defaultOrgId, // Compatibilidad con dashboard/api
@@ -131,19 +141,38 @@ export const useAuthStore = create<AuthState>()(
           }
         }
       },
+      setRefreshToken: (token: string | null) => {
+        if (typeof window !== 'undefined') {
+          if (token) {
+            localStorage.setItem('auth_refresh_token', token);
+          } else {
+            localStorage.removeItem('auth_refresh_token');
+          }
+        }
+        set({ refreshToken: token });
+      },
       clearAuth: () => {
         if (typeof window !== 'undefined') {
           localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_refresh_token');
           clearSessionCookie();
         }
         set({
           user: null,
           token: null,
+          refreshToken: null,
           isAuthenticated: false,
           selectedCompanyId: null,
           selectedOrganizationId: null,
           superAdminOrganizations: [],
         });
+      },
+      logout: async () => {
+        const refreshToken = get().refreshToken;
+        if (refreshToken) {
+          authService.logout(refreshToken).catch(() => {});
+        }
+        get().clearAuth();
       },
       selectCompany: (companyId: number) => {
         // Legacy - mantener para compatibilidad
@@ -306,6 +335,7 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         user: state.user,
         token: state.token,
+        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
         selectedCompanyId: state.selectedCompanyId,
         selectedOrganizationId: state.selectedOrganizationId,

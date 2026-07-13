@@ -96,24 +96,30 @@ export default function DashboardPage() {
     queryKey: ['dashboard-summary', selectedId],
     queryFn: () => apiClient.get<DashboardSummary>('/dashboard/summary').then((r) => r.data),
     enabled: canLoadDashboard && !!selectedId,
+    staleTime: 60_000,
+    placeholderData: (previous) => previous,
   });
 
   const healthQuery = useQuery({
     queryKey: ['dashboard-health', selectedId],
     queryFn: () => apiClient.get<DashboardHealth>('/dashboard/health').then((r) => r.data),
-    enabled: canLoadDashboard && !!selectedId,
+    enabled: canLoadDashboard && !!selectedId && canViewFinancialCharts,
+    staleTime: 60_000,
+    placeholderData: (previous) => previous,
   });
 
   const diagnosisQuery = useQuery({
     queryKey: ['dashboard-diagnosis', selectedId],
     queryFn: () => apiClient.get<DashboardDiagnosis>('/dashboard/diagnosis').then((r) => r.data),
     enabled: canLoadDashboard && !!selectedId && canViewFinancialCharts && chartsVisible,
+    staleTime: 60_000,
   });
 
   const strategyQuery = useQuery({
     queryKey: ['dashboard-strategy', selectedId],
     queryFn: () => apiClient.get<DashboardStrategy>('/dashboard/strategy').then((r) => r.data),
     enabled: canLoadDashboard && !!selectedId && canViewFinancialCharts && chartsVisible,
+    staleTime: 60_000,
   });
 
   const createdByMeQuery = useQuery({
@@ -135,9 +141,8 @@ export default function DashboardPage() {
   });
 
   // ── Loading flags (derivados de queries) ──
-  // isLoading equivale a isPending && isFetching en react-query v5
-  const loading = (summaryQuery.isPending && summaryQuery.isFetching);
-  const loadingHealth = (healthQuery.isPending && healthQuery.isFetching);
+  const loadingSummary = summaryQuery.isPending && summaryQuery.isFetching;
+  const loadingHealth = healthQuery.isPending && healthQuery.isFetching;
   const loadingDiagnosis = canViewFinancialCharts ? (diagnosisQuery.isPending && diagnosisQuery.isFetching) : false;
   const loadingStrategy = canViewFinancialCharts ? (strategyQuery.isPending && strategyQuery.isFetching) : false;
   const loadingCreatedByMe = canSeeCreatedByMe ? (createdByMeQuery.isPending && createdByMeQuery.isFetching) : false;
@@ -276,14 +281,7 @@ export default function DashboardPage() {
         className="mb-6 md:mb-8"
       />
 
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2 text-muted-foreground">Cargando datos...</span>
-        </div>
-      )}
-
-      {error && !loading && (() => {
+      {error && !loadingSummary && (() => {
         const previewOffline =
           isFiscalPreviewMode() &&
           (error.includes('Vista previa') || error.includes('puerto 3001') || error.includes('conexión'));
@@ -308,9 +306,8 @@ export default function DashboardPage() {
         );
       })()}
 
-      {!loading && (
-        <AdminMotionStagger key={selectedId ?? 'none'} className="admin-page-body">
-          {useDemoData && (
+      <AdminMotionStagger key={selectedId ?? 'none'} className="admin-page-body">
+          {useDemoData && !loadingSummary && (
             <AdminMotionItem>
               <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
                 Mostrando datos de demostración. Registra ventas e inventario para ver métricas reales.
@@ -323,8 +320,10 @@ export default function DashboardPage() {
               summary={summary}
               health={health}
               formatForDisplay={formatForDisplay}
+              loadingSummary={loadingSummary}
               loadingHealth={loadingHealth}
               isDemo={useDemoData}
+              canViewFinancialCharts={canViewFinancialCharts}
             />
           </AdminMotionItem>
 
@@ -410,7 +409,6 @@ export default function DashboardPage() {
             </div>
           </AdminMotionItem>
         </AdminMotionStagger>
-      )}
     </div>
   );
 }

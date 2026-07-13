@@ -17,16 +17,20 @@ interface OperationalKpiGridProps {
   summary: DashboardSummary;
   health: DashboardHealth;
   formatForDisplay: (value: number) => string;
+  loadingSummary: boolean;
   loadingHealth: boolean;
   isDemo: boolean;
+  canViewFinancialCharts: boolean;
 }
 
 export function OperationalKpiGrid({
   summary,
   health,
   formatForDisplay,
+  loadingSummary,
   loadingHealth,
   isDemo,
+  canViewFinancialCharts,
 }: OperationalKpiGridProps) {
   const salesChange = pctChange(summary.totalSalesToday, summary.totalSalesYesterday);
   const ticketChange = pctChange(health.ticketPromedio, health.ticketPromedioPrev);
@@ -47,7 +51,10 @@ export function OperationalKpiGrid({
           label: 'Meta diaria',
         }}
         isDemo={isDemo && summary.totalSalesToday === 0}
+        loading={loadingSummary}
       />
+      {canViewFinancialCharts && (
+        <>
       <EnhancedMetricCard
         title="Ticket Promedio de Compra"
         value={loadingHealth ? '—' : formatForDisplay(health.ticketPromedio)}
@@ -56,6 +63,7 @@ export function OperationalKpiGrid({
         icon={Receipt}
         sparklineData={generateSparkline(health.ticketPromedio)}
         isDemo={isDemo && health.ticketPromedio === 0}
+        loading={loadingHealth}
       />
       <EnhancedMetricCard
         title="Ganancia Neta Estimada"
@@ -65,7 +73,10 @@ export function OperationalKpiGrid({
         icon={Banknote}
         sparklineData={generateSparkline(health.estimatedNetProfit)}
         isDemo={isDemo && health.estimatedNetProfit === 0}
+        loading={loadingHealth}
       />
+        </>
+      )}
       <EnhancedMetricCard
         title="Total Productos"
         value={summary.productsCount.toString()}
@@ -73,6 +84,7 @@ export function OperationalKpiGrid({
         changeType={summary.lowStockCount > 0 ? 'negative' : 'positive'}
         icon={FileText}
         sparklineData={generateSparkline(summary.productsCount)}
+        loading={loadingSummary}
       />
       <EnhancedMetricCard
         title="Productos en Stock Bajo"
@@ -81,6 +93,7 @@ export function OperationalKpiGrid({
         changeType={summary.lowStockCount > 0 ? 'negative' : 'positive'}
         icon={AlertCircle}
         sparklineData={generateSparkline(summary.lowStockCount)}
+        loading={loadingSummary}
       />
       <EnhancedMetricCard
         title="Facturas Recientes"
@@ -89,6 +102,7 @@ export function OperationalKpiGrid({
         changeType="neutral"
         icon={Users}
         sparklineData={generateSparkline(summary.recentTransactions.length)}
+        loading={loadingSummary}
       />
     </div>
   );

@@ -71,7 +71,7 @@ export default function Sidebar() {
   }, [pathname]);
   const { 
     user, 
-    clearAuth, 
+    logout, 
     selectedCompanyId, 
     selectedOrganizationId,
     selectCompany,
@@ -128,9 +128,9 @@ export default function Sidebar() {
   const activeSectionId = getSectionIdForNavItem(activeItem);
   const { isOpen: isSectionOpen, toggle: toggleSection } = useNavSectionsOpen(activeSectionId);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     markExplicitLogout();
-    clearAuth();
+    await logout();
     window.location.assign('/login');
   };
 

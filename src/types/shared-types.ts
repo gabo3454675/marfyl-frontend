@@ -5,6 +5,7 @@
 
 export interface LoginResponse {
   access_token: string;
+  refreshToken?: string;
   user: {
     id: number;
     email: string;

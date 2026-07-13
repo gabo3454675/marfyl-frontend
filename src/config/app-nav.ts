@@ -18,6 +18,7 @@ import {
   Settings,
   UsersRound,
   FileUp,
+  Upload,
 } from 'lucide-react';
 import type { PermissionKey } from '@/config/permissions';
 
@@ -49,10 +50,12 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
   { id: 'products', label: 'Inventario', icon: Box, href: '/products', permission: 'canManageProducts' },
   { id: 'movements', label: 'Movimientos inventario', icon: PackageMinus, href: '/inventory/movements', permission: 'canManageInventory' },
   { id: 'invoice-upload', label: 'Subir Factura', icon: FileUp, href: '/inventory/invoice-upload', permission: 'canManageInventory' },
+  { id: 'purchases-import', label: 'Importar compras', icon: Upload, href: '/inventory/purchases-import', permission: 'canManageInventory' },
   { id: 'autoconsumo', label: 'Autoconsumo', icon: BarChart3, href: '/autoconsumo', permission: 'canManageInventory' },
   { id: 'alertas-stock', label: 'Alertas inventario', icon: AlertTriangle, href: '/alertas-stock', permission: 'canManageInventory' },
   { id: 'customers', label: 'Clientes', icon: Users, href: '/customers', permission: 'canManageCustomers' },
   { id: 'invoices', label: 'Facturas', icon: FileText, href: '/invoices', permission: 'canManageInvoices' },
+  { id: 'sales-import', label: 'Importar ventas POS', icon: Upload, href: '/sales/import', permission: 'canManageInventory' },
   { id: 'history', label: 'Historial de ventas', icon: History, href: '/history', permission: 'canManageInvoices' },
   { id: 'cierre-caja', label: 'Cierre de caja', icon: Wallet, href: '/cierre-caja', permission: 'canManageCierreCaja' },
   { id: 'credits', label: 'Cuentas por cobar', icon: CreditCard, href: '/credits', permission: 'canViewCredits' },
@@ -69,7 +72,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     id: 'ventas',
     label: 'Ventas y caja',
     defaultOpen: true,
-    itemIds: ['invoices', 'history', 'cierre-caja', 'credits'],
+    itemIds: ['invoices', 'sales-import', 'history', 'cierre-caja', 'credits'],
   },
   {
     id: 'clientes',
@@ -79,7 +82,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
   {
     id: 'inventario',
     label: 'Inventario',
-    itemIds: ['products', 'movements', 'invoice-upload', 'autoconsumo', 'alertas-stock'],
+    itemIds: ['products', 'movements', 'invoice-upload', 'purchases-import', 'autoconsumo', 'alertas-stock'],
   },
   {
     id: 'finanzas',
@@ -107,8 +110,10 @@ export function resolveAppNavId(pathname: string): string {
   if (pathname.startsWith('/autoconsumo')) return 'autoconsumo';
   if (pathname.startsWith('/alertas-stock')) return 'alertas-stock';
   if (pathname.startsWith('/inventory/invoice-upload')) return 'invoice-upload';
+  if (pathname.startsWith('/inventory/purchases-import')) return 'purchases-import';
   if (pathname.startsWith('/inventory')) return 'products';
   if (pathname.startsWith('/customers')) return 'customers';
+  if (pathname.startsWith('/sales/import')) return 'sales-import';
   if (pathname.startsWith('/invoices')) return 'invoices';
   if (pathname.startsWith('/history')) return 'history';
   if (pathname.startsWith('/cierre-caja')) return 'cierre-caja';

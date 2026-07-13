@@ -28,7 +28,17 @@ export interface RecoverPasswordPayload {
 
 export interface SwitchOrganizationResponse {
   access_token: string;
+  refreshToken?: string;
   organizationId: number;
+}
+
+export interface RefreshTokenResponse {
+  access_token: string;
+  refreshToken: string;
+}
+
+export interface LogoutResponse {
+  success: boolean;
 }
 
 /**
@@ -59,6 +69,20 @@ export const authService = {
   switchOrganization(organizationId: number): Promise<SwitchOrganizationResponse> {
     return apiClient
       .post<SwitchOrganizationResponse>('/auth/switch-organization', { organizationId })
+      .then((res) => res.data);
+  },
+
+  /** Refrescar token de acceso usando refresh token. */
+  refresh(refreshToken: string): Promise<RefreshTokenResponse> {
+    return apiClient
+      .post<RefreshTokenResponse>('/auth/refresh', { refreshToken })
+      .then((res) => res.data);
+  },
+
+  /** Cerrar sesión e invalidar refresh token. */
+  logout(refreshToken: string): Promise<LogoutResponse> {
+    return apiClient
+      .post<LogoutResponse>('/auth/logout', { refreshToken })
       .then((res) => res.data);
   },
 };

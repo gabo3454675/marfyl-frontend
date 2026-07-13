@@ -12,6 +12,7 @@ export function useOrganizationSwitcher() {
     selectCompany,
     selectOrganization,
     setToken,
+    setRefreshToken,
     setSuperAdminOrganizations,
     getOrganizations,
     getCurrentOrganization,
@@ -71,6 +72,9 @@ export function useOrganizationSwitcher() {
             const data = await authService.switchOrganization(organizationId);
             if (data?.access_token) {
               setToken(data.access_token);
+              if (data.refreshToken) {
+                setRefreshToken(data.refreshToken);
+              }
               selectOrganization(data.organizationId ?? organizationId);
             } else {
               selectOrganization(organizationId);
@@ -94,6 +98,7 @@ export function useOrganizationSwitcher() {
       user,
       selectedId,
       setToken,
+      setRefreshToken,
       selectOrganization,
       selectCompany,
     ],

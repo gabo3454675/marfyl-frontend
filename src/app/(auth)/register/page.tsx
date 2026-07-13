@@ -35,14 +35,14 @@ export default function RegisterPage() {
 
     try {
       const slug = slugifyOrganizationName(organizationSlug || organizationName);
-      const { access_token, user } = await authService.register({
+      const { access_token, refreshToken, user } = await authService.register({
         email,
         password,
         fullName,
         organizationName: organizationName.trim(),
         organizationSlug: slug,
       });
-      setAuth(user as unknown as Parameters<typeof setAuth>[0], access_token);
+      setAuth(user as unknown as Parameters<typeof setAuth>[0], access_token, refreshToken);
       const firstOrgId = user.organizations?.[0]?.id;
       if (firstOrgId) {
         useAuthStore.getState().selectOrganization(firstOrgId);

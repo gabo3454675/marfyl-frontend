@@ -86,3 +86,13 @@ export type {
   InvoiceHistoryDetail,
   InvoiceHistoryResponse,
 } from './invoice-upload';
+
+export { salesImportService } from './sales-import';
+export type {
+  SalesImportPreviewResult,
+  SalesImportInvoicePreview,
+  SalesImportConfirmPayload,
+  SalesImportConfirmResult,
+  SalesImportProvisionResult,
+  SalesImportInvoiceStatus,
+} from './sales-import';

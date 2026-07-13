@@ -69,22 +69,94 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Refresh token logic — evita refreshes concurrentes y loops infinitos
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (token: string) => void;
+  reject: (error: unknown) => void;
+}> = [];
+
+const processQueue = (error: unknown, token: string | null = null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(token!);
+    }
+  });
+  failedQueue = [];
+};
+
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
+  async (error: AxiosError) => {
     if (typeof window !== 'undefined') {
       if (error.response?.status === 401 && !isFiscalPreviewMode()) {
-        // Don't redirect on 401 during login attempt — let the login form handle the error
-        const requestUrl = error.config?.url || '';
-        if (requestUrl.includes('/auth/login')) {
+        const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+        // No intentar refresh si es un endpoint de auth (evita loop infinito)
+        const isAuthEndpoint = originalRequest.url?.includes('/auth/');
+        if (isAuthEndpoint) {
+          console.log('[apiClient] 401 on auth endpoint -> clearing session and redirecting to /login');
+          useAuthStore.getState().clearAuth();
+          window.location.href = '/login';
           return Promise.reject(error);
         }
-        console.log('[apiClient] 401 response -> clearing session and redirecting to /login');
-        clearSessionCookie();
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('auth-storage');
-        window.location.href = '/login';
-        return Promise.reject(error);
+
+        // No intentar refresh si ya se está refrescando — encola el request
+        if (isRefreshing) {
+          return new Promise<string>((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          }).then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return apiClient(originalRequest);
+          });
+        }
+
+        // Marcar como refrescando y obtener refresh token
+        isRefreshing = true;
+        originalRequest._retry = true;
+
+        const refreshToken = localStorage.getItem('auth_refresh_token');
+        if (!refreshToken) {
+          isRefreshing = false;
+          console.log('[apiClient] 401 with no refresh token -> clearing session and redirecting to /login');
+          useAuthStore.getState().clearAuth();
+          window.location.href = '/login';
+          return Promise.reject(error);
+        }
+
+        try {
+          console.log('[apiClient] 401 response -> attempting token refresh');
+          const response = await apiClient.post('/auth/refresh', { refreshToken });
+          const { access_token, refreshToken: newRefreshToken } = response.data;
+
+          // Actualizar tokens en localStorage
+          localStorage.setItem('auth_token', access_token);
+          localStorage.setItem('auth_refresh_token', newRefreshToken);
+
+          // Actualizar store
+          const { setToken, setRefreshToken } = useAuthStore.getState();
+          setToken(access_token);
+          setRefreshToken(newRefreshToken);
+
+          // Reintentar requests encolados con el nuevo token
+          processQueue(null, access_token);
+
+          // Reintentar request original
+          originalRequest.headers.Authorization = `Bearer ${access_token}`;
+          console.log('[apiClient] Token refresh successful -> retrying original request');
+          return apiClient(originalRequest);
+        } catch (refreshError) {
+          // Refresh falló — rechazar requests encolados y limpiar sesión
+          processQueue(refreshError, null);
+          console.log('[apiClient] Token refresh failed -> clearing session and redirecting to /login');
+          useAuthStore.getState().clearAuth();
+          window.location.href = '/login';
+          return Promise.reject(refreshError);
+        } finally {
+          isRefreshing = false;
+        }
       }
       if (
         error.response?.status === 400 &&
