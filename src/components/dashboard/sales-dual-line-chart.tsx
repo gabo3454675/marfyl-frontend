@@ -31,14 +31,14 @@ export function SalesDualLineChart({ data, loading, formatForDisplay }: SalesDua
     <AdminChartCard
       className="lg:col-span-2"
       title="Ventas: USD esperadas vs Bs reales"
-      description="Comparación dual interactiva por día — último mes"
+      description="Comparación dual interactiva por día — últimos 30 días"
     >
       {loading ? (
         <div className={`flex items-center justify-center ${CHART_HEIGHT} min-h-[200px]`}>
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : chartData.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-8 sm:py-12">Sin datos del último mes</p>
+        <p className="text-sm text-muted-foreground text-center py-8 sm:py-12">Sin ventas en los últimos 30 días</p>
       ) : (
         <div className={`${CHART_HEIGHT} w-full`}>
           <ResponsiveContainer width="100%" height="100%">

@@ -1,5 +1,27 @@
 import type { DashboardDiagnosis, DashboardHealth, DashboardStrategy, DashboardSummary } from './types';
 
+export const EMPTY_HEALTH: DashboardHealth = {
+  salesChartLastMonth: [],
+  topProductsByMargin: [],
+  ticketPromedio: 0,
+  ticketPromedioPrev: 0,
+  crecimientoMensual: 0,
+  totalVentasMes: 0,
+  dailySalesGoal: 0,
+  estimatedNetProfit: 0,
+  estimatedNetProfitPrev: 0,
+  monthlySalesChart: [],
+  breakEvenPoint: 0,
+};
+
+export const EMPTY_SUMMARY: DashboardSummary = {
+  totalSalesToday: 0,
+  totalSalesYesterday: 0,
+  productsCount: 0,
+  lowStockCount: 0,
+  recentTransactions: [],
+};
+
 /** Datos de demostración atractivos cuando el estado real está en cero. */
 export const DEMO_SUMMARY: DashboardSummary = {
   totalSalesToday: 1240,
@@ -93,8 +115,8 @@ export function withDemoHealth(data: DashboardHealth, useDemo: boolean): Dashboa
   if (!useDemo) return data;
   const hasData =
     data.totalVentasMes > 0 ||
-    data.salesChartLastMonth.length > 0 ||
-    data.topProductsByMargin.length > 0;
+    data.topProductsByMargin.length > 0 ||
+    data.salesChartLastMonth.some((d) => d.ventasUsd > 0);
   return hasData ? data : DEMO_HEALTH;
 }
 

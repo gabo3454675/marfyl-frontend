@@ -27,6 +27,8 @@ import {
   withDemoStrategy,
   DEMO_SUMMARY,
   DEMO_HEALTH,
+  EMPTY_SUMMARY,
+  EMPTY_HEALTH,
   DEMO_DIAGNOSIS,
   DEMO_STRATEGY,
 } from '@/components/dashboard/demo-data';
@@ -71,10 +73,10 @@ export default function DashboardPage() {
   }, [isPosOnlySeller, router]);
 
   // ── State para datos transformados (demo data, etc.) ──
-  const [summary, setSummary] = useState<DashboardSummary>(DEMO_SUMMARY);
+  const [summary, setSummary] = useState<DashboardSummary>(EMPTY_SUMMARY);
   const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([]);
   const [createdByMeTasks, setCreatedByMeTasks] = useState<CreatedByMeTask[]>([]);
-  const [health, setHealth] = useState<DashboardHealth>(DEMO_HEALTH);
+  const [health, setHealth] = useState<DashboardHealth>(EMPTY_HEALTH);
   const [diagnosis, setDiagnosis] = useState<DashboardDiagnosis>(DEMO_DIAGNOSIS);
   const [strategy, setStrategy] = useState<DashboardStrategy>(DEMO_STRATEGY);
   const [error, setError] = useState<string | null>(null);
@@ -155,7 +157,7 @@ export default function DashboardPage() {
     if (canLoadDashboard && !selectedId) {
       setError('No hay empresa seleccionada. Por favor, selecciona una empresa.');
       setSummary(DEMO_SUMMARY);
-      setHealth(DEMO_HEALTH);
+      setHealth(EMPTY_HEALTH);
       setDiagnosis(DEMO_DIAGNOSIS);
       setStrategy(DEMO_STRATEGY);
       return;
@@ -184,31 +186,30 @@ export default function DashboardPage() {
       rawSummary.totalSalesToday === 0 &&
       rawSummary.productsCount === 0 &&
       rawSummary.recentTransactions.length === 0;
-    setUseDemoData(isEmpty);
-    setSummary(withDemoSummary(rawSummary, isEmpty));
+    setUseDemoData(isFiscalPreviewMode() && isEmpty);
+    setSummary(withDemoSummary(rawSummary, isFiscalPreviewMode() && isEmpty));
   }, [summaryQuery.data, summaryQuery.isError, summaryQuery.error, canLoadDashboard, selectedId]);
 
   // Health
   useEffect(() => {
     if (canLoadDashboard && !selectedId) return;
     if (!healthQuery.data && !healthQuery.isError) return;
-    const rawHealth = { ...DEMO_HEALTH, ...(healthQuery.data ?? {}) };
-    const healthEmpty = rawHealth.totalVentasMes === 0 && rawHealth.salesChartLastMonth.length === 0;
-    setHealth(withDemoHealth(rawHealth, useDemoData || healthEmpty));
+    const rawHealth = healthQuery.data ?? EMPTY_HEALTH;
+    setHealth(withDemoHealth(rawHealth, isFiscalPreviewMode() && useDemoData));
   }, [healthQuery.data, healthQuery.isError, useDemoData, canLoadDashboard, selectedId]);
 
   // Diagnosis
   useEffect(() => {
     if (!diagnosisQuery.data && !diagnosisQuery.isError) return;
     const rawDiagnosis = { ...DEMO_DIAGNOSIS, ...(diagnosisQuery.data ?? {}) };
-    setDiagnosis(withDemoDiagnosis(rawDiagnosis, useDemoData));
+    setDiagnosis(withDemoDiagnosis(rawDiagnosis, isFiscalPreviewMode() && useDemoData));
   }, [diagnosisQuery.data, diagnosisQuery.isError, useDemoData]);
 
   // Strategy
   useEffect(() => {
     if (!strategyQuery.data && !strategyQuery.isError) return;
     const rawStrategy = { ...DEMO_STRATEGY, ...(strategyQuery.data ?? {}) };
-    setStrategy(withDemoStrategy(rawStrategy, useDemoData));
+    setStrategy(withDemoStrategy(rawStrategy, isFiscalPreviewMode() && useDemoData));
   }, [strategyQuery.data, strategyQuery.isError, useDemoData]);
 
   // Created-by-me tasks

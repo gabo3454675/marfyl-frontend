@@ -47,7 +47,10 @@ export function OperationalKpiGrid({
         sparklineData={generateSparkline(summary.totalSalesToday)}
         progress={{
           current: summary.totalSalesToday,
-          goal: health.dailySalesGoal || summary.totalSalesToday * 1.2 || 100,
+          goal:
+            health.dailySalesGoal > 0
+              ? health.dailySalesGoal
+              : Math.max(summary.totalSalesToday, 1),
           label: 'Meta diaria',
         }}
         isDemo={isDemo && summary.totalSalesToday === 0}
