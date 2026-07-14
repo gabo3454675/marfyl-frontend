@@ -22,7 +22,7 @@ export default function FiscalCalendarioPage() {
   const { data, loading, syncing, error, reload, syncRules } = useFiscalCalendarHub(year, month);
 
   useEffect(() => {
-    if (!canManageFiscal) router.replace('/');
+    if (!canManageFiscal) router.replace('/dashboard');
   }, [canManageFiscal, router]);
 
   const handleSyncHeader = async () => {

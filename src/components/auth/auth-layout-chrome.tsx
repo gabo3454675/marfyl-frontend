@@ -31,7 +31,7 @@ export function AuthLayoutChrome({ children }: { children: React.ReactNode }) {
       isAuthenticated &&
       (pathname === '/login' || pathname === '/register')
     ) {
-      router.replace('/');
+      router.replace('/dashboard');
     }
   }, [hasHydrated, isAuthenticated, pathname, router]);
 

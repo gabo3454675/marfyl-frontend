@@ -27,12 +27,12 @@ export default function OnboardingPage() {
       return;
     }
     if (user?.isSuperAdmin) {
-      router.replace('/');
+      router.replace('/dashboard');
       return;
     }
     const orgs = user?.organizations ?? [];
     if (orgs.length > 0) {
-      router.replace('/');
+      router.replace('/dashboard');
     }
   }, [isAuthenticated, user, router]);
 
@@ -71,7 +71,7 @@ export default function OnboardingPage() {
         setAuth({ ...user, organizations: orgs }, res.data.access_token);
         useAuthStore.getState().selectOrganization(res.data.organizationId);
       }
-      router.push('/');
+      router.push('/dashboard');
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string | string[] } } })?.response?.data

@@ -10,6 +10,7 @@ export function isConcertTicketPath(pathname: string): boolean {
 /** Rutas públicas (marketing, auth, evento) — modo oscuro si no hay preferencia guardada. */
 export function isPublicSurfacePath(pathname: string): boolean {
   return (
+    pathname === '/' ||
     pathname === '/empresa' ||
     pathname.startsWith('/caracteristicas') ||
     pathname.startsWith('/precios') ||
@@ -55,4 +56,4 @@ export function applyThemeClass(theme: Theme): void {
 }
 
 /** Script inline (layout) — misma lógica antes del primer paint. */
-export const THEME_INIT_SCRIPT = `(function(){var k='${THEME_STORAGE_KEY}';try{var p=window.location.pathname;if(/^\\/evento\\/[^/]+/.test(p)){document.documentElement.classList.add('dark');return;}var v=localStorage.getItem(k)||localStorage.getItem('disis-theme');var pub=/^\\/(empresa|caracteristicas|precios|blog|login|register|recover-password|reset-password|evento|entradas|demo)(\\/|$)/.test(p);if(v){var s=JSON.parse(v);if(s&&s.state&&s.state.theme==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}else if(pub)document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}catch(e){document.documentElement.classList.remove('dark');}})();`;
+export const THEME_INIT_SCRIPT = `(function(){var k='${THEME_STORAGE_KEY}';try{var p=window.location.pathname;if(/^\\/evento\\/[^/]+/.test(p)){document.documentElement.classList.add('dark');return;}var v=localStorage.getItem(k)||localStorage.getItem('disis-theme');var pub=p==='/'||/^\\/(empresa|caracteristicas|precios|blog|login|register|onboarding|recover-password|reset-password|evento|entradas|demo)(\\/|$)/.test(p);if(v){var s=JSON.parse(v);if(s&&s.state&&s.state.theme==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}else if(pub)document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}catch(e){document.documentElement.classList.remove('dark');}})();`;

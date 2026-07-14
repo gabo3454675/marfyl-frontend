@@ -124,19 +124,14 @@ export default function DashboardLayout({
     if (mounted && hasHydrated) {
       console.log('[dashboard-layout] auth redirect check:', { isAuthenticated, devPreview, pathname });
       if (!isAuthenticated && !devPreview) {
-        if (pathname === '/' || pathname === '') {
-          console.log('[dashboard-layout] REDIRECT: not authenticated, root path -> /empresa');
-          router.replace('/empresa');
-        } else {
-          console.log('[dashboard-layout] REDIRECT: not authenticated, other path -> /login');
-          router.push('/login');
-        }
+        console.log('[dashboard-layout] REDIRECT: not authenticated -> /login');
+        router.push('/login');
         return;
       }
       if (devPreview) return;
 
       // POS_OPERATOR: redirigir al POS si está en el dashboard
-      if (isPosOperator && (pathname === '/' || pathname === '')) {
+      if (isPosOperator && (pathname === '/dashboard' || pathname === '/' || pathname === '')) {
         router.replace('/pos');
         return;
       }

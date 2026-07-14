@@ -113,7 +113,7 @@ export function buildNotificationFeedItems(input: {
       status: offline ? 'pending' : 'urgent',
       timeLabel: offline ? 'Vista previa' : 'Revisar',
       icon: offline ? 'shield' : 'alert',
-      href: '/',
+      href: '/dashboard',
     });
   }
 

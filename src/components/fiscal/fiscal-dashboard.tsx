@@ -32,7 +32,7 @@ export function FiscalDashboard() {
 
   useEffect(() => {
     if (!canManageFiscal) {
-      router.replace('/');
+      router.replace('/dashboard');
       return;
     }
     load();

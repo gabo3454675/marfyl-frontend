@@ -41,7 +41,7 @@ export default function FiscalRetencionesPage() {
 
   useEffect(() => {
     if (!canManageFiscal) {
-      router.replace('/');
+      router.replace('/dashboard');
       return;
     }
     load();

@@ -32,7 +32,7 @@ export function FiscalShell({
           className="mb-4 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground"
           aria-label="Ruta"
         >
-          <Link href="/" className="hover:text-foreground transition-colors">
+          <Link href="/dashboard" className="hover:text-foreground transition-colors">
             Inicio
           </Link>
           <ChevronRight className="h-3 w-3 shrink-0 opacity-50" aria-hidden />

@@ -45,7 +45,7 @@ export type AppNavSection = {
 export const APP_NAV_QUICK_ACCESS_IDS = ['dashboard', 'pos'] as const;
 
 export const APP_NAV_ITEMS: AppNavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: Grid2x2, href: '/', permission: 'canViewDashboard' },
+  { id: 'dashboard', label: 'Dashboard', icon: Grid2x2, href: '/dashboard', permission: 'canViewDashboard' },
   { id: 'pos', label: 'POS', icon: ShoppingCart, href: '/pos', permission: 'canAccessPOS' },
   { id: 'products', label: 'Inventario', icon: Box, href: '/products', permission: 'canManageProducts' },
   { id: 'movements', label: 'Movimientos inventario', icon: PackageMinus, href: '/inventory/movements', permission: 'canManageInventory' },
@@ -102,7 +102,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
 ];
 
 export function resolveAppNavId(pathname: string): string {
-  if (pathname === '/') return 'dashboard';
+  if (pathname === '/dashboard' || pathname === '/') return 'dashboard';
   if (pathname.startsWith('/pos')) return 'pos';
   if (pathname.startsWith('/servicios-combos')) return 'products';
   if (pathname.startsWith('/products')) return 'products';

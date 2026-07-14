@@ -8,7 +8,7 @@ import type { PermissionKey } from './permissions';
  */
 export const ROUTE_PERMISSIONS: Record<string, PermissionKey> = {
   // Dashboard
-  '/': 'canViewDashboard',
+  '/dashboard': 'canViewDashboard',
 
   // POS
   '/pos': 'canAccessPOS',

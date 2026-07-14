@@ -146,7 +146,7 @@ export default function NominaPage() {
   }, [invalidatePayroll])
 
   useEffect(() => {
-    if (!canManageTeam) router.replace("/")
+    if (!canManageTeam) router.replace("/dashboard")
   }, [canManageTeam, router])
 
   if (!canManageTeam) {
