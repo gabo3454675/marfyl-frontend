@@ -366,4 +366,127 @@ export const MARKETING_FAQ_HOME = [
   },
 ] as const;
 
+type FeatureSpan = 'small' | 'large';
+
+/** ============================================================
+ *  LANDING PAGE — Datos para la landing page principal
+ * ============================================================ */
+
+export const LANDING_PAGE = {
+  hero: {
+    eyebrow: 'MARFYL · Gestión Fiscal y Operativa',
+    title: 'Blindaje fiscal y control operativo en una sola plataforma.',
+    subtitle:
+      'POS táctil, inventario en tiempo real, facturación automatizada y cumplimiento SENIAT — todo lo que tu negocio necesita para operar sin sorpresas.',
+    primaryCta: { label: 'Comenzar ahora', href: '/register' },
+    secondaryCta: { label: 'Ver demo', href: '/caracteristicas' },
+  },
+
+  stats: [
+    { value: 3, suffix: '', label: 'Negocios activos', detail: 'Restauración, bodegón y eventos en Venezuela' },
+    { value: 7, suffix: '', label: 'Módulos integrados', detail: 'POS, inventario, fiscal, finanzas e IA' },
+    { value: 100, suffix: '%', label: 'Datos por organización', detail: 'Multi-tenant con permisos por rol' },
+    { value: 140, suffix: 'ms', label: 'Respuesta IA promedio', detail: 'Inferencia con contexto legal preciso' },
+  ],
+
+  featuresBento: [
+    {
+      id: 'pos',
+      icon: 'ShoppingCart',
+      title: 'POS táctil',
+      description: 'Ventas rápidas con carrito, categorías y múltiples métodos de pago bimoneda.',
+      metric: 'USD + Bs',
+      metricLabel: 'Bimoneda nativa',
+      span: 'large' as FeatureSpan,
+    },
+    {
+      id: 'inventory',
+      icon: 'Package',
+      title: 'Inventario dinámico',
+      description: 'Tablas densas, alertas de stock bajo, movimientos y autoconsumo en tiempo real.',
+      metric: 'Tiempo real',
+      metricLabel: 'Alertas instantáneas',
+      span: 'small' as const,
+    },
+    {
+      id: 'billing',
+      icon: 'FileText',
+      title: 'Facturación automatizada',
+      description: 'Emisión, consulta y reimpresión de facturas con exportación para respaldo contable.',
+      metric: '100%',
+      metricLabel: 'Cumplimiento SENIAT',
+      span: 'small' as const,
+    },
+    {
+      id: 'fiscal',
+      icon: 'Scale',
+      title: 'Módulo fiscal SENIAT',
+      description: 'Calendario de contribuyentes, libros de venta/compra, retenciones y pre-declaración.',
+      metric: 'Automático',
+      metricLabel: 'Alertas con severidad',
+      span: 'small' as const,
+    },
+    {
+      id: 'ai',
+      icon: 'Bot',
+      title: 'Asistente IA fiscal',
+      description: 'Ayuda contextual con citas legales exactas. Respuestas en milisegundos, cero alucinaciones.',
+      metric: '140ms',
+      metricLabel: 'Inferencia Groq',
+      span: 'small' as const,
+    },
+  ],
+
+  testimonials: [
+    {
+      quote: 'MARFYL eliminó las sorpresas fiscales en nuestro restaurante. El calendario de vencimientos y las alertas nos dan tranquilidad para enfocarnos en el negocio.',
+      author: 'Carlos Mendoza',
+      role: 'Dueño',
+      company: 'El Rancho de Germán',
+      metric: '0',
+      metricLabel: 'Multas por vencimiento',
+    },
+    {
+      quote: 'Pasamos de controlar inventario en Excel a tener alertas automáticas y cierre de caja bimoneda. La operación diaria es mucho más ágil.',
+      author: 'María Fernández',
+      role: 'Gerente de Operaciones',
+      company: 'Monddy Corp',
+      metric: '3h',
+      metricLabel: 'Ahorradas por semana',
+    },
+    {
+      quote: 'El módulo fiscal es como tener un contador vigilante 24/7. Detecta riesgos antes de que se conviertan en problemas con el SENIAT.',
+      author: 'Roberto Silva',
+      role: 'Director Financiero',
+      company: 'Davean',
+      metric: '100%',
+      metricLabel: 'Alertas preventivas',
+    },
+  ],
+
+  cta: {
+    title: 'Opera con confianza. Cumple sin estrés.',
+    subtitle: 'Activa tu prueba gratuita o agenda una demo con el equipo MARFYL.',
+    primary: { label: 'Comenzar gratis', href: '/register' },
+    secondary: { label: 'Agendar demo', href: 'mailto:demo@marfyl.com' },
+  },
+
+  trust: [
+    { label: 'Precisión fiscal', detail: 'Citas textuales al artículo y parágrafo del COT' },
+    { label: 'Velocidad Groq', detail: 'Inferencia promedio de 140ms por consulta' },
+    { label: 'Arquitectura RAG', detail: 'Conocimiento sincronizado con Gacetas Oficiales' },
+  ],
+
+  architecture: {
+    title: 'Arquitectura técnica',
+    subtitle: 'Sincronizado nativamente con el Código Orgánico Tributario y Gacetas Oficiales.',
+    steps: [
+      { label: 'Gacetas Oficiales', description: 'Ingesta automatizada de normativas' },
+      { label: 'Embeddings Cohere', description: 'Vectorización semántica multilingual 1024d' },
+      { label: 'pgvector + HNSW', description: 'Búsqueda por similitud coseno en ms' },
+      { label: 'Groq Llama 3.3', description: 'Inferencia con contexto legal preciso' },
+    ],
+  },
+} as const;
+
 export { MARFYL_BRAND };
