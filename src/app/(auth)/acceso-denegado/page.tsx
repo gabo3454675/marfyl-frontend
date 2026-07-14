@@ -40,13 +40,13 @@ export default function AccesoDenegadoPage() {
     sessionStorage.removeItem('current-role');
 
     // POS_OPERATOR: redirigir directamente al POS si intentó acceder al dashboard
-    if (role === 'POS_OPERATOR' && (route === '/dashboard' || route === '/' || route === '')) {
+    if (role === 'POS_OPERATOR' && (route === '/' || route === '/' || route === '')) {
       router.replace('/pos');
     }
   }, [router]);
 
   // POS_OPERATOR en loop de dashboard: mostrar loading mientras redirige
-  if (isPosOperator && (deniedInfo.route === '/dashboard' || deniedInfo.route === '/' || deniedInfo.route === '')) {
+  if (isPosOperator && (deniedInfo.route === '/' || deniedInfo.route === '/' || deniedInfo.route === '')) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <p className="text-muted-foreground">Redirigiendo al POS...</p>
@@ -89,7 +89,7 @@ export default function AccesoDenegadoPage() {
         <Button variant="outline" onClick={() => router.back()}>
           Volver
         </Button>
-        <Button onClick={() => router.push(isPosOperator ? '/pos' : '/dashboard')}>
+        <Button onClick={() => router.push(isPosOperator ? '/pos' : '/')}>
           {isPosOperator ? 'Ir al POS' : 'Ir al Dashboard'}
         </Button>
       </div>

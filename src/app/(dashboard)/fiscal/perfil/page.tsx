@@ -40,7 +40,7 @@ export default function FiscalPerfilPage() {
 
   useEffect(() => {
     if (!canManageFiscal) {
-      router.replace('/dashboard');
+      router.replace('/');
       return;
     }
     fiscalService

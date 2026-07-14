@@ -27,7 +27,7 @@ function LoginForm() {
     console.log('[login-page] useEffect check:', { preview, logout, willRedirect: preview && !logout });
     if (preview && !logout) {
       console.log('[login-page] REDIRECT: fiscal preview mode -> /');
-      router.replace('/dashboard');
+      router.replace('/');
     }
   }, [router]);
   const setAuth = useAuthStore((state) => state.setAuth);
@@ -56,10 +56,10 @@ function LoginForm() {
       setAuth(user as unknown as Parameters<typeof setAuth>[0], access_token, refreshToken);
       console.log('[login-page] setAuth called, now pushing to /');
       if ((user as { companies?: unknown[] }).companies?.length) {
-        router.push('/dashboard');
+        router.push('/');
       } else {
         // Si no tiene empresas, podría redirigir a una página de bienvenida
-        router.push('/dashboard');
+        router.push('/');
       }
     } catch (err: any) {
       console.error('[login-page] authService.login FAILED', { status: err.response?.status, message: err.response?.data?.message, error: err.message });

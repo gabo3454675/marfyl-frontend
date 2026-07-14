@@ -105,7 +105,7 @@ export default function Sidebar() {
         const currentId = useAuthStore.getState().selectedOrganizationId || useAuthStore.getState().selectedCompanyId;
         if (orgs.length > 0 && !currentId) {
           useAuthStore.getState().selectOrganization(orgs[0].id);
-          window.location.href = '/dashboard';
+          window.location.href = '/';
         }
       })
       .catch(() => {});
@@ -153,7 +153,7 @@ export default function Sidebar() {
     }
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('organization-changed'));
-      window.location.href = '/dashboard';
+      window.location.href = '/';
     }
   };
 
@@ -209,7 +209,7 @@ export default function Sidebar() {
       >
         {!isCollapsed ? (
           <div className="flex flex-col min-w-0 flex-1 gap-0.5">
-            <MarfylLogo href="/dashboard" priority className="min-w-0" />
+            <MarfylLogo href="/" priority className="min-w-0" />
             {displayRate !== 1 && (
               <span className="text-xs text-muted-foreground font-medium tabular-nums">
                 Tasa: {displayRate.toFixed(2)}
@@ -217,7 +217,7 @@ export default function Sidebar() {
             )}
           </div>
         ) : (
-          <MarfylLogo variant="icon" href="/dashboard" />
+          <MarfylLogo variant="icon" href="/" />
         )}
         <div
           className={cn(

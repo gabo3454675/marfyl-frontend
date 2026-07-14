@@ -33,7 +33,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { markExplicitLogout } from '@/lib/fiscal-preview';
 
 const bottomBarItems = [
-  { id: 'dashboard', label: 'Inicio', icon: Grid2x2, href: '/dashboard', permission: 'canViewDashboard' as const },
+  { id: 'dashboard', label: 'Inicio', icon: Grid2x2, href: '/', permission: 'canViewDashboard' as const },
   { id: 'pos', label: 'POS', icon: ShoppingCart, href: '/pos', permission: 'canManageInvoices' as const },
   { id: 'products', label: 'Inventario', icon: Box, href: '/products', permission: 'canManageProducts' as const },
 ];
@@ -158,7 +158,7 @@ export default function BottomNav() {
                     variant="sheet"
                   >
                     {items.map((item) => {
-                      const isActive = pathname.startsWith(item!.href) && item!.href !== '/dashboard';
+                      const isActive = pathname.startsWith(item!.href) && item!.href !== '/';
                       const Icon = item!.icon;
                       return (
                         <Button

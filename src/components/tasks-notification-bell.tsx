@@ -240,7 +240,7 @@ export function TasksNotificationBell({ className }: { className?: string }) {
               className="w-full justify-center text-xs"
               onClick={() => {
                 setMenuOpen(false);
-                router.push('/dashboard');
+                router.push('/');
               }}
             >
               Ver panel de inicio

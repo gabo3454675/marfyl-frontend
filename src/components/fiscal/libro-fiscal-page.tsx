@@ -92,7 +92,7 @@ export function LibroFiscalPage({ kind }: { kind: LibroKind }) {
 
   useEffect(() => {
     if (!canManageFiscal) {
-      router.replace('/dashboard');
+      router.replace('/');
       return;
     }
     load();

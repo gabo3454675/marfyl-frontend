@@ -75,7 +75,7 @@ export function ResetPasswordFormContent({
         router.push('/login?success=password_changed');
       } else {
         setAuth(user as unknown as Parameters<typeof setAuth>[0], access_token);
-        router.push('/dashboard');
+        router.push('/');
       }
     } catch (err) {
       const axiosErr = err as AxiosError<{ message?: string }>;

@@ -37,7 +37,7 @@ export default function PredeclaracionPage() {
 
   useEffect(() => {
     if (!canManageFiscal) {
-      router.replace('/dashboard');
+      router.replace('/');
       return;
     }
     load();

@@ -1766,28 +1766,6 @@
   color: #f0f0f0;
 }
 
-/* Landing page — force light theme inside dark marketing layout */
-.dark .landing-root {
-  --marketing-accent: 210 100% 56%;
-  --background: 210 40% 98%;
-  --foreground: 222 47% 11%;
-  --primary: 210 100% 56%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 210 100% 56%;
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-}
-
 .dark .marketing-nav {
   border-bottom-color: rgba(255, 255, 255, 0.06);
   background: rgba(12, 13, 16, 0.92);
@@ -2327,61 +2305,6 @@ html {
 
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-gray-400 dark:bg-gray-500;
-}
-
-/* ══════════════════════════════════════════════
-   Landing page — componentes adicionales
-   ══════════════════════════════════════════════ */
-
-.landing-root {
-  --landing-bg: #ffffff;
-  --landing-text: #0f172a;
-  --landing-accent: #0284c7;
-}
-
-/* Smooth scroll para la landing */
-.landing-root {
-  scroll-behavior: smooth;
-}
-
-/* Bento grid hover glow */
-.bento-glow {
-  position: relative;
-}
-
-.bento-glow::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: linear-gradient(135deg, rgba(2, 132, 199, 0.1), transparent);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-}
-
-.bento-glow:hover::before {
-  opacity: 1;
-}
-
-/* Timeline connections — desktop */
-.arch-timeline-connector {
-  position: absolute;
-  top: 50%;
-  right: -1rem;
-  width: 2rem;
-  height: 1px;
-  background: linear-gradient(to right, #0284c7, transparent);
-}
-
-/* Testimonial card hover */
-.testimonial-card {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.testimonial-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 40px -10px rgba(2, 132, 199, 0.15);
 }
 
 /* —— Módulo temporal: boletería / concerto —— Blue Horizon premium */

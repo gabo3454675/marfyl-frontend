@@ -49,7 +49,7 @@ export default function AcceptInvitationPage() {
       const authStore = useAuthStore.getState();
       // Refrescar las organizaciones del usuario
       setTimeout(() => {
-        router.push('/dashboard');
+        router.push('/');
       }, 2000);
     } catch (error: any) {
       console.error('Error accepting invitation:', error);
@@ -116,7 +116,7 @@ export default function AcceptInvitationPage() {
               <p className="text-muted-foreground mb-4">
                 Serás redirigido al dashboard en unos segundos...
               </p>
-              <Button onClick={() => router.push('/dashboard')} className="w-full">
+              <Button onClick={() => router.push('/')} className="w-full">
                 Ir al Dashboard
               </Button>
             </div>
@@ -132,7 +132,7 @@ export default function AcceptInvitationPage() {
                 </p>
               </div>
               {isAuthenticated ? (
-                <Button onClick={() => router.push('/dashboard')} variant="outline" className="w-full">
+                <Button onClick={() => router.push('/')} variant="outline" className="w-full">
                   Volver al Dashboard
                 </Button>
               ) : (

@@ -91,7 +91,7 @@ export function LibroVentasPanel() {
 
   useEffect(() => {
     if (!canManageFiscal) {
-      router.replace('/dashboard');
+      router.replace('/');
       return;
     }
     load();

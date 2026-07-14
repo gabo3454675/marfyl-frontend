@@ -88,7 +88,7 @@ export function useOrganizationSwitcher() {
 
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new Event('organization-changed'));
-          window.location.href = '/dashboard';
+          window.location.href = '/';
         }
       } finally {
         setIsSwitching(false);

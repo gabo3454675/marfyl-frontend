@@ -47,7 +47,7 @@ export default function RegisterPage() {
       if (firstOrgId) {
         useAuthStore.getState().selectOrganization(firstOrgId);
       }
-      router.push('/dashboard');
+      router.push('/');
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string | string[] } } })?.response?.data
