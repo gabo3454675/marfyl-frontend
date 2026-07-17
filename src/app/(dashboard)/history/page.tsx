@@ -30,6 +30,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { InvoiceDetailSheet } from '@/components/invoice-detail-sheet';
+import { DailySalesSummaryCard } from '@/components/sales/daily-sales-summary-card';
 import { Loader2, MoreVertical, FileText, Printer, Calendar, Building2, DollarSign, Receipt } from 'lucide-react';
 import { apiClient, invoiceService } from '@/lib/api';
 import type { HistoryResponse, HistoryInvoice } from '@/lib/api';
@@ -281,6 +282,16 @@ export default function HistoryPage() {
             <p className="text-2xl font-bold">{invoicesCount}</p>
           </AdminCard>
         </div>
+
+        {!isLoading && (data?.dailySummary?.length ?? 0) > 0 && (
+          <div className="space-y-4">
+            {[...(data?.dailySummary ?? [])]
+              .sort((a, b) => b.date.localeCompare(a.date))
+              .map((day) => (
+                <DailySalesSummaryCard key={day.date} day={day} />
+              ))}
+          </div>
+        )}
 
         {/* Tabla de ventas */}
         <AdminCard title="Ventas del periodo">

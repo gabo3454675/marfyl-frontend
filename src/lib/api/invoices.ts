@@ -18,6 +18,17 @@ export interface DailySummaryItem {
   date: string;
   totalSales: number;
   byPaymentMethod: Record<string, number>;
+  invoiceCount?: number;
+  grossSales?: number;
+  taxAmount?: number;
+  igtfAmount?: number;
+  netSales?: number;
+  cashTotal?: number;
+  creditTotal?: number;
+  totalCost?: number;
+  totalProfit?: number;
+  profitPercent?: number;
+  byCurrency?: Record<string, number>;
 }
 
 export interface HistoryResponse {
