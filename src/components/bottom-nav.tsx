@@ -102,20 +102,20 @@ export default function BottomNav() {
           </SheetTrigger>
           <SheetContent
             side="bottom"
-            className="h-auto max-h-[min(85dvh,36rem)] pb-[calc(var(--app-bottom-chrome)+0.75rem)] overflow-y-auto"
+            className="h-auto max-h-[min(88dvh,40rem)] px-3 sm:px-6 pb-[calc(var(--app-bottom-chrome)+0.75rem)] overflow-y-auto overscroll-contain"
           >
-            <SheetHeader>
+            <SheetHeader className="px-1">
               <SheetTitle>Menú</SheetTitle>
             </SheetHeader>
 
-            <div className="mt-4">
-              <p className="text-xs font-medium text-muted-foreground mb-2">Organización activa</p>
+            <div className="mt-3 sm:mt-4">
+              <p className="text-xs font-medium text-muted-foreground mb-2 px-1">Organización activa</p>
               <OrganizationSwitcher variant="menu-list" onBeforeSwitch={() => setIsSheetOpen(false)} />
             </div>
 
-            <div className="mt-4">
+            <div className="mt-3 sm:mt-4">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-2">
-                Acceso rápido
+                Inicio
               </p>
               <div className="grid grid-cols-2 gap-2">
                 {getQuickAccessItems()
@@ -126,11 +126,11 @@ export default function BottomNav() {
                       <Button
                         key={item.id}
                         variant={isActive ? 'default' : 'outline'}
-                        className="h-11 justify-start gap-2 cursor-pointer"
+                        className="h-12 min-h-[48px] justify-start gap-2 cursor-pointer touch-manipulation text-sm"
                         onClick={() => handleMenuItemClick(item.href)}
                       >
                         <item.icon className="h-4 w-4 shrink-0" />
-                        <span className="truncate text-sm">{item.label}</span>
+                        <span className="truncate">{item.label}</span>
                       </Button>
                     );
                   })}
@@ -165,7 +165,7 @@ export default function BottomNav() {
                           key={item!.id}
                           variant="ghost"
                           className={cn(
-                            'w-full justify-start gap-3 h-11 pl-4 cursor-pointer',
+                            'w-full justify-start gap-3 h-12 min-h-[48px] pl-3 sm:pl-4 cursor-pointer touch-manipulation',
                             isActive
                               ? 'bg-sidebar-primary text-sidebar-primary-foreground'
                               : 'text-foreground hover:bg-secondary',
@@ -198,7 +198,7 @@ export default function BottomNav() {
                         key={item.id}
                         variant="ghost"
                         className={cn(
-                          'w-full justify-start gap-3 h-11 pl-4 cursor-pointer',
+                          'w-full justify-start gap-3 h-12 min-h-[48px] pl-3 sm:pl-4 cursor-pointer touch-manipulation',
                           isActive
                             ? 'bg-sidebar-primary text-sidebar-primary-foreground'
                             : 'text-foreground hover:bg-secondary',
@@ -228,7 +228,7 @@ export default function BottomNav() {
                         key={item.id}
                         variant="ghost"
                         className={cn(
-                          'w-full justify-start gap-3 h-11 pl-4 cursor-pointer',
+                          'w-full justify-start gap-3 h-12 min-h-[48px] pl-3 sm:pl-4 cursor-pointer touch-manipulation',
                           isActive
                             ? 'bg-sidebar-primary text-sidebar-primary-foreground'
                             : 'text-foreground hover:bg-secondary',
@@ -242,7 +242,7 @@ export default function BottomNav() {
                   })}
                   <Button
                     variant="ghost"
-                    className="w-full justify-start gap-3 h-11 pl-4 cursor-pointer text-foreground hover:bg-secondary"
+                    className="w-full justify-start gap-3 h-12 min-h-[48px] pl-3 sm:pl-4 cursor-pointer touch-manipulation text-foreground hover:bg-secondary"
                     onClick={() => handleMenuItemClick(`/evento/${CONCERT_DEFAULT_SLUG}`)}
                   >
                     <ExternalLink className="h-4 w-4 shrink-0" />
@@ -256,7 +256,7 @@ export default function BottomNav() {
               <ThemeToggle variant="full" />
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-3 h-11 text-destructive hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                className="w-full justify-start gap-3 h-12 min-h-[48px] text-destructive hover:text-destructive hover:bg-destructive/10 cursor-pointer touch-manipulation"
                 onClick={handleLogout}
               >
                 <LogOut className="h-4 w-4" />

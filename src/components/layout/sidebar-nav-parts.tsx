@@ -72,10 +72,10 @@ export function NavSectionCollapsible({
         aria-expanded={open}
         aria-controls={`nav-section-panel-${id}`}
         className={cn(
-          'w-full flex items-center justify-between gap-2 rounded-lg min-h-[40px] cursor-pointer transition-colors duration-200',
+          'w-full flex items-center justify-between gap-2 rounded-lg cursor-pointer transition-colors duration-200 touch-manipulation',
           isSheet
-            ? 'px-1 py-3 text-left hover:bg-muted/50'
-            : 'px-2 py-2.5 text-left hover:bg-sidebar-accent/80',
+            ? 'min-h-[48px] px-1 py-3 text-left hover:bg-muted/50'
+            : 'min-h-[40px] px-2 py-2.5 text-left hover:bg-sidebar-accent/80',
           hasActiveChild && !isSheet && 'bg-sidebar-accent/40',
         )}
       >

@@ -1,6 +1,6 @@
 /**
  * Servicio de conversión de moneda para el POS y facturación.
- * Usa la tasa configurada (BCV/Paralelo) para convertir USD ↔ BS.
+ * Usa la tasa Euro BCV (Organization.exchangeRate) para convertir USD ↔ BS.
  * Importante: El IVA 16% debe calcularse siempre sobre el monto ya convertido a BS.
  */
 
@@ -12,19 +12,25 @@ export function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-/**
- * Convierte monto en USD a BS usando la tasa configurada.
- * Usar antes de aplicar IVA cuando el pago es en Bolívares.
- */
-export function convertUsdToBs(amountUsd: number, exchangeRate: number): number {
-  return round2(amountUsd * exchangeRate);
+/** Evita dividir/multiplicar por 0 o NaN. */
+export function safeExchangeRate(rate: number): number {
+  const n = Number(rate);
+  return Number.isFinite(n) && n > 0 ? n : 1;
 }
 
 /**
- * Convierte monto en BS a USD usando la tasa configurada.
+ * Convierte monto en USD a BS usando la tasa Euro BCV.
+ * Usar antes de aplicar IVA cuando el pago es en Bolívares.
+ */
+export function convertUsdToBs(amountUsd: number, exchangeRate: number): number {
+  return round2(amountUsd * safeExchangeRate(exchangeRate));
+}
+
+/**
+ * Convierte monto en BS a USD usando la tasa Euro BCV.
  */
 export function convertBsToUsd(amountBs: number, exchangeRate: number): number {
-  return round2(amountBs / exchangeRate);
+  return round2(amountBs / safeExchangeRate(exchangeRate));
 }
 
 /**
@@ -38,10 +44,11 @@ export function convertToPaymentCurrency(
   paymentCurrency: PaymentCurrency,
   exchangeRate: number
 ): number {
+  const rate = safeExchangeRate(exchangeRate);
   if (paymentCurrency === 'BS') {
-    return productCurrency === 'USD' ? round2(unitPrice * exchangeRate) : round2(unitPrice);
+    return productCurrency === 'USD' ? round2(unitPrice * rate) : round2(unitPrice);
   }
-  return productCurrency === 'VES' ? round2(unitPrice / exchangeRate) : round2(unitPrice);
+  return productCurrency === 'VES' ? round2(unitPrice / rate) : round2(unitPrice);
 }
 
 /**

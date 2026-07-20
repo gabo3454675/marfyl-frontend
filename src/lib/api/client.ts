@@ -17,6 +17,7 @@ export const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true,
+  timeout: 15000,
 });
 
 // Request interceptor: Usa la URL del API inyectada en runtime y añade token/tenant

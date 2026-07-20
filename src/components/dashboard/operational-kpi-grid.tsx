@@ -37,7 +37,7 @@ export function OperationalKpiGrid({
   const profitChange = pctChange(health.estimatedNetProfit, health.estimatedNetProfitPrev);
 
   return (
-    <div className="admin-kpi-grid">
+    <div className="admin-dash-kpi-primary">
       <EnhancedMetricCard
         title="Ventas de Hoy"
         value={formatForDisplay(summary.totalSalesToday)}
@@ -55,6 +55,8 @@ export function OperationalKpiGrid({
         }}
         isDemo={isDemo && summary.totalSalesToday === 0}
         loading={loadingSummary}
+        size="large"
+        accent
       />
       {canViewFinancialCharts && (
         <>
@@ -88,6 +90,7 @@ export function OperationalKpiGrid({
         icon={FileText}
         sparklineData={generateSparkline(summary.productsCount)}
         loading={loadingSummary}
+        size="small"
       />
       <EnhancedMetricCard
         title="Productos en Stock Bajo"
@@ -97,6 +100,7 @@ export function OperationalKpiGrid({
         icon={AlertCircle}
         sparklineData={generateSparkline(summary.lowStockCount)}
         loading={loadingSummary}
+        size="small"
       />
       <EnhancedMetricCard
         title="Facturas Recientes"
@@ -106,6 +110,7 @@ export function OperationalKpiGrid({
         icon={Users}
         sparklineData={generateSparkline(summary.recentTransactions.length)}
         loading={loadingSummary}
+        size="small"
       />
     </div>
   );
@@ -123,7 +128,7 @@ export function HealthKpiGrid({
   isDemo: boolean;
 }) {
   return (
-    <div className="admin-kpi-grid-3">
+    <div className="admin-dash-kpi-secondary">
       <EnhancedMetricCard
         title="Venta promedio por factura"
         value={loadingHealth ? '—' : formatForDisplay(health.ticketPromedio)}

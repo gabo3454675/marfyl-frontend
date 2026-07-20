@@ -55,7 +55,7 @@ function getDefaultRange(): { desde: string; hasta: string } {
 }
 
 export default function TasasPage() {
-  const { formatForDisplay } = useDisplayCurrency();
+  const { formatUsdAmount, formatBsAmount } = useDisplayCurrency();
   const defaultRange = getDefaultRange();
   const [tasas, setTasas] = useState<TasaHistorica[]>([]);
   const [reporte, setReporte] = useState<ReporteDiferencial | null>(null);
@@ -102,8 +102,8 @@ export default function TasasPage() {
   return (
     <AdminPageShell
       eyebrow="Finanzas"
-      title="Tasas BCV y diferencial cambiario"
-      subtitle="Historial de tasas registradas y reporte de ganancia/pérdida por diferencial cambiario por período."
+      title="Tasas Euro BCV y diferencial cambiario"
+      subtitle="Historial de la cotización Euro BCV (factor USD↔Bs) y reporte de diferencial cambiario por período."
     >
       <AdminCard
         title={
@@ -112,7 +112,7 @@ export default function TasasPage() {
             Historial de tasas
           </span>
         }
-        description="Últimas tasas BCV usadas en facturas y cierres de caja (auditoría)."
+        description="Últimas tasas Euro BCV usadas en facturas y cierres de caja (auditoría)."
       >
           {loadingTasas ? (
             <div className="flex justify-center py-8">
@@ -126,7 +126,7 @@ export default function TasasPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Fecha / hora</TableHead>
-                    <TableHead className="text-right">Tasa (Bs/USD)</TableHead>
+                    <TableHead className="text-right">Tasa Euro BCV (Bs/USD)</TableHead>
                     <TableHead>Fuente</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -236,8 +236,8 @@ export default function TasasPage() {
                           <TableCell className="text-right font-mono">{r.tasaPromedio.toFixed(4)}</TableCell>
                           <TableCell className="text-right font-mono">{r.tasaMin.toFixed(4)}</TableCell>
                           <TableCell className="text-right font-mono">{r.tasaMax.toFixed(4)}</TableCell>
-                          <TableCell className="text-right">{formatForDisplay(r.totalUsd)}</TableCell>
-                          <TableCell className="text-right">{formatForDisplay(r.totalBs)}</TableCell>
+                          <TableCell className="text-right">{formatUsdAmount(r.totalUsd)}</TableCell>
+                          <TableCell className="text-right">{formatBsAmount(r.totalBs)}</TableCell>
                           <TableCell className="text-right">{r.numFacturas}</TableCell>
                         </TableRow>
                       ))

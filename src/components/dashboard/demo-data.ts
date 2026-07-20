@@ -22,6 +22,24 @@ export const EMPTY_SUMMARY: DashboardSummary = {
   recentTransactions: [],
 };
 
+export const EMPTY_DIAGNOSIS: DashboardDiagnosis = {
+  marginErosion: [],
+  debtAgeByCustomer: [],
+};
+
+export const EMPTY_STRATEGY: DashboardStrategy = {
+  paretoCustomers: [],
+  frictionFunnel: {
+    totalCreadas: 0,
+    totalPagadas: 0,
+    tiempoPromedioHoras: 0,
+    tiempoPromedioDias: 0,
+    cuelloDeBotella: null,
+    mensajeAlerta: null,
+  },
+  insights: [],
+};
+
 /** Datos de demostración atractivos cuando el estado real está en cero. */
 export const DEMO_SUMMARY: DashboardSummary = {
   totalSalesToday: 1240,

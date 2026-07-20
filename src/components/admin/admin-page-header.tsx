@@ -8,17 +8,20 @@ export function AdminPageHeader({
   eyebrow,
   actions,
   className,
+  border = false,
 }: {
   title: React.ReactNode;
   subtitle?: React.ReactNode;
   eyebrow?: string;
   actions?: React.ReactNode;
   className?: string;
+  border?: boolean;
 }) {
   return (
     <header
       className={cn(
         'admin-page-header flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between',
+        border && 'border-b border-border/60 pb-4 sm:pb-5 mb-1',
         className,
       )}
     >

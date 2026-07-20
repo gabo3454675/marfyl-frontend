@@ -22,7 +22,7 @@ import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export default function CierreCajaPage() {
-  const { formatForDisplay } = useDisplayCurrency();
+  const { formatForDisplay, formatUsdAmount, formatBsAmount } = useDisplayCurrency();
   const queryClient = useQueryClient();
   const orgId = useAuthStore((s) => s.selectedOrganizationId || s.selectedCompanyId);
 
@@ -151,8 +151,8 @@ export default function CierreCajaPage() {
           }
           description={
             <>
-              Diferencia USD: {formatForDisplay(successClose.diferenciaUsd ?? successClose.diferencia ?? 0)} · Diferencia Bs:{' '}
-              {formatForDisplay(successClose.diferenciaVes ?? 0)}
+              Diferencia USD: {formatUsdAmount(successClose.diferenciaUsd ?? successClose.diferencia ?? 0)} · Diferencia Bs:{' '}
+              {formatBsAmount(successClose.diferenciaVes ?? 0)}
             </>
           }
         >

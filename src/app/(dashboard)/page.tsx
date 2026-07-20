@@ -29,6 +29,8 @@ import {
   DEMO_HEALTH,
   EMPTY_SUMMARY,
   EMPTY_HEALTH,
+  EMPTY_DIAGNOSIS,
+  EMPTY_STRATEGY,
   DEMO_DIAGNOSIS,
   DEMO_STRATEGY,
 } from '@/components/dashboard/demo-data';
@@ -37,8 +39,23 @@ const DashboardHealthSection = dynamic(
   { ssr: false, loading: () => <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div> },
 );
 
-const OperationalKpiGrid = dynamic(
-  () => import('@/components/dashboard/operational-kpi-grid').then((m) => ({ default: m.OperationalKpiGrid })),
+const CommandHero = dynamic(
+  () => import('@/components/dashboard/command-hero').then((m) => ({ default: m.CommandHero })),
+  { ssr: false },
+);
+
+const AttentionStrip = dynamic(
+  () => import('@/components/dashboard/attention-strip').then((m) => ({ default: m.AttentionStrip })),
+  { ssr: false },
+);
+
+const QuickActionsRow = dynamic(
+  () => import('@/components/dashboard/quick-actions-row').then((m) => ({ default: m.QuickActionsRow })),
+  { ssr: false },
+);
+
+const DenseKpiRow = dynamic(
+  () => import('@/components/dashboard/dense-kpi-row').then((m) => ({ default: m.DenseKpiRow })),
   { ssr: false },
 );
 
@@ -65,7 +82,8 @@ export default function DashboardPage() {
   const { isAuthenticated, user, selectedOrganizationId, selectedCompanyId } = useAuthStore();
   const { myTasks, loading: feedTasksLoading, refetch: refetchFeedTasks } = useNotificationFeed();
   const selectedId = selectedOrganizationId || selectedCompanyId;
-  const { canViewFinancialCharts, isSuperAdmin, isAdmin, isManager, isPosOnlySeller } = usePermission();
+  const permissions = usePermission();
+  const { canViewFinancialCharts, isSuperAdmin, isAdmin, isManager, isPosOnlySeller } = permissions;
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -77,8 +95,8 @@ export default function DashboardPage() {
   const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([]);
   const [createdByMeTasks, setCreatedByMeTasks] = useState<CreatedByMeTask[]>([]);
   const [health, setHealth] = useState<DashboardHealth>(EMPTY_HEALTH);
-  const [diagnosis, setDiagnosis] = useState<DashboardDiagnosis>(DEMO_DIAGNOSIS);
-  const [strategy, setStrategy] = useState<DashboardStrategy>(DEMO_STRATEGY);
+  const [diagnosis, setDiagnosis] = useState<DashboardDiagnosis>(EMPTY_DIAGNOSIS);
+  const [strategy, setStrategy] = useState<DashboardStrategy>(EMPTY_STRATEGY);
   const [error, setError] = useState<string | null>(null);
   const [useDemoData, setUseDemoData] = useState(false);
   const [taskCategoryFilter, setTaskCategoryFilter] = useState('');
@@ -274,12 +292,13 @@ export default function DashboardPage() {
   const userName = user?.fullName?.split(' ')[0] || user?.email?.split('@')[0] || 'Usuario';
 
   return (
-    <div className="w-full min-w-0">
+    <div className="w-full min-w-0 overflow-x-hidden">
       <AdminPageHeader
-        eyebrow="Panel de control"
+        eyebrow="Hoy"
         title={`${greeting()}, ${userName}.`}
-        subtitle="Resumen operativo, alertas fiscales y salud estratégica de tu negocio hoy."
-        className="mb-6 md:mb-8"
+        subtitle="Lo que importa ahora: ventas, alertas y siguientes pasos."
+        className="mb-3.5 sm:mb-5 md:mb-6 [&_.admin-page-subtitle]:max-w-[36ch] sm:[&_.admin-page-subtitle]:max-w-2xl"
+        border
       />
 
       {error && !loadingSummary && (() => {
@@ -310,31 +329,57 @@ export default function DashboardPage() {
       <AdminMotionStagger key={selectedId ?? 'none'} className="admin-page-body">
           {useDemoData && !loadingSummary && (
             <AdminMotionItem>
-              <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+              <div className="mb-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 sm:px-4 sm:py-3 text-[13px] sm:text-sm text-amber-200 leading-snug">
                 Mostrando datos de demostración. Registra ventas e inventario para ver métricas reales.
               </div>
             </AdminMotionItem>
           )}
 
           <AdminMotionItem>
-            <OperationalKpiGrid
+            <CommandHero
               summary={summary}
               health={health}
               formatForDisplay={formatForDisplay}
-              loadingSummary={loadingSummary}
-              loadingHealth={loadingHealth}
+              loading={loadingSummary}
               isDemo={useDemoData}
+            />
+          </AdminMotionItem>
+
+          <AdminMotionItem>
+            <AttentionStrip
+              summary={summary}
+              health={health}
+              diagnosis={diagnosis}
+              strategy={strategy}
+              pendingTasksCount={displayedTasks.length}
               canViewFinancialCharts={canViewFinancialCharts}
             />
           </AdminMotionItem>
 
           <AdminMotionItem>
-            <PendingTasksPanel
-              tasks={displayedTasks}
-              loading={tasksLoadingFlag}
-              taskCategoryFilter={taskCategoryFilter}
-              onFilterChange={setTaskCategoryFilter}
+            <QuickActionsRow permissions={permissions} />
+          </AdminMotionItem>
+
+          <AdminMotionItem>
+            <DenseKpiRow
+              summary={summary}
+              health={health}
+              formatForDisplay={formatForDisplay}
+              loadingSummary={loadingSummary}
+              loadingHealth={loadingHealth}
+              canViewFinancialCharts={canViewFinancialCharts}
             />
+          </AdminMotionItem>
+
+          <AdminMotionItem>
+            <div id="tareas-pendientes">
+              <PendingTasksPanel
+                tasks={displayedTasks}
+                loading={tasksLoadingFlag}
+                taskCategoryFilter={taskCategoryFilter}
+                onFilterChange={setTaskCategoryFilter}
+              />
+            </div>
           </AdminMotionItem>
 
           {canSeeCreatedByMe && (
@@ -356,7 +401,7 @@ export default function DashboardPage() {
                   ) : (
                     <div className="space-y-3">
                       {createdByMeTasks.map((t) => (
-                        <div key={t.id} className="flex items-start justify-between gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors">
+                        <div key={t.id} className="flex items-start justify-between gap-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors duration-200">
                           <div className="min-w-0 flex-1">
                             <p className="font-medium text-foreground">{t.title}</p>
                             <p className="text-xs text-muted-foreground mt-1">

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronLeft, ChevronDown, LogOut, Check, Download } from 'lucide-react';
+import { ChevronLeft, ChevronDown, LogOut, Check, Download, Landmark } from 'lucide-react';
 import { isFiscalRoute, resolveFiscalNavId } from '@/config/fiscal-nav';
 import {
   APP_NAV_SECTIONS,
@@ -201,7 +201,7 @@ export default function Sidebar() {
       {/* Header */}
       <div
         className={cn(
-          'admin-sidebar-brand flex border-b border-sidebar-border',
+          'admin-sidebar-brand flex border-b border-sidebar-border backdrop-blur-sm',
           isCollapsed
             ? 'flex-col items-center gap-2 py-3 px-2'
             : 'h-16 items-center justify-between gap-2 px-4',
@@ -254,12 +254,26 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Organization Switcher - Solo mostrar si hay múltiples organizaciones */}
-      {!isCollapsed && (
-        <div className="p-3 sm:p-4 border-b border-sidebar-border">
-          {hasMultipleOrganizations ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+      {/* Organization switcher — un solo bloque (expandido o icono) */}
+      <div
+        className={cn(
+          'border-b border-sidebar-border',
+          isCollapsed ? 'p-2 flex justify-center' : 'p-3 sm:p-4',
+        )}
+      >
+        {hasMultipleOrganizations ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              {isCollapsed ? (
+                <button
+                  type="button"
+                  className="h-9 w-9 rounded-xl admin-org-switcher flex items-center justify-center text-xs font-semibold text-sidebar-foreground cursor-pointer"
+                  title={organizationName}
+                  aria-label={`Organización: ${organizationName}`}
+                >
+                  {organizationInitials}
+                </button>
+              ) : (
                 <Button
                   variant="outline"
                   className="admin-org-switcher w-full justify-between text-sidebar-foreground min-h-[44px] py-3 cursor-pointer"
@@ -267,126 +281,75 @@ export default function Sidebar() {
                   <span className="text-sm truncate">{organizationName}</span>
                   <ChevronDown className="h-4 w-4 flex-shrink-0" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                side="bottom"
-                collisionPadding={10}
-                className="w-[--radix-dropdown-menu-trigger-width] max-w-[calc(100vw-20px)]"
-              >
-                <DropdownMenuLabel>Seleccionar Organización</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {organizations.length === 0 ? (
-                  <div className="px-2 py-3 text-sm text-muted-foreground">
-                    No hay organizaciones disponibles
-                  </div>
-                ) : (
-                  organizations.map((org) => (
-                    <DropdownMenuItem
-                      key={org.id}
-                      onClick={() => handleOrganizationChange(org.id)}
-                      className="cursor-pointer min-h-[44px] py-3"
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <div className="flex flex-col">
-                          <span className="font-medium">{org.name}</span>
-                          {org.role && (
-                            <span className="text-xs text-muted-foreground">
-                              {org.role}
-                            </span>
-                          )}
-                        </div>
-                        {selectedId === org.id && (
-                          <Check className="h-4 w-4 text-primary flex-shrink-0" />
+              )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              side="bottom"
+              collisionPadding={10}
+              className="w-[--radix-dropdown-menu-trigger-width] min-w-[14rem] max-w-[calc(100vw-20px)]"
+            >
+              <DropdownMenuLabel>Seleccionar Organización</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {organizations.length === 0 ? (
+                <div className="px-2 py-3 text-sm text-muted-foreground">
+                  No hay organizaciones disponibles
+                </div>
+              ) : (
+                organizations.map((org) => (
+                  <DropdownMenuItem
+                    key={org.id}
+                    onClick={() => handleOrganizationChange(org.id)}
+                    className="cursor-pointer min-h-[44px] py-3"
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex flex-col">
+                        <span className="font-medium">{org.name}</span>
+                        {org.role && (
+                          <span className="text-xs text-muted-foreground">
+                            {org.role}
+                          </span>
                         )}
                       </div>
-                    </DropdownMenuItem>
-                  ))
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            // Si solo tiene una organización, mostrar como div estático (no clickeable)
-            <div className="admin-org-switcher w-full px-3 py-2">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-sidebar-primary/10 flex items-center justify-center text-xs font-semibold text-sidebar-foreground">
-                  {organizationInitials}
-                </div>
-                <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-sm font-medium text-sidebar-foreground truncate">
-                    {organizationName}
+                      {selectedId === org.id && (
+                        <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                      )}
+                    </div>
+                  </DropdownMenuItem>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : isCollapsed ? (
+          <div
+            className="h-8 w-8 rounded-lg bg-sidebar-primary/10 flex items-center justify-center text-xs font-semibold text-sidebar-foreground"
+            title={organizationName}
+          >
+            {organizationInitials}
+          </div>
+        ) : (
+          <div className="admin-org-switcher w-full px-3 py-2">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-sidebar-primary/10 flex items-center justify-center text-xs font-semibold text-sidebar-foreground">
+                {organizationInitials}
+              </div>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-sm font-medium text-sidebar-foreground truncate">
+                  {organizationName}
+                </span>
+                {currentOrg?.role && (
+                  <span className="text-xs text-muted-foreground">
+                    {currentOrg.role}
                   </span>
-                  {currentOrg?.role && (
-                    <span className="text-xs text-muted-foreground">
-                      {currentOrg.role}
-                    </span>
-                  )}
-                </div>
+                )}
               </div>
             </div>
-          )}
-        </div>
-      )}
-      {isCollapsed && (
-        <div className="p-2 border-b border-sidebar-border flex justify-center">
-          {hasMultipleOrganizations ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="h-9 w-9 rounded-xl admin-org-switcher flex items-center justify-center text-xs font-semibold text-sidebar-foreground cursor-pointer"
-                >
-                  {organizationInitials}
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                side="bottom"
-                collisionPadding={10}
-                className="w-[--radix-dropdown-menu-trigger-width] max-w-[calc(100vw-20px)]"
-              >
-                <DropdownMenuLabel>Seleccionar Organización</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {organizations.length === 0 ? (
-                  <div className="px-2 py-3 text-sm text-muted-foreground">
-                    No hay organizaciones disponibles
-                  </div>
-                ) : (
-                  organizations.map((org) => (
-                    <DropdownMenuItem
-                      key={org.id}
-                      onClick={() => handleOrganizationChange(org.id)}
-                      className="cursor-pointer min-h-[44px] py-3"
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <div className="flex flex-col">
-                          <span className="font-medium">{org.name}</span>
-                          {org.role && (
-                            <span className="text-xs text-muted-foreground">
-                              {org.role}
-                            </span>
-                          )}
-                        </div>
-                        {selectedId === org.id && (
-                          <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                        )}
-                      </div>
-                    </DropdownMenuItem>
-                  ))
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            // Si solo tiene una organización, mostrar como div estático
-            <div className="h-8 w-8 rounded-lg bg-sidebar-primary/10 flex items-center justify-center text-xs font-semibold text-sidebar-foreground">
-              {organizationInitials}
-            </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       {/* Navigation - Scrollable */}
-      <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden sidebar-scroll">
+      <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden sidebar-scroll [&::-webkit-scrollbar]:w-1.5">
         {!isCollapsed ? (
           <div className="p-3 pb-4 flex flex-col gap-0">
             {/* Accesos rápidos — siempre visibles */}
@@ -459,85 +422,149 @@ export default function Sidebar() {
           </div>
         ) : (
           <div className="p-2 space-y-1">
-            {['pos']
-              .map((id) => getNavItem(id))
-              .filter(Boolean)
-              .filter((item) => canShowNavItem(item as NavItem, permissions))
+            {getQuickAccessItems()
+              .filter((item) => canShowNavItem(item, permissions))
               .map((item) => {
-                const Icon = item!.icon;
+                const Icon = item.icon;
                 return (
-                <Button
-                  key={item!.id}
-                  asChild
-                  variant="ghost"
-                  data-active={activeItem === item!.id ? 'true' : 'false'}
-                  className="admin-nav-link-compact justify-center p-0 cursor-pointer"
-                  title={item!.label}
-                >
-                  <Link href={item!.href} prefetch>
-                    <Icon className="h-5 w-5 flex-shrink-0" />
-                  </Link>
-                </Button>
+                  <Button
+                    key={item.id}
+                    asChild
+                    variant="ghost"
+                    data-active={activeItem === item.id ? 'true' : 'false'}
+                    className="admin-nav-link-compact justify-center p-0 cursor-pointer"
+                    title={item.label}
+                  >
+                    <Link href={item.href} prefetch>
+                      <Icon className="h-5 w-5 flex-shrink-0" />
+                    </Link>
+                  </Button>
                 );
               })}
-            <Button
-              variant="ghost"
-              className="admin-nav-link-compact justify-center p-0 cursor-pointer"
-              title="Expandir menú completo"
-              onClick={() => setIsCollapsed(false)}
-            >
-              <ChevronLeft className="h-5 w-5 rotate-180" />
-            </Button>
+
+            {APP_NAV_SECTIONS.map((section) => {
+              const items = section.itemIds
+                .map((id) => getNavItem(id))
+                .filter(Boolean)
+                .filter((item) => canShowNavItem(item as NavItem, permissions));
+              if (items.length === 0) return null;
+              const first = items[0]!;
+              const HubIcon = section.icon;
+              const hasActiveChild = items.some((item) => activeItem === item!.id);
+              return (
+                <Button
+                  key={section.id}
+                  asChild
+                  variant="ghost"
+                  data-active={hasActiveChild ? 'true' : 'false'}
+                  className="admin-nav-link-compact justify-center p-0 cursor-pointer"
+                  title={section.label}
+                >
+                  <Link
+                    href={first.href}
+                    prefetch
+                    onClick={() => {
+                      if (!isSectionOpen(section.id)) toggleSection(section.id);
+                    }}
+                  >
+                    <HubIcon className="h-5 w-5 flex-shrink-0" />
+                  </Link>
+                </Button>
+              );
+            })}
+
+            {permissions.canManageFiscal && (
+              <Button
+                asChild
+                variant="ghost"
+                data-active={isFiscalRoute(pathname ?? '') ? 'true' : 'false'}
+                className="admin-nav-link-compact justify-center p-0 cursor-pointer"
+                title="Fiscal MARFYL"
+              >
+                <Link
+                  href="/fiscal"
+                  prefetch
+                  onClick={() => setFiscalOpen(true)}
+                >
+                  <Landmark className="h-5 w-5 flex-shrink-0" />
+                </Link>
+              </Button>
+            )}
+
+            {concertNavItems.length > 0 && (() => {
+              const concertItem = concertNavItems[0];
+              const ConcertIcon = concertItem.icon;
+              return (
+                <Button
+                  asChild
+                  variant="ghost"
+                  data-active={resolveConcertNavId(pathname ?? '') ? 'true' : 'false'}
+                  className="admin-nav-link-compact justify-center p-0 cursor-pointer"
+                  title="Evento Monddy"
+                >
+                  <Link href={concertItem.href} prefetch>
+                    <ConcertIcon className="h-5 w-5 flex-shrink-0" />
+                  </Link>
+                </Button>
+              );
+            })()}
           </div>
         )}
       </nav>
 
-      {/* User Section - Fixed at bottom */}
-      <div className={cn('p-4 border-t border-sidebar-border flex-shrink-0', isCollapsed && 'px-2')}>
-        {!isCollapsed ? (
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10 flex-shrink-0">
-                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-emerald-500 text-white font-semibold">
-                  {getUserInitials()}
-                </AvatarFallback>
-              </Avatar>
+      {/* User footer — un solo bloque adaptativo */}
+      <div
+        className={cn(
+          'border-t border-sidebar-border/60 flex-shrink-0 bg-sidebar/50 backdrop-blur-sm',
+          isCollapsed ? 'p-2' : 'p-4',
+        )}
+      >
+        <div className={cn('flex flex-col gap-3', isCollapsed && 'items-center gap-2')}>
+          <div className={cn('flex items-center gap-3', isCollapsed && 'justify-center')}>
+            <Avatar className={cn('flex-shrink-0', isCollapsed ? 'h-8 w-8' : 'h-10 w-10')} title={`${user?.fullName || 'Usuario'} — ${user?.email || ''}`}>
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-emerald-500 text-white font-semibold text-xs">
+                {getUserInitials()}
+              </AvatarFallback>
+            </Avatar>
+            {!isCollapsed && (
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-sidebar-foreground truncate">
                   {user?.fullName || 'Usuario'}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
               </div>
-            </div>
-            <div className="flex items-center justify-between gap-2 py-1">
-              <span className="text-xs text-sidebar-foreground/80">Modo oscuro</span>
-              <ThemeToggle variant="compact" className="shrink-0" />
-            </div>
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent text-sm h-8"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-4 w-4" />
-              Cerrar Sesión
-            </Button>
+            )}
           </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2">
-            <Button
-              variant="ghost"
-              className="w-full justify-center p-0 h-10 w-10 flex-shrink-0"
-              title={`${user?.fullName || 'Usuario'} - ${user?.email}`}
-            >
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-emerald-500 text-white text-xs font-semibold">
-                  {getUserInitials()}
-                </AvatarFallback>
-              </Avatar>
-            </Button>
-            <ThemeToggle variant="compact" />
-          </div>
-        )}
+          {!isCollapsed ? (
+            <>
+              <div className="flex items-center justify-between gap-2 py-1">
+                <span className="text-xs text-sidebar-foreground/80">Modo oscuro</span>
+                <ThemeToggle variant="compact" className="shrink-0" />
+              </div>
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent text-sm h-8"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4" />
+                Cerrar Sesión
+              </Button>
+            </>
+          ) : (
+            <>
+              <ThemeToggle variant="compact" />
+              <Button
+                variant="ghost"
+                className="h-9 w-9 p-0 justify-center text-sidebar-foreground hover:bg-sidebar-accent"
+                onClick={handleLogout}
+                title="Cerrar sesión"
+                aria-label="Cerrar sesión"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+        </div>
       </div>
     </aside>
   );

@@ -63,11 +63,10 @@ export function DashboardHealthSection({
         isDemo={isDemo}
       />
 
-      <div className="admin-grid-charts">
+      <div className="admin-dash-chart-main">
         <SalesDualLineChart
           data={health.salesChartLastMonth}
           loading={loadingHealth}
-          formatForDisplay={formatForDisplay}
         />
         <TopMarginDonutChart
           data={health.topProductsByMargin}
@@ -89,7 +88,7 @@ export function DashboardHealthSection({
         title="Diagnóstico"
         description="Detecta erosión de margen y prioriza cobranza"
       >
-        <div className="admin-grid-charts-2">
+        <div className="admin-dash-panels">
           <MarginErosionRiskList
             products={diagnosis.marginErosion}
             loading={loadingDiagnosis}
@@ -146,7 +145,7 @@ export function DashboardHealthSection({
         title="Estrategia"
         description="Pareto de clientes, fricción operativa e insights automáticos"
       >
-        <div className="admin-grid-charts">
+        <div className="admin-dash-chart-main">
           <AdminChartCard
             className="lg:col-span-2"
             title="Pareto 80/20 — Clientes"

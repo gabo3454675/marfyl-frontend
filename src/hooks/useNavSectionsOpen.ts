@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { APP_NAV_SECTIONS } from '@/config/app-nav';
 
-const STORAGE_KEY = 'marfyl-nav-sections-open-v1';
+const STORAGE_KEY = 'marfyl-nav-sections-open-v2';
 
 function loadStored(): Record<string, boolean> | null {
   if (typeof window === 'undefined') return null;
@@ -15,16 +15,21 @@ function loadStored(): Record<string, boolean> | null {
   }
 }
 
+/** Solo abre el hub de la ruta actual; el resto cerrado hasta que el usuario lo abra. */
 function buildDefaults(activeSectionId: string | null): Record<string, boolean> {
   const stored = loadStored();
-  if (stored) return stored;
-
   const defaults: Record<string, boolean> = {};
   for (const section of APP_NAV_SECTIONS) {
-    defaults[section.id] =
-      section.defaultOpen === true || section.id === activeSectionId;
+    defaults[section.id] = section.id === activeSectionId;
   }
-  return defaults;
+  if (!stored) return defaults;
+
+  // Preferencias del usuario, pero forzamos abierto el hub activo
+  return {
+    ...defaults,
+    ...stored,
+    ...(activeSectionId ? { [activeSectionId]: true } : {}),
+  };
 }
 
 function persist(map: Record<string, boolean>) {

@@ -2,6 +2,7 @@
 
 import { Loader2 } from 'lucide-react';
 import { AdminChartCard } from '@/components/admin/admin-card';
+import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 import { CHART_COLORS, CHART_HEIGHT, CHART_TOOLTIP_STYLE } from './chart-theme';
 import type { DashboardHealth } from './types';
 import {
@@ -18,10 +19,11 @@ import {
 interface SalesDualLineChartProps {
   data: DashboardHealth['salesChartLastMonth'];
   loading: boolean;
-  formatForDisplay: (value: number) => string;
 }
 
-export function SalesDualLineChart({ data, loading, formatForDisplay }: SalesDualLineChartProps) {
+export function SalesDualLineChart({ data, loading }: SalesDualLineChartProps) {
+  const { formatUsdAmount, formatBsAmount } = useDisplayCurrency();
+
   const chartData = data.map((d) => ({
     ...d,
     fecha: new Date(d.date).toLocaleDateString('es-VE', { day: '2-digit', month: 'short' }),
@@ -30,8 +32,8 @@ export function SalesDualLineChart({ data, loading, formatForDisplay }: SalesDua
   return (
     <AdminChartCard
       className="lg:col-span-2"
-      title="Ventas: USD esperadas vs Bs reales"
-      description="Comparación dual interactiva por día — últimos 30 días"
+      title="Ventas: USD vs equivalente Bs"
+      description="USD del día y su conversión con tasa Euro BCV vigente — últimos 30 días"
     >
       {loading ? (
         <div className={`flex items-center justify-center ${CHART_HEIGHT} min-h-[200px]`}>
@@ -51,14 +53,20 @@ export function SalesDualLineChart({ data, loading, formatForDisplay }: SalesDua
               />
               <Tooltip
                 contentStyle={CHART_TOOLTIP_STYLE}
-                formatter={(value: number, name: string) => [formatForDisplay(value), name]}
+                formatter={(value: number, name: string) => {
+                  const n = Number(value);
+                  if (name === 'Equiv. Bs (Euro BCV)') {
+                    return [formatBsAmount(n), name];
+                  }
+                  return [formatUsdAmount(n), name];
+                }}
                 labelFormatter={(label: string) => `Fecha: ${label}`}
               />
               <Legend />
               <Line
                 type="monotone"
                 dataKey="ventasUsd"
-                name="USD esperadas"
+                name="USD"
                 stroke={CHART_COLORS.primary}
                 strokeWidth={2.5}
                 dot={false}
@@ -67,7 +75,7 @@ export function SalesDualLineChart({ data, loading, formatForDisplay }: SalesDua
               <Line
                 type="monotone"
                 dataKey="ventasBs"
-                name="Bs reales"
+                name="Equiv. Bs (Euro BCV)"
                 stroke={CHART_COLORS.success}
                 strokeWidth={2.5}
                 dot={false}

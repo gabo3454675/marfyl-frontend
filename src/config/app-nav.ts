@@ -19,6 +19,7 @@ import {
   UsersRound,
   FileUp,
   Upload,
+  CircleDollarSign,
 } from 'lucide-react';
 import type { PermissionKey } from '@/config/permissions';
 
@@ -37,6 +38,8 @@ export type AppNavSection = {
   id: string;
   label: string;
   itemIds: string[];
+  /** Icono del hub (sidebar colapsado + tooltips) */
+  icon: LucideIcon;
   /** Sección abierta por defecto si el usuario no tiene preferencia guardada */
   defaultOpen?: boolean;
 };
@@ -70,34 +73,33 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
 export const APP_NAV_SECTIONS: AppNavSection[] = [
   {
     id: 'ventas',
-    label: 'Ventas y caja',
-    defaultOpen: true,
-    itemIds: ['invoices', 'sales-import', 'history', 'cierre-caja', 'credits'],
-  },
-  {
-    id: 'clientes',
-    label: 'Clientes',
-    itemIds: ['customers'],
+    label: 'Vender y cobrar',
+    icon: CircleDollarSign,
+    itemIds: ['invoices', 'sales-import', 'history', 'cierre-caja', 'credits', 'customers'],
   },
   {
     id: 'inventario',
     label: 'Inventario',
+    icon: Box,
     itemIds: ['products', 'movements', 'invoice-upload', 'purchases-import', 'autoconsumo', 'alertas-stock'],
   },
   {
     id: 'finanzas',
     label: 'Finanzas',
-    itemIds: ['expenses', 'suppliers', 'accounts-payable'],
+    icon: DollarSign,
+    itemIds: ['expenses', 'suppliers', 'accounts-payable', 'tasas'],
   },
   {
     id: 'rrhh',
-    label: 'Recursos Humanos',
+    label: 'Equipo',
+    icon: UsersRound,
     itemIds: ['nomina'],
   },
   {
     id: 'sistema',
     label: 'Sistema',
-    itemIds: ['settings', 'tasas'],
+    icon: Settings,
+    itemIds: ['settings'],
   },
 ];
 

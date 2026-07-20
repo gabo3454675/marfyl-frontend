@@ -69,7 +69,7 @@ export function FiscalDashboard() {
       title="Panel Fiscal"
       subtitle={
         data
-          ? `Período ${data.period.label} · Tasa BCV ${data.exchangeRate.toFixed(2)} Bs/USD · Integrado con POS y facturas`
+          ? `Período ${data.period.label} · Tasa Euro BCV ${data.exchangeRate.toFixed(2)} Bs/USD · Integrado con POS y facturas`
           : 'Motor fiscal MARFYL — cumplimiento SENIAT'
       }
       actions={

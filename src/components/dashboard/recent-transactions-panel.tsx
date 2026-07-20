@@ -30,7 +30,7 @@ export function RecentTransactionsPanel({
   formatForDisplay,
 }: RecentTransactionsPanelProps) {
   return (
-    <AdminPanel className="overflow-hidden mb-2">
+    <AdminPanel className="overflow-hidden">
       <div className="p-4 sm:p-6">
         <div className="flex flex-row items-center justify-between gap-3 mb-4">
           <div className="min-w-0">
@@ -54,7 +54,7 @@ export function RecentTransactionsPanel({
               return (
                 <div
                   key={transaction.id}
-                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 sm:p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors min-w-0"
+                   className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 sm:p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors duration-200 min-w-0"
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <Avatar className="h-9 w-9 sm:h-10 sm:w-10 shrink-0">
