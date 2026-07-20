@@ -102,8 +102,8 @@ export default function TasasPage() {
   return (
     <AdminPageShell
       eyebrow="Finanzas"
-      title="Tasas Euro BCV y diferencial cambiario"
-      subtitle="Historial de la cotización Euro BCV (factor USD↔Bs) y reporte de diferencial cambiario por período."
+      title="Tasas Dólar BCV y diferencial cambiario"
+      subtitle="Historial de la cotización Dólar BCV (factor USD↔Bs) y reporte de diferencial cambiario por período."
     >
       <AdminCard
         title={
@@ -112,7 +112,7 @@ export default function TasasPage() {
             Historial de tasas
           </span>
         }
-        description="Últimas tasas Euro BCV usadas en facturas y cierres de caja (auditoría)."
+        description="Últimas tasas Dólar BCV usadas en facturas y cierres de caja (auditoría)."
       >
           {loadingTasas ? (
             <div className="flex justify-center py-8">
@@ -126,7 +126,7 @@ export default function TasasPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Fecha / hora</TableHead>
-                    <TableHead className="text-right">Tasa Euro BCV (Bs/USD)</TableHead>
+                    <TableHead className="text-right">Tasa Dólar BCV (Bs/USD)</TableHead>
                     <TableHead>Fuente</TableHead>
                   </TableRow>
                 </TableHeader>

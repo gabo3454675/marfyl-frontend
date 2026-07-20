@@ -33,7 +33,7 @@ export function SalesDualLineChart({ data, loading }: SalesDualLineChartProps) {
     <AdminChartCard
       className="lg:col-span-2"
       title="Ventas: USD vs equivalente Bs"
-      description="USD del día y su conversión con tasa Euro BCV vigente — últimos 30 días"
+      description="USD del día y su conversión con tasa Dólar BCV vigente — últimos 30 días"
     >
       {loading ? (
         <div className={`flex items-center justify-center ${CHART_HEIGHT} min-h-[200px]`}>
@@ -55,7 +55,7 @@ export function SalesDualLineChart({ data, loading }: SalesDualLineChartProps) {
                 contentStyle={CHART_TOOLTIP_STYLE}
                 formatter={(value: number, name: string) => {
                   const n = Number(value);
-                  if (name === 'Equiv. Bs (Euro BCV)') {
+                  if (name === 'Equiv. Bs (Dólar BCV)') {
                     return [formatBsAmount(n), name];
                   }
                   return [formatUsdAmount(n), name];
@@ -75,7 +75,7 @@ export function SalesDualLineChart({ data, loading }: SalesDualLineChartProps) {
               <Line
                 type="monotone"
                 dataKey="ventasBs"
-                name="Equiv. Bs (Euro BCV)"
+                name="Equiv. Bs (Dólar BCV)"
                 stroke={CHART_COLORS.success}
                 strokeWidth={2.5}
                 dot={false}

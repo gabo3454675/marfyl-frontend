@@ -1,6 +1,6 @@
 /**
  * Servicio de conversión de moneda para el POS y facturación.
- * Usa la tasa Euro BCV (Organization.exchangeRate) para convertir USD ↔ BS.
+ * Usa la tasa Dólar BCV (Organization.exchangeRate) para convertir USD ↔ BS.
  * Importante: El IVA 16% debe calcularse siempre sobre el monto ya convertido a BS.
  */
 
@@ -19,7 +19,7 @@ export function safeExchangeRate(rate: number): number {
 }
 
 /**
- * Convierte monto en USD a BS usando la tasa Euro BCV.
+ * Convierte monto en USD a BS usando la tasa Dólar BCV.
  * Usar antes de aplicar IVA cuando el pago es en Bolívares.
  */
 export function convertUsdToBs(amountUsd: number, exchangeRate: number): number {
@@ -27,7 +27,7 @@ export function convertUsdToBs(amountUsd: number, exchangeRate: number): number 
 }
 
 /**
- * Convierte monto en BS a USD usando la tasa Euro BCV.
+ * Convierte monto en BS a USD usando la tasa Dólar BCV.
  */
 export function convertBsToUsd(amountBs: number, exchangeRate: number): number {
   return round2(amountBs / safeExchangeRate(exchangeRate));

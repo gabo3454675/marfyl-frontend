@@ -48,13 +48,13 @@ export function RateConfigModal({ open, onOpenChange }: RateConfigModalProps) {
             Tasa BCV
           </DialogTitle>
           <DialogDescription>
-            MARFYL actualiza la tasa Euro BCV automáticamente (DolarApi /v1/euros). Esa cotización
+            MARFYL actualiza la tasa Dólar BCV automáticamente (DolarApi /v1/dolares). Esa cotización
             es el factor de conversión USD ↔ Bs en POS, facturas y reportes.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 py-2">
           <div className="rounded-lg border border-border bg-muted/40 px-4 py-3">
-            <p className="text-xs text-muted-foreground">Tasa Euro BCV vigente</p>
+            <p className="text-xs text-muted-foreground">Tasa Dólar BCV vigente</p>
             <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
               {rate != null && Number.isFinite(Number(rate))
                 ? `${Number(rate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} Bs por USD`

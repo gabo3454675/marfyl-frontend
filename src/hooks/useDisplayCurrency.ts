@@ -4,7 +4,7 @@ import { useExchangeRate } from '@/hooks/useExchangeRate';
 
 export type DisplayCurrency = 'USD' | 'BS';
 
-/** Tasa válida para conversión: nunca 0 ni NaN (fallback 1). Euro BCV. */
+/** Tasa válida para conversión: nunca 0 ni NaN (fallback 1). Dólar BCV. */
 function safeRate(rate: number): number {
   const n = Number(rate);
   return Number.isFinite(n) && n > 0 ? n : 1;
@@ -21,7 +21,7 @@ function formatMoney(amount: number, currency: 'USD' | 'VES'): string {
 
 /**
  * Preferencia de moneda para visualizar datos (Dashboard, Facturas, Gastos, Créditos).
- * Convierte montos USD → Bs. con la tasa Euro BCV de la organización cuando el usuario elige "Bs.".
+ * Convierte montos USD → Bs. con la tasa Dólar BCV de la organización cuando el usuario elige "Bs.".
  * Importante: `formatForDisplay` asume montos en USD. Para montos ya en Bs usar `formatBsAmount`.
  */
 export function useDisplayCurrency() {
