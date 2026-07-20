@@ -271,6 +271,32 @@ export default function LicoresPage() {
               </AdminCard>
             </div>
 
+            {!!data.beer.byStyle?.length && (
+              <AdminCard
+                title={
+                  <span className="inline-flex items-center gap-2">
+                    <Beer className="h-4 w-4" />
+                    Por tipo de cerveza
+                  </span>
+                }
+              >
+                <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3">
+                  {data.beer.byStyle.map((style) => (
+                    <div
+                      key={style.key}
+                      className="rounded-xl border border-border/60 bg-background/40 px-3.5 py-3"
+                    >
+                      <p className="text-sm font-medium">{style.label}</p>
+                      <PackLine pack={style.pack} showCases />
+                      <p className="mt-1.5 text-xs text-muted-foreground tabular-nums">
+                        {formatUsdAmount(style.usd)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </AdminCard>
+            )}
+
             <AdminCard
               title={
                 <span className="inline-flex items-center gap-2">
@@ -289,7 +315,8 @@ export default function LicoresPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Producto</TableHead>
-                        <TableHead className="hidden sm:table-cell">Tipo</TableHead>
+                        <TableHead className="hidden sm:table-cell">Grupo</TableHead>
+                        <TableHead className="hidden md:table-cell">Marca / tipo</TableHead>
                         <TableHead className="text-right">Und.</TableHead>
                         <TableHead className="text-right hidden min-[400px]:table-cell">
                           Tobos / cajas
@@ -305,11 +332,14 @@ export default function LicoresPage() {
                               {p.name}
                             </div>
                             <div className="sm:hidden text-[11px] text-muted-foreground mt-0.5">
-                              {p.bucketLabel}
+                              {p.beerStyleLabel || p.bucketLabel}
                             </div>
                           </TableCell>
                           <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
                             {p.bucketLabel}
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
+                            {p.beerStyleLabel || '—'}
                           </TableCell>
                           <TableCell className="text-right tabular-nums font-medium">
                             {p.quantity}

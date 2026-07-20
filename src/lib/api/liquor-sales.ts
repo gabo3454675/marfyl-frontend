@@ -41,6 +41,13 @@ export type LiquorSalesReport = {
     bottles: number;
     light: LiquorBucketBlock;
     negra: LiquorBucketBlock;
+    byStyle?: {
+      key: string;
+      label: string;
+      bottles: number;
+      usd: number;
+      pack: LiquorPack;
+    }[];
   };
   whisky: LiquorBucketBlock;
   otros: LiquorBucketBlock;
@@ -52,6 +59,7 @@ export type LiquorSalesReport = {
     usd: number;
     bucket: string;
     bucketLabel: string;
+    beerStyleLabel?: string | null;
     pack: LiquorPack | null;
   }[];
 };
