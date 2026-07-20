@@ -8,6 +8,7 @@ import {
   Users,
   FileText,
   History,
+  Beer,
   Wallet,
   CreditCard,
   DollarSign,
@@ -60,6 +61,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
   { id: 'invoices', label: 'Facturas', icon: FileText, href: '/invoices', permission: 'canManageInvoices' },
   { id: 'sales-import', label: 'Importar ventas POS', icon: Upload, href: '/sales/import', permission: 'canManageInventory' },
   { id: 'history', label: 'Historial de ventas', icon: History, href: '/history', permission: 'canManageInvoices' },
+  { id: 'licores', label: 'Licores y tobos', icon: Beer, href: '/licores', permission: 'canManageInvoices' },
   { id: 'cierre-caja', label: 'Cierre de caja', icon: Wallet, href: '/cierre-caja', permission: 'canManageCierreCaja' },
   { id: 'caja-oficina', label: 'Caja oficina', icon: Landmark, href: '/caja-oficina', permission: 'canManageCierreCaja' },
   { id: 'credits', label: 'Cuentas por cobar', icon: CreditCard, href: '/credits', permission: 'canViewCredits' },
@@ -76,7 +78,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     id: 'ventas',
     label: 'Vender y cobrar',
     icon: CircleDollarSign,
-    itemIds: ['invoices', 'sales-import', 'history', 'cierre-caja', 'caja-oficina', 'credits', 'customers'],
+    itemIds: ['invoices', 'sales-import', 'history', 'licores', 'cierre-caja', 'caja-oficina', 'credits', 'customers'],
   },
   {
     id: 'inventario',
@@ -119,6 +121,7 @@ export function resolveAppNavId(pathname: string): string {
   if (pathname.startsWith('/sales/import')) return 'sales-import';
   if (pathname.startsWith('/invoices')) return 'invoices';
   if (pathname.startsWith('/history')) return 'history';
+  if (pathname.startsWith('/licores')) return 'licores';
   if (pathname.startsWith('/cierre-caja')) return 'cierre-caja';
   if (pathname.startsWith('/caja-oficina')) return 'caja-oficina';
   if (pathname.startsWith('/credits')) return 'credits';
