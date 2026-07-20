@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Beer,
@@ -29,10 +29,17 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { cn } from '@/lib/utils';
 
 function yesterdayCaracas(): string {
-  const now = new Date();
-  const caracas = new Date(now.getTime() - 4 * 60 * 60 * 1000);
-  caracas.setUTCDate(caracas.getUTCDate() - 1);
-  return caracas.toISOString().slice(0, 10);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Caracas',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+  const y = Number(parts.find((p) => p.type === 'year')?.value);
+  const m = Number(parts.find((p) => p.type === 'month')?.value);
+  const d = Number(parts.find((p) => p.type === 'day')?.value);
+  const prev = new Date(Date.UTC(y, m - 1, d) - 24 * 60 * 60 * 1000);
+  return prev.toISOString().slice(0, 10);
 }
 
 function formatDayLabel(day: string) {
@@ -89,7 +96,15 @@ export default function LicoresPage() {
     queryKey: ['liquor-sales', orgId, day],
     queryFn: () => liquorSalesApi.getDaily(day),
     enabled: !!orgId,
+    staleTime: 30_000,
   });
+
+  // Si el backend cae al último día con ventas, alinea el date picker.
+  useEffect(() => {
+    if (data?.usedFallback && data.day && data.day !== day) {
+      setDay(data.day);
+    }
+  }, [data?.usedFallback, data?.day, day]);
 
   const titleDay = useMemo(
     () => (data?.day ? formatDayLabel(data.day) : formatDayLabel(day)),
@@ -155,6 +170,14 @@ export default function LicoresPage() {
 
         {data && !isLoading && (
           <>
+            {data.usedFallback && (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-[13px] sm:text-sm text-amber-100/95 leading-snug">
+                No había licores el día pedido
+                {data.requestedDay ? ` (${data.requestedDay})` : ''}. Mostrando el
+                último día con ventas: <strong>{data.day}</strong>.
+              </div>
+            )}
+
             <section
               aria-label="Resumen cerveza"
               className={cn(

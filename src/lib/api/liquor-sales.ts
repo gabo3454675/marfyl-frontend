@@ -28,6 +28,9 @@ export type LiquorBucketBlock = {
 
 export type LiquorSalesReport = {
   day: string;
+  requestedDay?: string;
+  usedFallback?: boolean;
+  organizationId?: number;
   rules: {
     bottlesPerTobo: number;
     tobosPerCase: number;
