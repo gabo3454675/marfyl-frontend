@@ -50,9 +50,9 @@ export function useComandaSocket(options: Options = {}) {
   } = options;
   const queryClient = useQueryClient();
   const token = useAuthStore((s) => s.token);
-  const orgId =
-    useAuthStore((s) => s.selectedOrganizationId) ||
-    useAuthStore((s) => s.selectedCompanyId);
+  const selectedOrganizationId = useAuthStore((s) => s.selectedOrganizationId);
+  const selectedCompanyId = useAuthStore((s) => s.selectedCompanyId);
+  const orgId = selectedOrganizationId || selectedCompanyId;
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
