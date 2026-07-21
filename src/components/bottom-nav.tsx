@@ -34,7 +34,7 @@ import { markExplicitLogout } from '@/lib/fiscal-preview';
 
 const bottomBarItems = [
   { id: 'dashboard', label: 'Inicio', icon: Grid2x2, href: '/', permission: 'canViewDashboard' as const },
-  { id: 'pos', label: 'POS', icon: ShoppingCart, href: '/pos', permission: 'canManageInvoices' as const },
+  { id: 'pos', label: 'Caja', icon: ShoppingCart, href: '/pos', permission: 'canAccessPOS' as const },
   { id: 'products', label: 'Inventario', icon: Box, href: '/products', permission: 'canManageProducts' as const },
 ];
 

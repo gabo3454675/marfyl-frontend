@@ -16,6 +16,7 @@ export const ROUTE_PERMISSIONS: Record<string, PermissionKey> = {
   // Servicio en piso (estaciones)
   '/comanda': 'canTakeFloorOrder',
   '/comanda/cocina': 'canViewKitchenQueue',
+  '/comanda/historial': 'canViewFloorHistory',
 
   // Inventario
   '/products': 'canManageProducts',

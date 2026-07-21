@@ -11,17 +11,17 @@ import {
   ShoppingBag,
   X,
   UtensilsCrossed,
+  Beer,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import apiClient from '@/lib/api';
 import {
   floorOrdersApi,
-  floorOrderStatusLabel,
+  floorOrderDestLabel,
   floorOrderTotal,
   type FloorOrder,
 } from '@/lib/api/floor-orders';
@@ -30,8 +30,15 @@ import { usePermission } from '@/hooks/usePermission';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useComandaSocket } from '@/hooks/useComandaSocket';
+import {
+  BOTTLES_PER_TOBO,
+  formatBeerQty,
+  inferStationClient,
+  isBeerProduct,
+} from '@/lib/liquor-units';
+import { FloorServiceNav } from '@/components/floor/floor-service-nav';
+import { FLOOR_COPY, FLOOR_STATUS_TONE, floorStatusLabel } from '@/lib/floor-ui';
 import { cn } from '@/lib/utils';
-import Link from 'next/link';
 
 type Product = {
   id: number;
@@ -53,16 +60,23 @@ function avail(p: Product) {
   return Math.max(0, p.stock - (p.reservedStock ?? 0));
 }
 
-const STATUS_TONE: Record<string, string> = {
-  SENT: 'bg-sky-500/15 text-sky-200 border-sky-500/30',
-  IN_PREP: 'bg-amber-500/15 text-amber-200 border-amber-500/30',
-  READY: 'bg-emerald-500/15 text-emerald-200 border-emerald-500/30',
-};
+const STATUS_TONE = FLOOR_STATUS_TONE;
+
+function sendButtonLabel(cart: CartLine[]): string {
+  const stations = new Set(cart.map((l) => inferStationClient(l.product.name)));
+  const hasBar = stations.has('BAR');
+  const hasKitchen = stations.has('KITCHEN');
+  if (hasBar && hasKitchen) return 'Enviar a cocina y barra';
+  if (hasBar) return 'Enviar a barra';
+  if (hasKitchen) return 'Enviar a cocina';
+  return 'Enviar a preparación';
+}
 
 export default function ComandaMenuPage() {
-  const { selectedOrganizationId, selectedCompanyId } = useAuthStore();
+  const { selectedOrganizationId, selectedCompanyId, user } = useAuthStore();
   const orgId = selectedOrganizationId || selectedCompanyId;
-  const { canTakeFloorOrder, canViewKitchenQueue } = usePermission();
+  const userId = user?.id;
+  const { canTakeFloorOrder } = usePermission();
   const { formatUsdAmount } = useDisplayCurrency();
   const queryClient = useQueryClient();
 
@@ -102,8 +116,11 @@ export default function ComandaMenuPage() {
   const myOpenOrders = useMemo(() => {
     return (liveOrders as FloorOrder[])
       .filter((o) => ['SENT', 'IN_PREP', 'READY'].includes(o.status))
-      .slice(0, 10);
-  }, [liveOrders]);
+      .filter((o) => (userId ? o.createdBy?.id === userId : true))
+      .slice(0, 12);
+  }, [liveOrders, userId]);
+
+  const myPendingCharge = myOpenOrders.filter((o) => o.status === 'READY');
 
   const filtered = useMemo(() => {
     const q = debounced.trim().toLowerCase();
@@ -117,17 +134,25 @@ export default function ComandaMenuPage() {
     0,
   );
 
-  const add = (product: Product) => {
+  const add = (product: Product, step = 1) => {
     const max = avail(product);
+    if (max < step) {
+      toast.error(
+        step >= BOTTLES_PER_TOBO
+          ? `No hay stock para 1 tobo (faltan ${BOTTLES_PER_TOBO - max} bot)`
+          : 'Sin disponibilidad',
+      );
+      return;
+    }
     setCart((prev) => {
       const i = prev.findIndex((l) => l.product.id === product.id);
       if (i >= 0) {
         const next = [...prev];
-        const q = Math.min(max, next[i].quantity + 1);
+        const q = Math.min(max, next[i].quantity + step);
         next[i] = { ...next[i], quantity: q };
         return next;
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, { product, quantity: Math.min(max, step) }];
     });
     setCartOpen(true);
   };
@@ -163,8 +188,14 @@ export default function ComandaMenuPage() {
       });
     },
     onSuccess: (order) => {
+      const dest = floorOrderDestLabel(order);
+      const cliente = order.customerName || customerName.trim();
       toast.success(
-        `Comanda #${order.id} enviada · ${order.tableLabel}${order.customerName ? ` · ${order.customerName}` : ''}`,
+        `Pedido #${order.id} → ${dest} · ${order.tableLabel}${cliente ? ` · ${cliente}` : ''}`,
+        {
+          description: `${cliente || 'Cliente'}: pedido pendiente hasta que caja cobre. Caja ya puede verlo en la cola.`,
+          duration: 8_000,
+        },
       );
       setCart([]);
       setOrderNotes('');
@@ -177,8 +208,8 @@ export default function ComandaMenuPage() {
         err instanceof Error
           ? err.message
           : (err as { response?: { data?: { message?: string } } })?.response
-              ?.data?.message || 'No se pudo enviar la comanda';
-      toast.error(typeof msg === 'string' ? msg : 'No se pudo enviar la comanda');
+              ?.data?.message || 'No se pudo enviar el pedido';
+      toast.error(typeof msg === 'string' ? msg : 'No se pudo enviar el pedido');
     },
   });
 
@@ -194,43 +225,44 @@ export default function ComandaMenuPage() {
 
   return (
     <AdminPageShell
-      eyebrow="Servicio en piso"
-      title="Tomar pedido"
-      subtitle="1 Pedido → 2 Cocina prepara → 3 Caja cobra en el POS. Tú solo tomas y envías."
+      eyebrow={FLOOR_COPY.module}
+      title={FLOOR_COPY.host.title}
+      subtitle={FLOOR_COPY.host.blurb}
       actions={
-        <div className="flex flex-wrap gap-2">
-          {canViewKitchenQueue && (
-            <Button asChild variant="outline" className="h-10 min-h-12 sm:min-h-10">
-              <Link href="/comanda/cocina">Cola cocina</Link>
-            </Button>
-          )}
-          <Button
-            type="button"
-            className="h-10 min-h-12 sm:min-h-10 gap-2"
-            onClick={() => setCartOpen(true)}
-          >
-            <ShoppingBag className="h-4 w-4" />
-            Pedido ({cartCount})
-          </Button>
-        </div>
+        <Button
+          type="button"
+          className="h-10 min-h-12 sm:min-h-10 gap-2"
+          onClick={() => setCartOpen(true)}
+        >
+          <ShoppingBag className="h-4 w-4" />
+          Pedido ({cartCount})
+        </Button>
       }
     >
+      <FloorServiceNav />
       <div className="space-y-4">
-        {/* Flujo + mis pedidos abiertos */}
         <div className="rounded-2xl border border-border/70 bg-card/60 px-3.5 py-3 sm:px-4">
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            Flujo
+            Tu estación · {FLOOR_COPY.host.short}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            <span className="text-foreground font-medium">Menú</span>
-            {' → '}
-            <span className="text-foreground font-medium">Cocina / barra</span>
-            {' → '}
-            <span className="text-foreground font-medium">POS cobra</span>
+            Elige productos → envía a preparación → caja cobra cuando esté lista.
           </p>
+          {myPendingCharge.length > 0 && (
+            <div className="mt-3 rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2.5">
+              <p className="text-sm font-medium text-amber-100">
+                {myPendingCharge.length} pedido
+                {myPendingCharge.length === 1 ? '' : 's'} pendiente
+                {myPendingCharge.length === 1 ? '' : 's'} de cobro
+              </p>
+              <p className="mt-0.5 text-xs text-amber-100/80">
+                El cliente ya tiene el pedido; caja debe cobrarlo en el POS.
+              </p>
+            </div>
+          )}
           {myOpenOrders.length > 0 && (
             <div className="mt-3 space-y-2">
-              <p className="text-xs text-muted-foreground">Pedidos en curso</p>
+              <p className="text-xs text-muted-foreground">Mis pedidos en curso</p>
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {myOpenOrders.map((o) => (
                   <div
@@ -245,8 +277,9 @@ export default function ComandaMenuPage() {
                       {o.customerName ? ` · ${o.customerName}` : ''}
                     </p>
                     <p className="text-[11px] opacity-90">
-                      #{o.id} · {floorOrderStatusLabel(o.status)}
+                      #{o.id} · {floorStatusLabel(o.status)}
                     </p>
+                    <p className="text-[10px] opacity-75">{floorOrderDestLabel(o)}</p>
                     <p className="mt-0.5 text-xs tabular-nums opacity-80">
                       {formatUsdAmount(floorOrderTotal(o))}
                     </p>
@@ -281,44 +314,78 @@ export default function ComandaMenuPage() {
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {filtered.map((p) => {
               const a = avail(p);
+              const beer = isBeerProduct(p.name);
               return (
-                <button
+                <div
                   key={p.id}
-                  type="button"
-                  onClick={() => add(p)}
                   className={cn(
                     'group flex min-h-[7.5rem] flex-col overflow-hidden rounded-2xl border border-border/70',
-                    'bg-card/80 text-left transition hover:border-primary/40 hover:bg-card',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                    'bg-card/80 text-left',
                     a === 0 && 'opacity-50',
                   )}
                 >
-                  <div className="relative aspect-[4/3] w-full bg-muted/40">
-                    {p.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={p.imageUrl}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                        Sin foto
-                      </div>
+                  <button
+                    type="button"
+                    onClick={() => add(p, 1)}
+                    className={cn(
+                      'flex flex-1 flex-col overflow-hidden text-left transition hover:bg-card',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                     )}
-                    <span className="absolute bottom-1.5 right-1.5 rounded-md bg-background/90 px-1.5 py-0.5 text-[11px] tabular-nums">
-                      {a} disp.
-                    </span>
-                  </div>
-                  <div className="flex flex-1 flex-col gap-1 p-2.5">
-                    <p className="line-clamp-2 text-sm font-medium leading-snug">
-                      {p.name}
-                    </p>
-                    <p className="mt-auto text-sm tabular-nums text-muted-foreground">
-                      {formatUsdAmount(Number(p.salePrice))}
-                    </p>
-                  </div>
-                </button>
+                  >
+                    <div className="relative aspect-[4/3] w-full bg-muted/40">
+                      {p.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={p.imageUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                          Sin foto
+                        </div>
+                      )}
+                      <span className="absolute bottom-1.5 right-1.5 rounded-md bg-background/90 px-1.5 py-0.5 text-[11px] tabular-nums">
+                        {beer
+                          ? `${a} bot · ${Math.floor(a / BOTTLES_PER_TOBO)} tob`
+                          : `${a} disp.`}
+                      </span>
+                    </div>
+                    <div className="flex flex-1 flex-col gap-1 p-2.5 pb-1">
+                      <p className="line-clamp-2 text-sm font-medium leading-snug">
+                        {p.name}
+                      </p>
+                      <p className="mt-auto text-sm tabular-nums text-muted-foreground">
+                        {formatUsdAmount(Number(p.salePrice))}
+                        {beer ? ' / bot' : ''}
+                      </p>
+                    </div>
+                  </button>
+                  {beer && (
+                    <div className="grid grid-cols-2 gap-1 border-t border-border/50 p-1.5">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-9 text-[11px] font-semibold"
+                        disabled={a < 1}
+                        onClick={() => add(p, 1)}
+                      >
+                        +1 bot
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-9 gap-1 text-[11px] font-semibold"
+                        disabled={a < BOTTLES_PER_TOBO}
+                        onClick={() => add(p, BOTTLES_PER_TOBO)}
+                      >
+                        <Beer className="h-3 w-3" />
+                        +1 tobo
+                      </Button>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -393,46 +460,78 @@ export default function ComandaMenuPage() {
 
           {cart.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              Toca productos para armar el pedido.
+              Toca productos para armar el pedido. En cerveza usa +1 tobo (= 12 bot).
             </p>
           ) : (
             <ul className="space-y-2">
-              {cart.map((l) => (
-                <li
-                  key={l.product.id}
-                  className="flex items-center gap-2 rounded-xl border border-border/60 px-2.5 py-2"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{l.product.name}</p>
-                    <p className="text-xs tabular-nums text-muted-foreground">
-                      {formatUsdAmount(Number(l.product.salePrice))}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      className="h-11 w-11"
-                      onClick={() => setQty(l.product.id, l.quantity - 1)}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                    <span className="w-8 text-center tabular-nums font-medium">
-                      {l.quantity}
-                    </span>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      className="h-11 w-11"
-                      onClick={() => setQty(l.product.id, l.quantity + 1)}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </li>
-              ))}
+              {cart.map((l) => {
+                const beer = isBeerProduct(l.product.name);
+                return (
+                  <li
+                    key={l.product.id}
+                    className="rounded-xl border border-border/60 px-2.5 py-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">
+                          {l.product.name}
+                        </p>
+                        <p className="text-xs tabular-nums text-muted-foreground">
+                          {formatUsdAmount(Number(l.product.salePrice))}
+                          {beer ? ` · ${formatBeerQty(l.quantity)}` : ''}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="outline"
+                          className="h-11 w-11"
+                          onClick={() => setQty(l.product.id, l.quantity - 1)}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <span className="min-w-10 text-center text-xs tabular-nums font-medium leading-tight">
+                          {beer ? formatBeerQty(l.quantity) : l.quantity}
+                        </span>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="outline"
+                          className="h-11 w-11"
+                          onClick={() => setQty(l.product.id, l.quantity + 1)}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    {beer && (
+                      <div className="mt-1.5 flex gap-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 flex-1 text-[11px]"
+                          onClick={() => setQty(l.product.id, l.quantity + 1)}
+                        >
+                          +1 bot
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          className="h-8 flex-1 text-[11px]"
+                          onClick={() =>
+                            setQty(l.product.id, l.quantity + BOTTLES_PER_TOBO)
+                          }
+                        >
+                          +1 tobo
+                        </Button>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
 
@@ -454,10 +553,10 @@ export default function ComandaMenuPage() {
             ) : (
               <Send className="h-5 w-5" />
             )}
-            Enviar a cocina
+            {sendButtonLabel(cart)}
           </Button>
-          <p className="text-center text-[11px] text-muted-foreground">
-            No cobra aquí. Caja cobra en el POS cuando esté lista.
+          <p className="text-center text-[11px] text-muted-foreground leading-snug">
+            Tú no cobras. Queda pendiente hasta que caja cierre el cobro en el POS.
           </p>
         </div>
       </aside>

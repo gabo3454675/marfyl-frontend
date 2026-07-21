@@ -18,6 +18,7 @@ import {
   Search,
   PackagePlus,
   Calculator,
+  Beer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import apiClient, { invoiceService } from '@/lib/api';
@@ -28,6 +29,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { db } from '@/lib/db';
 import { toast } from 'sonner';
+import { BOTTLES_PER_TOBO, isBeerProduct } from '@/lib/liquor-units';
 import { round2 } from '@/lib/currencyConversion';
 import { computeCartIva } from '@/lib/tax-calculator';
 import { PosCartPanel } from '@/components/pos/pos-cart-panel';
@@ -52,6 +54,7 @@ interface Product {
   imageUrl?: string | null;
   minStock: number;
   isExempt?: boolean;
+  isActive?: boolean;
   isBundle?: boolean;
   isService?: boolean;
   bundleComponents?: { productId: number; quantity: number }[] | null;
@@ -105,7 +108,7 @@ interface TicketSummary {
 export default function POSPage() {
   const { selectedOrganizationId, selectedCompanyId, getCurrentOrganization } = useAuthStore();
   const selectedId = selectedOrganizationId || selectedCompanyId;
-  const { canManageInvoices, canManageFiscal, canAccessPOS, canManageCustomers, isPosOnlySeller } = usePermission();
+  const { canManageInvoices, canManageFiscal, canAccessPOS, canManageCustomers, canManageProducts, isPosOnlySeller } = usePermission();
   const rawRate = useExchangeRate();
   const tasaBcv = Number.isFinite(rawRate) && rawRate > 0 ? rawRate : 1;
   const queryClient = useQueryClient();
@@ -128,8 +131,8 @@ export default function POSPage() {
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
-  /** Ver todo el catálogo o acotar a combos/servicios (más rápido de encontrar). */
-  const [catalogFilter, setCatalogFilter] = useState<'all' | 'special'>('all');
+  /** Filtro de inventario: con stock primero (menos errores al cobrar). */
+  const [catalogFilter, setCatalogFilter] = useState<'all' | 'special' | 'instock'>('instock');
   const [processing, setProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
   const [lastInvoiceId, setLastInvoiceId] = useState<number | null>(null);
@@ -221,20 +224,44 @@ export default function POSPage() {
       .catch(() => setCustomerCredit(null));
   }, [selectedCustomerId]);
 
-  // Catálogo: opcional solo combos/servicios + búsqueda con debounce
+  // Inventario vendible (activo) + filtros + búsqueda
   const filteredProducts = useMemo(() => {
-    let list =
-      catalogFilter === 'special'
-        ? products.filter((p) => p.isBundle || p.isService)
-        : products;
-    if (!debouncedSearchQuery) return list;
-    const query = debouncedSearchQuery.toLowerCase();
-    return list.filter(
-      (product) =>
-        product.name.toLowerCase().includes(query) ||
-        product.sku?.toLowerCase().includes(query) ||
-        product.barcode?.toLowerCase().includes(query),
-    );
+    let list = products.filter((p) => p.isActive !== false);
+    if (catalogFilter === 'special') {
+      list = list.filter((p) => p.isBundle || p.isService);
+    } else if (catalogFilter === 'instock') {
+      list = list.filter((p) => {
+        if (p.isService && !p.bundleComponents?.length) return true;
+        const avail =
+          typeof p.availableStock === 'number'
+            ? p.availableStock
+            : Math.max(0, p.stock - (p.reservedStock ?? 0));
+        return avail > 0 || !!p.isBundle;
+      });
+    }
+    if (debouncedSearchQuery) {
+      const query = debouncedSearchQuery.toLowerCase();
+      list = list.filter(
+        (product) =>
+          product.name.toLowerCase().includes(query) ||
+          product.sku?.toLowerCase().includes(query) ||
+          product.barcode?.toLowerCase().includes(query),
+      );
+    }
+    // Con stock primero, luego alfabético
+    list.sort((a, b) => {
+      const availA =
+        typeof a.availableStock === 'number'
+          ? a.availableStock
+          : Math.max(0, a.stock - (a.reservedStock ?? 0));
+      const availB =
+        typeof b.availableStock === 'number'
+          ? b.availableStock
+          : Math.max(0, b.stock - (b.reservedStock ?? 0));
+      if ((availA > 0) !== (availB > 0)) return availA > 0 ? -1 : 1;
+      return a.name.localeCompare(b.name, 'es');
+    });
+    return list;
   }, [products, debouncedSearchQuery, catalogFilter]);
 
   /** Máx. unidades según receta (combo o servicio con insumos). Usa stock disponible neto. */
@@ -278,24 +305,32 @@ export default function POSPage() {
     [sellableUnitsFromRecipe],
   );
 
-  // Agregar producto al carrito
-  const addToCart = (product: Product) => {
+  // Agregar producto al carrito (qtyStep: 12 = 1 tobo de cerveza)
+  const addToCart = (product: Product, qtyStep = 1) => {
     const maxQ = sellableUnits(product);
-    if (maxQ < 1) {
-      toast.error('Sin disponibilidad para este producto');
+    const step = Math.max(1, qtyStep);
+    if (maxQ < step) {
+      toast.error(
+        step >= 12
+          ? `Sin stock para 1 tobo (disp. ${maxQ === Infinity ? 0 : maxQ} bot)`
+          : 'Sin disponibilidad para este producto',
+      );
       return;
     }
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.product.id === product.id);
       if (existingItem) {
-        if (existingItem.quantity >= maxQ) return prevCart;
+        if (existingItem.quantity + step > maxQ) {
+          toast.error('No hay más unidades disponibles');
+          return prevCart;
+        }
         return prevCart.map((item) =>
           item.product.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: item.quantity + step }
             : item,
         );
       }
-      return [...prevCart, { product, quantity: 1 }];
+      return [...prevCart, { product, quantity: Math.min(maxQ, step) }];
     });
   };
 
@@ -634,16 +669,20 @@ export default function POSPage() {
       <AdminPageShell
       animate={false}
       eyebrow={isPosOnlySeller ? undefined : 'Ventas'}
-      title={isPosOnlySeller ? 'Caja' : 'Punto de Venta'}
+      title={isPosOnlySeller ? 'Caja · inventario' : 'Punto de Venta'}
       subtitle={
         isPosOnlySeller ? (
-          <span className="text-xs text-muted-foreground sm:text-sm">Modo cajero · venta rápida</span>
+          <span className="text-xs text-muted-foreground sm:text-sm">
+            Vende del inventario · solo lectura · sin editar productos
+          </span>
         ) : (
           <>
             {canManageFiscal && (
               <FiscalIntegrationStrip variant="pos" className="mb-2 hidden sm:block md:mb-3" />
             )}
-            <span className="hidden text-sm md:text-base sm:block">Procesa ventas rápidamente</span>
+            <span className="hidden text-sm md:text-base sm:block">
+              Catálogo = inventario disponible. Toca para vender.
+            </span>
           </>
         )
       }
@@ -764,7 +803,7 @@ export default function POSPage() {
         {/* Catálogo — pantalla completa en móvil */}
         <div className="admin-pos-catalog order-1 flex min-h-0 flex-1 flex-col lg:col-span-2">
           <AdminCard
-            title="Catálogo de Productos"
+            title="Inventario para vender"
             className="admin-pos-panel admin-pos-catalog-card min-h-0 flex-1"
             bodyClassName="flex min-h-0 flex-1 flex-col overflow-hidden"
             headerClassName="shrink-0 py-3 sm:py-4"
@@ -785,6 +824,15 @@ export default function POSPage() {
                   <Button
                     type="button"
                     size="sm"
+                    variant={catalogFilter === 'instock' ? 'default' : 'outline'}
+                    className="min-h-[44px] touch-manipulation text-xs font-semibold rounded-xl"
+                    onClick={() => setCatalogFilter('instock')}
+                  >
+                    Con stock
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
                     variant={catalogFilter === 'special' ? 'default' : 'outline'}
                     className="min-h-[44px] gap-1.5 touch-manipulation text-xs font-semibold rounded-xl"
                     onClick={() => setCatalogFilter('special')}
@@ -792,16 +840,18 @@ export default function POSPage() {
                     <Layers className="h-3.5 w-3.5" />
                     Combos
                   </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    className="min-h-[44px] gap-1.5 touch-manipulation text-xs font-semibold rounded-xl"
-                    onClick={() => setQuickProductOpen(true)}
-                  >
-                    <PackagePlus className="h-3.5 w-3.5" />
-                    Nuevo
-                  </Button>
+                  {canManageProducts && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      className="min-h-[44px] gap-1.5 touch-manipulation text-xs font-semibold rounded-xl"
+                      onClick={() => setQuickProductOpen(true)}
+                    >
+                      <PackagePlus className="h-3.5 w-3.5" />
+                      Nuevo
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     size="sm"
@@ -817,12 +867,16 @@ export default function POSPage() {
                   <Search className="admin-pos-search-icon h-5 w-5" />
                   <input
                     type="text"
-                    placeholder="Buscar producto, SKU o código de barras..."
+                    placeholder="Buscar en inventario (nombre, SKU, código)…"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="admin-pos-search-input"
                   />
                 </div>
+                <p className="text-[11px] text-muted-foreground px-0.5">
+                  {filteredProducts.length} producto{filteredProducts.length === 1 ? '' : 's'} ·
+                  stock disponible (resta reservas de comanda)
+                </p>
               </div>
 
               {/* Lista de productos */}
@@ -835,21 +889,25 @@ export default function POSPage() {
                   <div className="admin-pos-product-grid">
                     {filteredProducts.map((product) => {
                       const available = sellableUnits(product);
-                      const maxQ = product.isBundle
-                        ? sellableUnits(product)
-                        : product.isService
-                          ? product.bundleComponents?.length
-                            ? sellableUnits(product)
-                            : Infinity
-                          : product.stock;
-                      const stockLevel = maxQ === Infinity ? 'full' : maxQ > product.minStock ? 'full' : maxQ > 0 ? 'low' : 'empty';
-                      const stockDotClass = stockLevel === 'full' ? 'admin-pos-stock-dot--full' : stockLevel === 'low' ? 'admin-pos-stock-dot--low' : 'admin-pos-stock-dot--empty';
+                      const beer = isBeerProduct(product.name);
+                      const stockLevel =
+                        available === Infinity
+                          ? 'full'
+                          : available > product.minStock
+                            ? 'full'
+                            : available > 0
+                              ? 'low'
+                              : 'empty';
+                      const stockDotClass =
+                        stockLevel === 'full'
+                          ? 'admin-pos-stock-dot--full'
+                          : stockLevel === 'low'
+                            ? 'admin-pos-stock-dot--low'
+                            : 'admin-pos-stock-dot--empty';
 
                       return (
                       <div
                         key={product.id}
-                        role="button"
-                        tabIndex={available > 0 ? 0 : -1}
                         className={cn(
                           'admin-pos-product-tile',
                           product.isBundle &&
@@ -857,16 +915,17 @@ export default function POSPage() {
                           product.isService &&
                             !product.isBundle &&
                             'border-sky-500/40 bg-gradient-to-br from-sky-500/[0.07] to-transparent',
-                          available === 0 && 'opacity-60 cursor-not-allowed',
+                          beer &&
+                            'border-amber-400/35 bg-gradient-to-br from-amber-400/[0.06] to-transparent',
+                          available === 0 && 'opacity-60',
                         )}
-                        onClick={() => available > 0 && addToCart(product)}
-                        onKeyDown={(e) => {
-                          if (available > 0 && (e.key === 'Enter' || e.key === ' ')) {
-                            e.preventDefault();
-                            addToCart(product);
-                          }
-                        }}
                       >
+                        <button
+                          type="button"
+                          disabled={available < 1}
+                          className="flex w-full flex-1 flex-col text-left disabled:cursor-not-allowed"
+                          onClick={() => available > 0 && addToCart(product, 1)}
+                        >
                           <div className="mb-2 flex min-h-[20px] items-center justify-between gap-1">
                             {product.isBundle ? (
                               <span className="admin-pos-type-badge admin-pos-type-badge--combo">
@@ -878,38 +937,84 @@ export default function POSPage() {
                                 <Sparkles className="h-3 w-3" />
                                 Servicio
                               </span>
+                            ) : beer ? (
+                              <span className="admin-pos-type-badge admin-pos-type-badge--product">
+                                Cerveza
+                              </span>
                             ) : (
                               <span className="admin-pos-type-badge admin-pos-type-badge--product">
-                                Producto
+                                Inventario
                               </span>
                             )}
+                            {!product.isService || product.bundleComponents?.length ? (
+                              <span className="inline-flex items-center gap-1 rounded-md bg-muted/70 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums">
+                                <span className={cn('admin-pos-stock-dot', stockDotClass)} />
+                                {available === Infinity
+                                  ? '∞'
+                                  : beer
+                                    ? `${available} bot`
+                                    : `${available} disp.`}
+                              </span>
+                            ) : null}
                           </div>
                           <div className="mb-2 flex items-center justify-center">
-                            <Package className="h-8 w-8 text-muted-foreground/60 sm:h-10 sm:w-10" />
+                            {product.imageUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={product.imageUrl}
+                                alt=""
+                                className="h-14 w-14 rounded-lg object-cover sm:h-16 sm:w-16"
+                              />
+                            ) : (
+                              <Package className="h-10 w-10 text-muted-foreground/60 sm:h-12 sm:w-12" />
+                            )}
                           </div>
-                          <h3 className="mb-1.5 line-clamp-2 text-xs font-semibold leading-snug text-foreground/90 sm:text-sm">
+                          <h3 className="mb-1.5 line-clamp-2 text-sm font-semibold leading-snug text-foreground/90 sm:text-[15px]">
                             {product.name}
                           </h3>
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="text-base font-bold tabular-nums text-primary sm:text-lg">
+                          <div className="mt-auto flex items-end justify-between gap-1">
+                            <span className="text-lg font-bold tabular-nums text-primary sm:text-xl">
                               {formatCurrency(getUnitPriceDisplay(product))}
-                            </span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {!product.isService && (
-                                <span className={cn('admin-pos-stock-dot', stockDotClass)} aria-label={`Stock ${stockLevel}`} />
-                              )}
-                              {product.isService && !product.bundleComponents?.length ? (
-                                <span className="text-[10px] font-medium text-muted-foreground/70 uppercase">Cobro</span>
-                              ) : (
-                                <span className="text-[10px] font-medium tabular-nums text-muted-foreground">
-                                  {maxQ === Infinity ? '' : maxQ}
+                              {beer ? (
+                                <span className="ml-1 text-xs font-medium text-muted-foreground">
+                                  /bot
                                 </span>
-                              )}
-                            </div>
+                              ) : null}
+                            </span>
                           </div>
                           {available === 0 && (
                             <p className="mt-1 text-xs font-medium text-destructive">Sin disponibilidad</p>
                           )}
+                        </button>
+                        {beer && available > 0 && (
+                          <div className="mt-2 grid grid-cols-2 gap-1.5 border-t border-border/40 pt-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-9 text-[11px] font-semibold"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addToCart(product, 1);
+                              }}
+                            >
+                              +1 bot
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="h-9 gap-1 text-[11px] font-semibold"
+                              disabled={available < BOTTLES_PER_TOBO}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addToCart(product, BOTTLES_PER_TOBO);
+                              }}
+                            >
+                              <Beer className="h-3 w-3" />
+                              +1 tobo
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     );
                     })}
@@ -968,7 +1073,7 @@ export default function POSPage() {
         onApplyAmount={handleCalculatorApply}
       />
       <QuickProductSheet
-        open={quickProductOpen}
+        open={canManageProducts && quickProductOpen}
         onOpenChange={setQuickProductOpen}
         onCreated={handleQuickProductCreated}
       />

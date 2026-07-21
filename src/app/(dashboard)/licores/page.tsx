@@ -54,32 +54,75 @@ function formatDayLabel(day: string) {
   });
 }
 
-function PackLine({ pack, showCases }: { pack: LiquorPack; showCases?: boolean }) {
+/** Tobos + cajas con el mismo peso visual (1 tobo = 12 bot · 1 caja = 3 tobos). */
+function PackSummary({
+  pack,
+  compact,
+}: {
+  pack: LiquorPack;
+  compact?: boolean;
+}) {
   return (
-    <div className="mt-1 space-y-1 text-sm">
-      <p className="tabular-nums">
-        <span className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
-          {pack.tobos}
-        </span>{' '}
-        <span className="text-muted-foreground">tobos</span>
-        {pack.looseBottles > 0 && (
-          <span className="text-muted-foreground">
-            {' '}
-            + {pack.looseBottles} bot.
-          </span>
+    <div className={cn('tabular-nums', compact ? 'space-y-1.5' : 'space-y-2')}>
+      <div
+        className={cn(
+          'grid grid-cols-2 gap-2',
+          compact ? 'gap-1.5' : 'gap-2.5',
+        )}
+      >
+        <div
+          className={cn(
+            'rounded-xl border border-border/50 bg-muted/30',
+            compact ? 'px-2 py-1.5' : 'px-3 py-2.5',
+          )}
+        >
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Tobos
+          </p>
+          <p
+            className={cn(
+              'font-semibold text-foreground leading-none',
+              compact ? 'text-lg mt-0.5' : 'text-2xl mt-1',
+            )}
+          >
+            {pack.tobos}
+          </p>
+          {pack.looseBottles > 0 && (
+            <p className="mt-0.5 text-[10px] text-muted-foreground">
+              +{pack.looseBottles} bot
+            </p>
+          )}
+        </div>
+        <div
+          className={cn(
+            'rounded-xl border border-border/50 bg-muted/30',
+            compact ? 'px-2 py-1.5' : 'px-3 py-2.5',
+          )}
+        >
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Cajas
+          </p>
+          <p
+            className={cn(
+              'font-semibold text-foreground leading-none',
+              compact ? 'text-lg mt-0.5' : 'text-2xl mt-1',
+            )}
+          >
+            {pack.cajas}
+          </p>
+          {pack.tobosSueltos > 0 && (
+            <p className="mt-0.5 text-[10px] text-muted-foreground">
+              +{pack.tobosSueltos} tobo{pack.tobosSueltos === 1 ? '' : 's'}
+            </p>
+          )}
+        </div>
+      </div>
+      <p className={cn('text-muted-foreground', compact ? 'text-[11px]' : 'text-xs')}>
+        {pack.bottles} botellas
+        {pack.cajasExact > 0 && pack.cajasExact !== pack.cajas && (
+          <span className="opacity-70"> · {pack.cajasExact} caj. exactas</span>
         )}
       </p>
-      {showCases && (
-        <p className="text-muted-foreground tabular-nums text-xs">
-          ≈ <span className="font-medium text-foreground">{pack.cajas}</span> cajas
-          {pack.tobosSueltos > 0 && (
-            <span>
-              {' '}
-              + {pack.tobosSueltos} tobo{pack.tobosSueltos === 1 ? '' : 's'}
-            </span>
-          )}
-        </p>
-      )}
     </div>
   );
 }
@@ -91,8 +134,8 @@ function TripleStock({
   packOpening,
   packSold,
   packRemaining,
-  unitLabel = 'und.',
   showPack,
+  unitLabel = 'und.',
 }: {
   opening: number;
   sold: number;
@@ -100,32 +143,51 @@ function TripleStock({
   packOpening?: LiquorPack | null;
   packSold?: LiquorPack | null;
   packRemaining?: LiquorPack | null;
-  unitLabel?: string;
   showPack?: boolean;
+  unitLabel?: string;
 }) {
+  const cols = [
+    {
+      label: 'Inicio',
+      bottles: opening,
+      pack: packOpening,
+      tone: 'text-foreground',
+    },
+    {
+      label: 'Vendidos',
+      bottles: sold,
+      pack: packSold,
+      tone: 'text-amber-500',
+    },
+    {
+      label: 'Quedan',
+      bottles: remaining,
+      pack: packRemaining,
+      tone: 'text-emerald-500',
+    },
+  ] as const;
+
   return (
-    <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-      <div className="rounded-xl bg-background/50 px-2 py-2">
-        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Inicio</p>
-        <p className="text-lg font-semibold tabular-nums">{opening}</p>
-        {showPack && packOpening ? <PackLine pack={packOpening} /> : (
-          <p className="text-[11px] text-muted-foreground">{unitLabel}</p>
-        )}
-      </div>
-      <div className="rounded-xl bg-background/50 px-2 py-2">
-        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Vendidos</p>
-        <p className="text-lg font-semibold tabular-nums text-amber-500">{sold}</p>
-        {showPack && packSold ? <PackLine pack={packSold} /> : (
-          <p className="text-[11px] text-muted-foreground">{unitLabel}</p>
-        )}
-      </div>
-      <div className="rounded-xl bg-background/50 px-2 py-2">
-        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Quedan</p>
-        <p className="text-lg font-semibold tabular-nums text-emerald-500">{remaining}</p>
-        {showPack && packRemaining ? <PackLine pack={packRemaining} /> : (
-          <p className="text-[11px] text-muted-foreground">{unitLabel}</p>
-        )}
-      </div>
+    <div className="mt-5 grid grid-cols-1 gap-3.5 sm:grid-cols-3 sm:gap-4">
+      {cols.map((col) => (
+        <div
+          key={col.label}
+          className="rounded-2xl border border-border/55 bg-background/70 px-4 py-4 sm:px-5 sm:py-5"
+        >
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            {col.label}
+          </p>
+          <p className={cn('mt-1.5 text-4xl font-semibold tracking-tight tabular-nums', col.tone)}>
+            {col.bottles}
+          </p>
+          <p className="text-xs text-muted-foreground">{unitLabel}</p>
+          {showPack && col.pack ? (
+            <div className="mt-3 border-t border-border/40 pt-3">
+              <PackSummary pack={col.pack} compact />
+            </div>
+          ) : null}
+        </div>
+      ))}
     </div>
   );
 }
@@ -158,7 +220,7 @@ export default function LicoresPage() {
     <AdminPageShell
       eyebrow="Ventas"
       title="Licores y tobos"
-      subtitle="Inicio automático → vendido → teórico restante. Tobos de 12 · cajas de 3 tobos."
+      subtitle="Apertura automática · inicio / vendido / quedan. Cerveza en tobos y cajas (12 bot = 1 tobo · 3 tobos = 1 caja)."
       actions={
         <div className="flex flex-wrap items-end gap-2">
           <div className="space-y-1">
@@ -194,7 +256,7 @@ export default function LicoresPage() {
         </div>
       }
     >
-      <div className="space-y-5 sm:space-y-6">
+      <div className="space-y-6 sm:space-y-8">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm text-muted-foreground capitalize">{titleDay}</p>
           <Badge variant="secondary" className="gap-1 font-normal">
@@ -232,7 +294,7 @@ export default function LicoresPage() {
               className={cn(
                 'relative overflow-hidden rounded-2xl border border-border/70',
                 'bg-gradient-to-br from-amber-500/[0.12] via-card/80 to-background',
-                'px-4 py-5 sm:px-7 sm:py-7',
+                'px-4 py-6 sm:px-8 sm:py-8',
               )}
             >
               <div
@@ -255,13 +317,13 @@ export default function LicoresPage() {
                   packRemaining={data.beer.packRemaining}
                   showPack
                 />
-                <p className="mt-3 text-xs sm:text-sm text-muted-foreground max-w-lg leading-relaxed">
+                <p className="mt-4 text-xs sm:text-sm text-muted-foreground max-w-xl leading-relaxed">
                   {data.rules.note}
                 </p>
               </div>
             </section>
 
-            <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
               <AdminCard
                 title={
                   <span className="inline-flex items-center gap-2">
@@ -286,7 +348,7 @@ export default function LicoresPage() {
                   packRemaining={data.beer.light.packRemaining}
                   showPack
                 />
-                <p className="mt-2 text-xs text-muted-foreground tabular-nums">
+                <p className="mt-3 text-sm text-muted-foreground tabular-nums">
                   {formatUsdAmount(data.beer.light.usd)}
                 </p>
               </AdminCard>
@@ -315,7 +377,7 @@ export default function LicoresPage() {
                   packRemaining={data.beer.negra.packRemaining}
                   showPack
                 />
-                <p className="mt-2 text-xs text-muted-foreground tabular-nums">
+                <p className="mt-3 text-sm text-muted-foreground tabular-nums">
                   {formatUsdAmount(data.beer.negra.usd)}
                 </p>
               </AdminCard>
@@ -339,7 +401,7 @@ export default function LicoresPage() {
                     )
                   }
                 />
-                <p className="mt-2 text-xs text-muted-foreground tabular-nums">
+                <p className="mt-3 text-sm text-muted-foreground tabular-nums">
                   {formatUsdAmount(data.whisky.usd)}
                 </p>
               </AdminCard>
@@ -363,7 +425,7 @@ export default function LicoresPage() {
                     )
                   }
                 />
-                <p className="mt-2 text-xs text-muted-foreground tabular-nums">
+                <p className="mt-3 text-sm text-muted-foreground tabular-nums">
                   {formatUsdAmount(data.otros.usd)}
                 </p>
               </AdminCard>
@@ -378,13 +440,13 @@ export default function LicoresPage() {
                   </span>
                 }
               >
-                <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                   {data.beer.byStyle.map((style) => (
                     <div
                       key={style.key}
-                      className="rounded-xl border border-border/60 bg-background/40 px-3.5 py-3"
+                      className="rounded-2xl border border-border/60 bg-background/40 px-5 py-5"
                     >
-                      <p className="text-sm font-medium">{style.label}</p>
+                      <p className="text-base font-medium">{style.label}</p>
                       <TripleStock
                         opening={style.opening ?? style.bottles}
                         sold={style.bottles}
@@ -397,7 +459,7 @@ export default function LicoresPage() {
                         packRemaining={style.packRemaining}
                         showPack
                       />
-                      <p className="mt-1.5 text-xs text-muted-foreground tabular-nums">
+                      <p className="mt-2 text-sm text-muted-foreground tabular-nums">
                         {formatUsdAmount(style.usd)}
                       </p>
                     </div>
@@ -428,8 +490,8 @@ export default function LicoresPage() {
                         <TableHead className="text-right">Inicio</TableHead>
                         <TableHead className="text-right">Vend.</TableHead>
                         <TableHead className="text-right">Quedan</TableHead>
-                        <TableHead className="text-right hidden min-[400px]:table-cell">
-                          Tobos
+                        <TableHead className="text-right hidden lg:table-cell min-w-[9rem]">
+                          Empaque (vend.)
                         </TableHead>
                         <TableHead className="text-right">USD</TableHead>
                       </TableRow>
@@ -449,21 +511,45 @@ export default function LicoresPage() {
                             {p.beerStyleLabel || p.bucketLabel}
                           </TableCell>
                           <TableCell className="text-right tabular-nums text-sm">
-                            {p.opening ?? '—'}
+                            <div>{p.opening ?? '—'}</div>
+                            {p.packOpening && (
+                              <div className="text-[11px] text-muted-foreground">
+                                {p.packOpening.tobos}t · {p.packOpening.cajas}c
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell className="text-right tabular-nums font-medium">
-                            {p.quantity}
+                            <div>{p.quantity}</div>
+                            {p.pack && (
+                              <div className="text-[11px] text-muted-foreground font-normal">
+                                {p.pack.tobos}t · {p.pack.cajas}c
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell className="text-right tabular-nums text-sm text-emerald-500">
-                            {p.remainingTheoretical ?? '—'}
+                            <div>{p.remainingTheoretical ?? '—'}</div>
+                            {p.packRemaining && (
+                              <div className="text-[11px] text-emerald-600/80">
+                                {p.packRemaining.tobos}t · {p.packRemaining.cajas}c
+                              </div>
+                            )}
                           </TableCell>
-                          <TableCell className="text-right tabular-nums text-sm text-muted-foreground hidden min-[400px]:table-cell">
-                            {p.pack
-                              ? `${p.pack.tobos} tobos` +
-                                (p.pack.looseBottles
-                                  ? ` +${p.pack.looseBottles}`
-                                  : '')
-                              : '—'}
+                          <TableCell className="text-right tabular-nums text-sm text-muted-foreground hidden lg:table-cell">
+                            {p.pack ? (
+                              <div className="leading-snug">
+                                <div>{p.pack.tobos} tobos</div>
+                                <div className="font-medium text-foreground">
+                                  {p.pack.cajas} cajas
+                                </div>
+                                {p.pack.looseBottles > 0 && (
+                                  <div className="text-[11px]">
+                                    +{p.pack.looseBottles} bot
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              '—'
+                            )}
                           </TableCell>
                           <TableCell className="text-right tabular-nums text-sm">
                             {formatUsdAmount(p.usd)}

@@ -9,6 +9,7 @@ export type PermissionKey =
   | 'canAccessComanda'
   | 'canTakeFloorOrder'
   | 'canViewKitchenQueue'
+  | 'canViewFloorHistory'
   | 'canViewFinancialCharts'
   | 'canViewReports'
   | 'canManageProducts'
@@ -38,6 +39,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
     canAccessComanda: true,
     canTakeFloorOrder: true,
     canViewKitchenQueue: true,
+    canViewFloorHistory: true,
     canViewFinancialCharts: true,
     canViewReports: true,
     canManageProducts: true,
@@ -64,6 +66,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
     canAccessComanda: true,
     canTakeFloorOrder: true,
     canViewKitchenQueue: true,
+    canViewFloorHistory: true,
     canViewFinancialCharts: true,
     canViewReports: true,
     canManageProducts: true,
@@ -90,6 +93,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
     canAccessComanda: true,
     canTakeFloorOrder: true,
     canViewKitchenQueue: true,
+    canViewFloorHistory: true,
     canViewFinancialCharts: true,
     canViewReports: true,
     canManageProducts: true,
@@ -116,6 +120,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
     canAccessComanda: false,
     canTakeFloorOrder: false,
     canViewKitchenQueue: false,
+    canViewFloorHistory: false,
     canViewFinancialCharts: false,
     canViewReports: false,
     canManageProducts: false,
@@ -142,6 +147,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
     canAccessComanda: false,
     canTakeFloorOrder: false,
     canViewKitchenQueue: false,
+    canViewFloorHistory: false,
     canViewFinancialCharts: false,
     canViewReports: false,
     canManageProducts: true,
@@ -168,6 +174,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
     canAccessComanda: false,
     canTakeFloorOrder: false,
     canViewKitchenQueue: false,
+    canViewFloorHistory: false,
     canViewFinancialCharts: false,
     canViewReports: false,
     canManageProducts: false,
@@ -194,6 +201,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
     canAccessComanda: true,
     canTakeFloorOrder: true,
     canViewKitchenQueue: false,
+    canViewFloorHistory: true,
     canViewFinancialCharts: false,
     canViewReports: false,
     canManageProducts: false,
@@ -220,6 +228,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
     canAccessComanda: true,
     canTakeFloorOrder: false,
     canViewKitchenQueue: true,
+    canViewFloorHistory: false,
     canViewFinancialCharts: false,
     canViewReports: false,
     canManageProducts: false,
@@ -246,6 +255,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
     canAccessComanda: false,
     canTakeFloorOrder: false,
     canViewKitchenQueue: false,
+    canViewFloorHistory: false,
     canViewFinancialCharts: false,
     canViewReports: false,
     canManageProducts: false,
@@ -277,6 +287,7 @@ export function getPermissionsForRole(role: string): PermissionMap {
       canAccessComanda: false,
       canTakeFloorOrder: false,
       canViewKitchenQueue: false,
+      canViewFloorHistory: false,
       canViewFinancialCharts: false,
       canViewReports: false,
       canManageProducts: false,

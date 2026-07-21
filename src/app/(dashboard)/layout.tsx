@@ -231,11 +231,14 @@ export default function DashboardLayout({
     }
   }, [mounted, hasHydrated, isAuthenticated, isPosOnlySeller, pathname, router, devPreview]);
 
-  /** Anfitrión: solo tomar pedido */
+  /** Anfitrión: solo pantalla tomar pedido (+ historial propio) */
   useEffect(() => {
     if (!mounted || !hasHydrated || !isAuthenticated || devPreview) return;
     if (!isWaiterOnly) return;
-    if (!pathname.startsWith('/comanda') || pathname.startsWith('/comanda/cocina')) {
+    const allowed =
+      pathname === '/comanda' ||
+      pathname.startsWith('/comanda/historial');
+    if (!allowed) {
       router.replace('/comanda');
     }
   }, [mounted, hasHydrated, isAuthenticated, isWaiterOnly, pathname, router, devPreview]);

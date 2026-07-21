@@ -23,6 +23,7 @@ import {
   CircleDollarSign,
   UtensilsCrossed,
   ChefHat,
+  ClipboardList,
 } from 'lucide-react';
 import type { PermissionKey } from '@/config/permissions';
 
@@ -35,6 +36,8 @@ export type AppNavItem = {
   href: string;
   icon: LucideIcon;
   permission: PermissionKey;
+  /** Texto corto para tooltips / menú móvil */
+  hint?: string;
 };
 
 export type AppNavSection = {
@@ -48,66 +51,244 @@ export type AppNavSection = {
 };
 
 /**
- * Accesos frecuentes — siempre visibles.
- * POS = caja (cobro). El piso usa la sección «Servicio en piso».
+ * Accesos frecuentes — siempre visibles (si el rol tiene permiso).
+ * Cada estación ve solo lo suyo: caja → POS; piso → en sección Servicio.
  */
 export const APP_NAV_QUICK_ACCESS_IDS = ['dashboard', 'pos'] as const;
 
 export const APP_NAV_ITEMS: AppNavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: Grid2x2, href: '/', permission: 'canViewDashboard' },
-  { id: 'pos', label: 'Caja / POS', icon: ShoppingCart, href: '/pos', permission: 'canAccessPOS' },
-  { id: 'comanda', label: 'Tomar pedido', icon: UtensilsCrossed, href: '/comanda', permission: 'canTakeFloorOrder' },
-  { id: 'comanda-cocina', label: 'Cola cocina', icon: ChefHat, href: '/comanda/cocina', permission: 'canViewKitchenQueue' },
-  { id: 'products', label: 'Inventario', icon: Box, href: '/products', permission: 'canManageProducts' },
-  { id: 'movements', label: 'Movimientos inventario', icon: PackageMinus, href: '/inventory/movements', permission: 'canManageInventory' },
-  { id: 'invoice-upload', label: 'Subir Factura', icon: FileUp, href: '/inventory/invoice-upload', permission: 'canManageInventory' },
-  { id: 'purchases-import', label: 'Importar compras', icon: Upload, href: '/inventory/purchases-import', permission: 'canManageInventory' },
-  { id: 'autoconsumo', label: 'Autoconsumo', icon: BarChart3, href: '/autoconsumo', permission: 'canManageInventory' },
-  { id: 'alertas-stock', label: 'Alertas inventario', icon: AlertTriangle, href: '/alertas-stock', permission: 'canManageInventory' },
-  { id: 'customers', label: 'Clientes', icon: Users, href: '/customers', permission: 'canManageCustomers' },
-  { id: 'invoices', label: 'Facturas', icon: FileText, href: '/invoices', permission: 'canManageInvoices' },
-  { id: 'sales-import', label: 'Importar ventas POS', icon: Upload, href: '/sales/import', permission: 'canManageInventory' },
-  { id: 'history', label: 'Historial de ventas', icon: History, href: '/history', permission: 'canManageInvoices' },
-  { id: 'licores', label: 'Licores y tobos', icon: Beer, href: '/licores', permission: 'canManageInvoices' },
-  { id: 'cierre-caja', label: 'Cierre de caja', icon: Wallet, href: '/cierre-caja', permission: 'canManageCierreCaja' },
-  { id: 'caja-oficina', label: 'Caja oficina', icon: Landmark, href: '/caja-oficina', permission: 'canManageCierreCaja' },
-  { id: 'credits', label: 'Cuentas por cobar', icon: CreditCard, href: '/credits', permission: 'canViewCredits' },
-  { id: 'expenses', label: 'Gastos', icon: DollarSign, href: '/expenses', permission: 'canManageExpenses' },
-  { id: 'suppliers', label: 'Proveedores', icon: Truck, href: '/suppliers', permission: 'canManageExpenses' },
-  { id: 'accounts-payable', label: 'Cuentas por pagar', icon: Landmark, href: '/accounts-payable', permission: 'canManageExpenses' },
-  { id: 'tasas', label: 'Tasas BCV / Diferencial', icon: TrendingUp, href: '/tasas', permission: 'canManageExpenses' },
-  { id: 'settings', label: 'Configuración', icon: Settings, href: '/settings', permission: 'canManageSettings' },
-  { id: 'nomina', label: 'Nómina', icon: UsersRound, href: '/nomina', permission: 'canManageTeam' },
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
+    icon: Grid2x2,
+    href: '/',
+    permission: 'canViewDashboard',
+    hint: 'Resumen general',
+  },
+  {
+    id: 'pos',
+    label: 'Caja / POS',
+    icon: ShoppingCart,
+    href: '/pos',
+    permission: 'canAccessPOS',
+    hint: 'Cobrar e inventario vendible',
+  },
+
+  // —— Servicio en piso ——
+  {
+    id: 'comanda',
+    label: 'Anfitrión',
+    icon: UtensilsCrossed,
+    href: '/comanda',
+    permission: 'canTakeFloorOrder',
+    hint: 'Tomar y enviar pedidos',
+  },
+  {
+    id: 'comanda-cocina',
+    label: 'Cocina · Barra',
+    icon: ChefHat,
+    href: '/comanda/cocina',
+    permission: 'canViewKitchenQueue',
+    hint: 'Preparar y marcar listo',
+  },
+  {
+    id: 'comanda-historial',
+    label: 'Auditoría',
+    icon: ClipboardList,
+    href: '/comanda/historial',
+    permission: 'canViewFloorHistory',
+    hint: 'Pedidos cobrados por anfitrión',
+  },
+
+  // —— Caja del día ——
+  {
+    id: 'cierre-caja',
+    label: 'Cierre de caja',
+    icon: Wallet,
+    href: '/cierre-caja',
+    permission: 'canManageCierreCaja',
+  },
+  {
+    id: 'caja-oficina',
+    label: 'Caja oficina',
+    icon: Landmark,
+    href: '/caja-oficina',
+    permission: 'canManageCierreCaja',
+  },
+  {
+    id: 'customers',
+    label: 'Clientes',
+    icon: Users,
+    href: '/customers',
+    permission: 'canManageCustomers',
+  },
+  {
+    id: 'credits',
+    label: 'Cuentas por cobrar',
+    icon: CreditCard,
+    href: '/credits',
+    permission: 'canViewCredits',
+  },
+
+  // —— Ventas y control ——
+  {
+    id: 'invoices',
+    label: 'Facturas',
+    icon: FileText,
+    href: '/invoices',
+    permission: 'canManageInvoices',
+  },
+  {
+    id: 'history',
+    label: 'Historial de ventas',
+    icon: History,
+    href: '/history',
+    permission: 'canManageInvoices',
+    hint: 'Facturas POS / período',
+  },
+  {
+    id: 'licores',
+    label: 'Licores y tobos',
+    icon: Beer,
+    href: '/licores',
+    permission: 'canManageInvoices',
+    hint: 'Apertura · vendido · quedan',
+  },
+  {
+    id: 'sales-import',
+    label: 'Importar ventas POS',
+    icon: Upload,
+    href: '/sales/import',
+    permission: 'canManageInventory',
+  },
+
+  // —— Inventario ——
+  {
+    id: 'products',
+    label: 'Inventario',
+    icon: Box,
+    href: '/products',
+    permission: 'canManageProducts',
+  },
+  {
+    id: 'movements',
+    label: 'Movimientos',
+    icon: PackageMinus,
+    href: '/inventory/movements',
+    permission: 'canManageInventory',
+  },
+  {
+    id: 'invoice-upload',
+    label: 'Subir factura compra',
+    icon: FileUp,
+    href: '/inventory/invoice-upload',
+    permission: 'canManageInventory',
+  },
+  {
+    id: 'purchases-import',
+    label: 'Importar compras',
+    icon: Upload,
+    href: '/inventory/purchases-import',
+    permission: 'canManageInventory',
+  },
+  {
+    id: 'autoconsumo',
+    label: 'Autoconsumo',
+    icon: BarChart3,
+    href: '/autoconsumo',
+    permission: 'canManageInventory',
+  },
+  {
+    id: 'alertas-stock',
+    label: 'Alertas de stock',
+    icon: AlertTriangle,
+    href: '/alertas-stock',
+    permission: 'canManageInventory',
+  },
+
+  // —— Finanzas ——
+  {
+    id: 'expenses',
+    label: 'Gastos',
+    icon: DollarSign,
+    href: '/expenses',
+    permission: 'canManageExpenses',
+  },
+  {
+    id: 'suppliers',
+    label: 'Proveedores',
+    icon: Truck,
+    href: '/suppliers',
+    permission: 'canManageExpenses',
+  },
+  {
+    id: 'accounts-payable',
+    label: 'Cuentas por pagar',
+    icon: Landmark,
+    href: '/accounts-payable',
+    permission: 'canManageExpenses',
+  },
+  {
+    id: 'tasas',
+    label: 'Tasas BCV',
+    icon: TrendingUp,
+    href: '/tasas',
+    permission: 'canManageExpenses',
+  },
+
+  // —— Equipo / sistema ——
+  {
+    id: 'nomina',
+    label: 'Nómina',
+    icon: UsersRound,
+    href: '/nomina',
+    permission: 'canManageTeam',
+  },
+  {
+    id: 'settings',
+    label: 'Configuración',
+    icon: Settings,
+    href: '/settings',
+    permission: 'canManageSettings',
+  },
 ];
 
+/**
+ * Menú por estación / responsabilidad (solo se muestran ítems con permiso).
+ */
 export const APP_NAV_SECTIONS: AppNavSection[] = [
   {
     id: 'piso',
     label: 'Servicio en piso',
     icon: UtensilsCrossed,
     defaultOpen: true,
-    itemIds: ['comanda', 'comanda-cocina'],
+    itemIds: ['comanda', 'comanda-cocina', 'comanda-historial'],
+  },
+  {
+    id: 'caja',
+    label: 'Caja del día',
+    icon: Wallet,
+    defaultOpen: true,
+    itemIds: ['cierre-caja', 'caja-oficina', 'customers', 'credits'],
   },
   {
     id: 'ventas',
-    label: 'Caja y ventas',
+    label: 'Ventas y control',
     icon: CircleDollarSign,
-    itemIds: [
-      'invoices',
-      'sales-import',
-      'history',
-      'licores',
-      'cierre-caja',
-      'caja-oficina',
-      'credits',
-      'customers',
-    ],
+    itemIds: ['invoices', 'history', 'licores', 'sales-import'],
   },
   {
     id: 'inventario',
     label: 'Inventario',
     icon: Box,
-    itemIds: ['products', 'movements', 'invoice-upload', 'purchases-import', 'autoconsumo', 'alertas-stock'],
+    itemIds: [
+      'products',
+      'movements',
+      'invoice-upload',
+      'purchases-import',
+      'autoconsumo',
+      'alertas-stock',
+    ],
   },
   {
     id: 'finanzas',
@@ -132,6 +313,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
 export function resolveAppNavId(pathname: string): string {
   if (pathname === '/' || pathname === '/') return 'dashboard';
   if (pathname.startsWith('/pos')) return 'pos';
+  if (pathname.startsWith('/comanda/historial')) return 'comanda-historial';
   if (pathname.startsWith('/comanda/cocina')) return 'comanda-cocina';
   if (pathname.startsWith('/comanda')) return 'comanda';
   if (pathname.startsWith('/servicios-combos')) return 'products';

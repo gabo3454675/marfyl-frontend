@@ -60,10 +60,78 @@ export type ChargeFloorOrderPayload = {
   notes?: string;
 };
 
+export type FloorOrderHistoryUser = {
+  userId: number;
+  fullName: string;
+  orders: number;
+  totalUsd: number;
+};
+
+export type FloorOrderHistoryLine = {
+  id: number;
+  tableLabel: string;
+  customerName?: string | null;
+  status: FloorOrderStatus;
+  notes?: string | null;
+  createdAt: string;
+  sentAt?: string | null;
+  chargedAt?: string | null;
+  chargedInvoiceId?: number | null;
+  invoiceConsecutive?: number | null;
+  totalUsd: number;
+  createdBy: { id: number; fullName?: string | null };
+  items: {
+    id: number;
+    productId: number;
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    station: FloorStation;
+  }[];
+};
+
+export type FloorOrderHistoryResponse = {
+  from: string;
+  to: string;
+  seeAll: boolean;
+  scopedToUserId: number | null;
+  summary: {
+    orders: number;
+    totalUsd: number;
+    byUser: FloorOrderHistoryUser[];
+  };
+  orders: FloorOrderHistoryLine[];
+};
+
 export const floorOrdersApi = {
-  list: (params?: { status?: string; day?: string }) =>
+  list: (params?: { status?: string; day?: string; station?: string }) =>
     apiClient
       .get<FloorOrder[]>('/floor-orders', { params })
+      .then((r) => r.data),
+
+  pendingByUser: (params?: { day?: string }) =>
+    apiClient
+      .get<
+        {
+          userId: number;
+          fullName: string;
+          pending: number;
+          sent: number;
+          inPrep: number;
+          ready: number;
+          totalUsd: number;
+        }[]
+      >('/floor-orders/stats/by-user', { params })
+      .then((r) => r.data),
+
+  history: (params?: {
+    month?: string;
+    from?: string;
+    to?: string;
+    createdById?: number;
+  }) =>
+    apiClient
+      .get<FloorOrderHistoryResponse>('/floor-orders/history', { params })
       .then((r) => r.data),
 
   getOne: (id: number) =>
@@ -104,11 +172,11 @@ export function floorOrderTotal(order: FloorOrder): number {
 export function floorOrderStatusLabel(status: FloorOrderStatus): string {
   switch (status) {
     case 'SENT':
-      return 'En cocina';
+      return 'Enviado';
     case 'IN_PREP':
       return 'Preparando';
     case 'READY':
-      return 'Lista · caja';
+      return 'Lista · cobro';
     case 'CHARGED':
       return 'Cobrada';
     case 'CANCELLED':
@@ -116,4 +184,14 @@ export function floorOrderStatusLabel(status: FloorOrderStatus): string {
     default:
       return status;
   }
+}
+
+export function floorOrderDestLabel(order: FloorOrder): string {
+  const stations = new Set(order.items.map((i) => i.station));
+  const hasBar = stations.has('BAR');
+  const hasKitchen = stations.has('KITCHEN');
+  if (hasBar && hasKitchen) return 'Cocina + barra';
+  if (hasBar) return 'Barra';
+  if (hasKitchen) return 'Cocina';
+  return 'Estación';
 }
