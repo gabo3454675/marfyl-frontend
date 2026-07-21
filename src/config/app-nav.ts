@@ -21,6 +21,8 @@ import {
   FileUp,
   Upload,
   CircleDollarSign,
+  UtensilsCrossed,
+  ChefHat,
 } from 'lucide-react';
 import type { PermissionKey } from '@/config/permissions';
 
@@ -45,12 +47,17 @@ export type AppNavSection = {
   defaultOpen?: boolean;
 };
 
-/** Accesos frecuentes — siempre visibles, sin desplegable */
+/**
+ * Accesos frecuentes — siempre visibles.
+ * POS = caja (cobro). El piso usa la sección «Servicio en piso».
+ */
 export const APP_NAV_QUICK_ACCESS_IDS = ['dashboard', 'pos'] as const;
 
 export const APP_NAV_ITEMS: AppNavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: Grid2x2, href: '/', permission: 'canViewDashboard' },
-  { id: 'pos', label: 'POS', icon: ShoppingCart, href: '/pos', permission: 'canAccessPOS' },
+  { id: 'pos', label: 'Caja / POS', icon: ShoppingCart, href: '/pos', permission: 'canAccessPOS' },
+  { id: 'comanda', label: 'Tomar pedido', icon: UtensilsCrossed, href: '/comanda', permission: 'canTakeFloorOrder' },
+  { id: 'comanda-cocina', label: 'Cola cocina', icon: ChefHat, href: '/comanda/cocina', permission: 'canViewKitchenQueue' },
   { id: 'products', label: 'Inventario', icon: Box, href: '/products', permission: 'canManageProducts' },
   { id: 'movements', label: 'Movimientos inventario', icon: PackageMinus, href: '/inventory/movements', permission: 'canManageInventory' },
   { id: 'invoice-upload', label: 'Subir Factura', icon: FileUp, href: '/inventory/invoice-upload', permission: 'canManageInventory' },
@@ -75,10 +82,26 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
 
 export const APP_NAV_SECTIONS: AppNavSection[] = [
   {
+    id: 'piso',
+    label: 'Servicio en piso',
+    icon: UtensilsCrossed,
+    defaultOpen: true,
+    itemIds: ['comanda', 'comanda-cocina'],
+  },
+  {
     id: 'ventas',
-    label: 'Vender y cobrar',
+    label: 'Caja y ventas',
     icon: CircleDollarSign,
-    itemIds: ['invoices', 'sales-import', 'history', 'licores', 'cierre-caja', 'caja-oficina', 'credits', 'customers'],
+    itemIds: [
+      'invoices',
+      'sales-import',
+      'history',
+      'licores',
+      'cierre-caja',
+      'caja-oficina',
+      'credits',
+      'customers',
+    ],
   },
   {
     id: 'inventario',
@@ -109,6 +132,8 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
 export function resolveAppNavId(pathname: string): string {
   if (pathname === '/' || pathname === '/') return 'dashboard';
   if (pathname.startsWith('/pos')) return 'pos';
+  if (pathname.startsWith('/comanda/cocina')) return 'comanda-cocina';
+  if (pathname.startsWith('/comanda')) return 'comanda';
   if (pathname.startsWith('/servicios-combos')) return 'products';
   if (pathname.startsWith('/products')) return 'products';
   if (pathname.startsWith('/inventory/movements')) return 'movements';

@@ -13,6 +13,10 @@ export const ROUTE_PERMISSIONS: Record<string, PermissionKey> = {
   // POS
   '/pos': 'canAccessPOS',
 
+  // Servicio en piso (estaciones)
+  '/comanda': 'canTakeFloorOrder',
+  '/comanda/cocina': 'canViewKitchenQueue',
+
   // Inventario
   '/products': 'canManageProducts',
   '/servicios-combos': 'canManageProducts',

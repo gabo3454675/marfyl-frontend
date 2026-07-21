@@ -35,6 +35,7 @@ import { QuickProductSheet, type QuickProductResult } from '@/components/pos/qui
 import { PosCalculatorDrawer, PosCalculatorFab } from '@/components/pos/pos-calculator-drawer';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { PosToolbar } from '@/components/pos/pos-toolbar';
+import { PosComandaQueue } from '@/components/pos/pos-comanda-queue';
 
 interface Product {
   id: number;
@@ -46,6 +47,8 @@ interface Product {
   /** Moneda en que está registrado el precio: USD o VES. Por defecto USD. */
   salePriceCurrency?: string | null;
   stock: number;
+  reservedStock?: number;
+  availableStock?: number;
   imageUrl?: string | null;
   minStock: number;
   isExempt?: boolean;
@@ -234,7 +237,7 @@ export default function POSPage() {
     );
   }, [products, debouncedSearchQuery, catalogFilter]);
 
-  /** Máx. unidades según receta (combo o servicio con insumos). */
+  /** Máx. unidades según receta (combo o servicio con insumos). Usa stock disponible neto. */
   const sellableUnitsFromRecipe = useCallback(
     (components: { productId: number; quantity: number }[] | null | undefined): number => {
       if (!components?.length) return 0;
@@ -243,25 +246,34 @@ export default function POSPage() {
         const child = products.find((p) => p.id === comp.productId);
         if (!child) return 0;
         const per = Math.max(1, comp.quantity ?? 1);
-        min = Math.min(min, Math.floor(child.stock / per));
+        const childAvail =
+          typeof child.availableStock === 'number'
+            ? child.availableStock
+            : Math.max(0, child.stock - (child.reservedStock ?? 0));
+        min = Math.min(min, Math.floor(childAvail / per));
       }
       return min === Infinity ? 0 : min;
     },
     [products],
   );
 
-  /** Unidades que se pueden vender en POS (producto sueltos, combos, servicios). */
+  /** Unidades que se pueden vender en POS (stock − reservado por comandas). */
   const sellableUnits = useCallback(
     (product: Product): number => {
       if (product.isBundle) {
-        if (!product.bundleComponents?.length) return product.stock;
+        if (!product.bundleComponents?.length) {
+          return typeof product.availableStock === 'number'
+            ? product.availableStock
+            : Math.max(0, product.stock - (product.reservedStock ?? 0));
+        }
         return sellableUnitsFromRecipe(product.bundleComponents);
       }
       if (product.isService) {
         if (product.bundleComponents?.length) return sellableUnitsFromRecipe(product.bundleComponents);
         return SERVICE_POS_MAX_QTY;
       }
-      return product.stock;
+      if (typeof product.availableStock === 'number') return Math.max(0, product.availableStock);
+      return Math.max(0, product.stock - (product.reservedStock ?? 0));
     },
     [sellableUnitsFromRecipe],
   );
@@ -639,6 +651,8 @@ export default function POSPage() {
       contentClassName="admin-pos-page-body flex min-h-0 flex-1 flex-col gap-0 !space-y-0"
       headerClassName="admin-pos-page-header mb-2 sm:mb-5 md:mb-6 shrink-0"
     >
+
+      <PosComandaQueue className="mb-3 shrink-0 sm:mb-4" />
 
       {/* Barra fija móvil/tablet: carrito + COBRAR rápido */}
       <div

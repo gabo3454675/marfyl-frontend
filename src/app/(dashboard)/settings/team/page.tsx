@@ -46,7 +46,7 @@ interface Member {
   email: string;
   fullName: string | null;
   avatarUrl: string | null;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR' | 'WAITER' | 'KITCHEN';
   status: string;
   joinedAt: string;
 }
@@ -64,13 +64,15 @@ interface AuditLogEntry {
   createdAt: string;
 }
 
-const ROLES_FOR_SELECT: { value: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR'; label: string }[] = [
-  { value: 'SUPER_ADMIN', label: 'Super Administrador' },
+const ROLES_FOR_SELECT: { value: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR' | 'WAITER' | 'KITCHEN'; label: string }[] = [
+  { value: 'SUPER_ADMIN', label: 'Super Admin' },
   { value: 'ADMIN', label: 'Administrador' },
   { value: 'MANAGER', label: 'Gerente' },
-  { value: 'SELLER', label: 'Cajero/Vendedor' },
+  { value: 'SELLER', label: 'Cajero / Vendedor' },
+  { value: 'POS_OPERATOR', label: 'Caja (POS)' },
+  { value: 'WAITER', label: 'Anfitrión / Pasillero' },
+  { value: 'KITCHEN', label: 'Cocina / Barra' },
   { value: 'WAREHOUSE', label: 'Almacén' },
-  { value: 'POS_OPERATOR', label: 'Punto de Venta (POS)' },
 ];
 
 function getAuditActionLabel(action: string): string {
@@ -97,7 +99,7 @@ export default function TeamPage() {
   const [inviteFormData, setInviteFormData] = useState({
     email: '',
     fullName: '',
-    role: 'SELLER' as 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR',
+    role: 'SELLER' as 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR' | 'WAITER' | 'KITCHEN',
   });
   const [tempPasswordModal, setTempPasswordModal] = useState<{ tempPassword: string; email: string } | null>(null);
   const [copiedPassword, setCopiedPassword] = useState(false);
@@ -327,7 +329,9 @@ export default function TeamPage() {
       MANAGER: 'Gerente',
       SELLER: 'Cajero/Vendedor',
       WAREHOUSE: 'Almacén',
-      POS_OPERATOR: 'Punto de Venta (POS)',
+      POS_OPERATOR: 'Caja (POS)',
+      WAITER: 'Anfitrión / Pasillero',
+      KITCHEN: 'Cocina / Barra',
     };
     return labels[role] || role;
   };
@@ -346,6 +350,10 @@ export default function TeamPage() {
         return `${base} bg-slate-500/20 text-slate-600 dark:text-slate-400 border-slate-500/40`;
       case 'WAREHOUSE':
         return `${base} bg-slate-400/20 text-slate-500 dark:text-slate-400 border-slate-400/40`;
+      case 'WAITER':
+        return 'bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-200';
+      case 'KITCHEN':
+        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-200';
       case 'POS_OPERATOR':
         return `${base} bg-violet-500/20 text-violet-600 dark:text-violet-400 border-violet-500/40`;
       default:
@@ -379,7 +387,7 @@ export default function TeamPage() {
     return canManageTeam;
   };
 
-  const handleRoleChange = async (member: Member, newRole: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR') => {
+  const handleRoleChange = async (member: Member, newRole: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR' | 'WAITER' | 'KITCHEN') => {
     if (newRole === member.role) return;
     setUpdatingRoleMemberId(member.id);
     try {
@@ -549,7 +557,7 @@ export default function TeamPage() {
                               {canChangeRole(member) ? (
                                 <Select
                                   value={member.role}
-                                  onValueChange={(value: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR') =>
+                                  onValueChange={(value: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR' | 'WAITER' | 'KITCHEN') =>
                                     handleRoleChange(member, value)
                                   }
                                   disabled={updatingRoleMemberId === member.id}
@@ -659,7 +667,7 @@ export default function TeamPage() {
                             {canChangeRole(member) ? (
                               <Select
                                 value={member.role}
-                                onValueChange={(value: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR') =>
+                                onValueChange={(value: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR' | 'WAITER' | 'KITCHEN') =>
                                   handleRoleChange(member, value)
                                 }
                                 disabled={updatingRoleMemberId === member.id}
@@ -860,7 +868,7 @@ export default function TeamPage() {
               <Label htmlFor="role">Rol</Label>
               <Select
                 value={inviteFormData.role}
-                onValueChange={(value: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR') =>
+                onValueChange={(value: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR' | 'WAITER' | 'KITCHEN') =>
                   setInviteFormData({ ...inviteFormData, role: value })
                 }
               >
@@ -877,7 +885,9 @@ export default function TeamPage() {
                   <SelectItem value="MANAGER">Gerente (MANAGER)</SelectItem>
                   <SelectItem value="SELLER">Cajero/Vendedor (SELLER)</SelectItem>
                   <SelectItem value="WAREHOUSE">Almacén (WAREHOUSE)</SelectItem>
-                  <SelectItem value="POS_OPERATOR">Punto de Venta (POS)</SelectItem>
+                  <SelectItem value="POS_OPERATOR">Caja (POS)</SelectItem>
+                  <SelectItem value="WAITER">Anfitrión / Pasillero (WAITER)</SelectItem>
+                  <SelectItem value="KITCHEN">Cocina / Barra (KITCHEN)</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">

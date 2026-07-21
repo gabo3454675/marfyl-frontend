@@ -9,12 +9,14 @@ import {
   Package,
   Wine,
   GlassWater,
+  Sparkles,
 } from 'lucide-react';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -54,9 +56,9 @@ function formatDayLabel(day: string) {
 
 function PackLine({ pack, showCases }: { pack: LiquorPack; showCases?: boolean }) {
   return (
-    <div className="mt-3 space-y-1 text-sm">
+    <div className="mt-1 space-y-1 text-sm">
       <p className="tabular-nums">
-        <span className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
+        <span className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
           {pack.tobos}
         </span>{' '}
         <span className="text-muted-foreground">tobos</span>
@@ -68,7 +70,7 @@ function PackLine({ pack, showCases }: { pack: LiquorPack; showCases?: boolean }
         )}
       </p>
       {showCases && (
-        <p className="text-muted-foreground tabular-nums">
+        <p className="text-muted-foreground tabular-nums text-xs">
           ≈ <span className="font-medium text-foreground">{pack.cajas}</span> cajas
           {pack.tobosSueltos > 0 && (
             <span>
@@ -76,12 +78,54 @@ function PackLine({ pack, showCases }: { pack: LiquorPack; showCases?: boolean }
               + {pack.tobosSueltos} tobo{pack.tobosSueltos === 1 ? '' : 's'}
             </span>
           )}
-          <span className="opacity-70"> ({pack.cajasExact} cajas exactas)</span>
         </p>
       )}
-      <p className="text-xs text-muted-foreground tabular-nums">
-        {pack.bottles} botellas · {pack.tobosExact} tobos exactos
-      </p>
+    </div>
+  );
+}
+
+function TripleStock({
+  opening,
+  sold,
+  remaining,
+  packOpening,
+  packSold,
+  packRemaining,
+  unitLabel = 'und.',
+  showPack,
+}: {
+  opening: number;
+  sold: number;
+  remaining: number;
+  packOpening?: LiquorPack | null;
+  packSold?: LiquorPack | null;
+  packRemaining?: LiquorPack | null;
+  unitLabel?: string;
+  showPack?: boolean;
+}) {
+  return (
+    <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+      <div className="rounded-xl bg-background/50 px-2 py-2">
+        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Inicio</p>
+        <p className="text-lg font-semibold tabular-nums">{opening}</p>
+        {showPack && packOpening ? <PackLine pack={packOpening} /> : (
+          <p className="text-[11px] text-muted-foreground">{unitLabel}</p>
+        )}
+      </div>
+      <div className="rounded-xl bg-background/50 px-2 py-2">
+        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Vendidos</p>
+        <p className="text-lg font-semibold tabular-nums text-amber-500">{sold}</p>
+        {showPack && packSold ? <PackLine pack={packSold} /> : (
+          <p className="text-[11px] text-muted-foreground">{unitLabel}</p>
+        )}
+      </div>
+      <div className="rounded-xl bg-background/50 px-2 py-2">
+        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Quedan</p>
+        <p className="text-lg font-semibold tabular-nums text-emerald-500">{remaining}</p>
+        {showPack && packRemaining ? <PackLine pack={packRemaining} /> : (
+          <p className="text-[11px] text-muted-foreground">{unitLabel}</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -99,7 +143,6 @@ export default function LicoresPage() {
     staleTime: 30_000,
   });
 
-  // Si el backend cae al último día con ventas, alinea el date picker.
   useEffect(() => {
     if (data?.usedFallback && data.day && data.day !== day) {
       setDay(data.day);
@@ -115,7 +158,7 @@ export default function LicoresPage() {
     <AdminPageShell
       eyebrow="Ventas"
       title="Licores y tobos"
-      subtitle="Cerveza en tobos de 12 y cajas de 3 tobos. Whisky y otros por unidad."
+      subtitle="Inicio automático → vendido → teórico restante. Tobos de 12 · cajas de 3 tobos."
       actions={
         <div className="flex flex-wrap items-end gap-2">
           <div className="space-y-1">
@@ -152,7 +195,13 @@ export default function LicoresPage() {
       }
     >
       <div className="space-y-5 sm:space-y-6">
-        <p className="text-sm text-muted-foreground capitalize">{titleDay}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm text-muted-foreground capitalize">{titleDay}</p>
+          <Badge variant="secondary" className="gap-1 font-normal">
+            <Sparkles className="h-3 w-3" />
+            Apertura automática
+          </Badge>
+        </div>
 
         {error && (
           <AdminCard title="Error">
@@ -190,14 +239,23 @@ export default function LicoresPage() {
                 aria-hidden
                 className="pointer-events-none absolute -top-20 -right-16 h-48 w-48 rounded-full bg-amber-400/20 blur-3xl"
               />
-              <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="text-[11px] sm:text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                    Cerveza total del día
-                  </p>
-                  <PackLine pack={data.beer} showCases />
-                </div>
-                <p className="text-xs sm:text-sm text-muted-foreground max-w-xs leading-relaxed">
+              <div className="relative">
+                <p className="text-[11px] sm:text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                  Cerveza total del día
+                </p>
+                <TripleStock
+                  opening={data.beer.opening ?? data.beer.bottles}
+                  sold={data.beer.bottles}
+                  remaining={
+                    data.beer.remainingTheoretical ??
+                    Math.max(0, (data.beer.opening ?? data.beer.bottles) - data.beer.bottles)
+                  }
+                  packOpening={data.beer.packOpening}
+                  packSold={data.beer}
+                  packRemaining={data.beer.packRemaining}
+                  showPack
+                />
+                <p className="mt-3 text-xs sm:text-sm text-muted-foreground max-w-lg leading-relaxed">
                   {data.rules.note}
                 </p>
               </div>
@@ -212,7 +270,22 @@ export default function LicoresPage() {
                   </span>
                 }
               >
-                <PackLine pack={data.beer.light.pack} showCases />
+                <TripleStock
+                  opening={data.beer.light.opening ?? data.beer.light.bottles}
+                  sold={data.beer.light.bottles}
+                  remaining={
+                    data.beer.light.remainingTheoretical ??
+                    Math.max(
+                      0,
+                      (data.beer.light.opening ?? data.beer.light.bottles) -
+                        data.beer.light.bottles,
+                    )
+                  }
+                  packOpening={data.beer.light.packOpening}
+                  packSold={data.beer.light.pack}
+                  packRemaining={data.beer.light.packRemaining}
+                  showPack
+                />
                 <p className="mt-2 text-xs text-muted-foreground tabular-nums">
                   {formatUsdAmount(data.beer.light.usd)}
                 </p>
@@ -226,7 +299,22 @@ export default function LicoresPage() {
                   </span>
                 }
               >
-                <PackLine pack={data.beer.negra.pack} showCases />
+                <TripleStock
+                  opening={data.beer.negra.opening ?? data.beer.negra.bottles}
+                  sold={data.beer.negra.bottles}
+                  remaining={
+                    data.beer.negra.remainingTheoretical ??
+                    Math.max(
+                      0,
+                      (data.beer.negra.opening ?? data.beer.negra.bottles) -
+                        data.beer.negra.bottles,
+                    )
+                  }
+                  packOpening={data.beer.negra.packOpening}
+                  packSold={data.beer.negra.pack}
+                  packRemaining={data.beer.negra.packRemaining}
+                  showPack
+                />
                 <p className="mt-2 text-xs text-muted-foreground tabular-nums">
                   {formatUsdAmount(data.beer.negra.usd)}
                 </p>
@@ -240,12 +328,17 @@ export default function LicoresPage() {
                   </span>
                 }
               >
-                <p className="mt-2 tabular-nums">
-                  <span className="text-2xl sm:text-3xl font-semibold tracking-tight">
-                    {data.whisky.bottles}
-                  </span>{' '}
-                  <span className="text-muted-foreground text-sm">unidades</span>
-                </p>
+                <TripleStock
+                  opening={data.whisky.opening ?? data.whisky.bottles}
+                  sold={data.whisky.bottles}
+                  remaining={
+                    data.whisky.remainingTheoretical ??
+                    Math.max(
+                      0,
+                      (data.whisky.opening ?? data.whisky.bottles) - data.whisky.bottles,
+                    )
+                  }
+                />
                 <p className="mt-2 text-xs text-muted-foreground tabular-nums">
                   {formatUsdAmount(data.whisky.usd)}
                 </p>
@@ -259,12 +352,17 @@ export default function LicoresPage() {
                   </span>
                 }
               >
-                <p className="mt-2 tabular-nums">
-                  <span className="text-2xl sm:text-3xl font-semibold tracking-tight">
-                    {data.otros.bottles}
-                  </span>{' '}
-                  <span className="text-muted-foreground text-sm">unidades</span>
-                </p>
+                <TripleStock
+                  opening={data.otros.opening ?? data.otros.bottles}
+                  sold={data.otros.bottles}
+                  remaining={
+                    data.otros.remainingTheoretical ??
+                    Math.max(
+                      0,
+                      (data.otros.opening ?? data.otros.bottles) - data.otros.bottles,
+                    )
+                  }
+                />
                 <p className="mt-2 text-xs text-muted-foreground tabular-nums">
                   {formatUsdAmount(data.otros.usd)}
                 </p>
@@ -287,7 +385,18 @@ export default function LicoresPage() {
                       className="rounded-xl border border-border/60 bg-background/40 px-3.5 py-3"
                     >
                       <p className="text-sm font-medium">{style.label}</p>
-                      <PackLine pack={style.pack} showCases />
+                      <TripleStock
+                        opening={style.opening ?? style.bottles}
+                        sold={style.bottles}
+                        remaining={
+                          style.remainingTheoretical ??
+                          Math.max(0, (style.opening ?? style.bottles) - style.bottles)
+                        }
+                        packOpening={style.packOpening}
+                        packSold={style.pack}
+                        packRemaining={style.packRemaining}
+                        showPack
+                      />
                       <p className="mt-1.5 text-xs text-muted-foreground tabular-nums">
                         {formatUsdAmount(style.usd)}
                       </p>
@@ -307,7 +416,7 @@ export default function LicoresPage() {
             >
               {data.products.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-6">
-                  No hay ventas de licores clasificadas este día.
+                  No hay licores con apertura o ventas este día.
                 </p>
               ) : (
                 <AdminTableWrap>
@@ -316,10 +425,11 @@ export default function LicoresPage() {
                       <TableRow>
                         <TableHead>Producto</TableHead>
                         <TableHead className="hidden sm:table-cell">Grupo</TableHead>
-                        <TableHead className="hidden md:table-cell">Marca / tipo</TableHead>
-                        <TableHead className="text-right">Und.</TableHead>
+                        <TableHead className="text-right">Inicio</TableHead>
+                        <TableHead className="text-right">Vend.</TableHead>
+                        <TableHead className="text-right">Quedan</TableHead>
                         <TableHead className="text-right hidden min-[400px]:table-cell">
-                          Tobos / cajas
+                          Tobos
                         </TableHead>
                         <TableHead className="text-right">USD</TableHead>
                       </TableRow>
@@ -336,21 +446,23 @@ export default function LicoresPage() {
                             </div>
                           </TableCell>
                           <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
-                            {p.bucketLabel}
+                            {p.beerStyleLabel || p.bucketLabel}
                           </TableCell>
-                          <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
-                            {p.beerStyleLabel || '—'}
+                          <TableCell className="text-right tabular-nums text-sm">
+                            {p.opening ?? '—'}
                           </TableCell>
                           <TableCell className="text-right tabular-nums font-medium">
                             {p.quantity}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums text-sm text-emerald-500">
+                            {p.remainingTheoretical ?? '—'}
                           </TableCell>
                           <TableCell className="text-right tabular-nums text-sm text-muted-foreground hidden min-[400px]:table-cell">
                             {p.pack
                               ? `${p.pack.tobos} tobos` +
                                 (p.pack.looseBottles
                                   ? ` +${p.pack.looseBottles}`
-                                  : '') +
-                                ` · ${p.pack.cajas} cajas`
+                                  : '')
                               : '—'}
                           </TableCell>
                           <TableCell className="text-right tabular-nums text-sm">

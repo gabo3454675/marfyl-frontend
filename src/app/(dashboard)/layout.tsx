@@ -36,8 +36,13 @@ export default function DashboardLayout({
   const pathname = usePathname() ?? '';
   const permissions = usePermission();
   const isPosOnlySeller = permissions.isPosOnlySeller;
+  const isWaiterOnly = permissions.isWaiterOnly;
+  const isKitchenOnly = permissions.isKitchenOnly;
+  const isStationLocked = isPosOnlySeller || isWaiterOnly || isKitchenOnly;
   const isAssistantRoute = pathname === '/assistant' || pathname.startsWith('/assistant/');
   const isPosRoute = pathname === '/pos' || isPosOnlySeller;
+  const isComandaRoute =
+    pathname.startsWith('/comanda') || isWaiterOnly || isKitchenOnly;
   const devPreview = isFiscalPreviewMode();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const hasHydrated = useAuthStore((state) => state._hasHydrated);
@@ -52,9 +57,12 @@ export default function DashboardLayout({
 
   const selectedId = selectedOrganizationId || selectedCompanyId;
 
-  // Detectar si el usuario es POS_OPERATOR en la org actual
+  // Detectar rol de estación en la org actual
   const currentOrgForRole = user?.organizations?.find((o) => o.id === selectedId);
   const isPosOperator = currentOrgForRole?.role === 'POS_OPERATOR';
+  const orgRole = String(currentOrgForRole?.role ?? '').toUpperCase();
+  const isStationRole =
+    isPosOperator || orgRole === 'WAITER' || orgRole === 'KITCHEN' || isStationLocked;
 
   // Sincronizar facturas pendientes al volver online
   useSync();
@@ -79,9 +87,9 @@ export default function DashboardLayout({
   }, []);
 
   useEffect(() => {
-    if (!mounted || !hasHydrated || !isAuthenticated || !selectedId || isPosOperator) return;
+    if (!mounted || !hasHydrated || !isAuthenticated || !selectedId || isStationRole) return;
     syncOrganizationRate();
-  }, [mounted, hasHydrated, isAuthenticated, selectedId, syncOrganizationRate, isPosOperator]);
+  }, [mounted, hasHydrated, isAuthenticated, selectedId, syncOrganizationRate, isStationRole]);
 
   /** Refrescar tasa al volver a la pestaña + cada 15 min (backend cachea 60s) — no necesario para POS_OPERATOR */
   useEffect(() => {
@@ -135,9 +143,17 @@ export default function DashboardLayout({
       }
       if (devPreview) return;
 
-      // POS_OPERATOR: redirigir al POS si está en el dashboard
-      if (isPosOperator && (pathname === '/' || pathname === '/' || pathname === '')) {
+      // Estaciones: home → su pantalla operativa
+      if (isPosOperator && (pathname === '/' || pathname === '')) {
         router.replace('/pos');
+        return;
+      }
+      if (currentOrgForRole?.role === 'WAITER' && (pathname === '/' || pathname === '')) {
+        router.replace('/comanda');
+        return;
+      }
+      if (currentOrgForRole?.role === 'KITCHEN' && (pathname === '/' || pathname === '')) {
+        router.replace('/comanda/cocina');
         return;
       }
 
@@ -206,7 +222,7 @@ export default function DashboardLayout({
     }
   }, [mounted, hasHydrated, isAuthenticated, selectedId, hasOrganizations, user, router, pathname, devPreview]);
 
-  /** Cajero (SELLER): solo POS a pantalla completa */
+  /** Cajero: solo POS */
   useEffect(() => {
     if (!mounted || !hasHydrated || !isAuthenticated || devPreview) return;
     if (!isPosOnlySeller) return;
@@ -214,6 +230,24 @@ export default function DashboardLayout({
       router.replace('/pos');
     }
   }, [mounted, hasHydrated, isAuthenticated, isPosOnlySeller, pathname, router, devPreview]);
+
+  /** Anfitrión: solo tomar pedido */
+  useEffect(() => {
+    if (!mounted || !hasHydrated || !isAuthenticated || devPreview) return;
+    if (!isWaiterOnly) return;
+    if (!pathname.startsWith('/comanda') || pathname.startsWith('/comanda/cocina')) {
+      router.replace('/comanda');
+    }
+  }, [mounted, hasHydrated, isAuthenticated, isWaiterOnly, pathname, router, devPreview]);
+
+  /** Cocina: solo cola */
+  useEffect(() => {
+    if (!mounted || !hasHydrated || !isAuthenticated || devPreview) return;
+    if (!isKitchenOnly) return;
+    if (pathname !== '/comanda/cocina') {
+      router.replace('/comanda/cocina');
+    }
+  }, [mounted, hasHydrated, isAuthenticated, isKitchenOnly, pathname, router, devPreview]);
 
   // Mientras se carga o hidrata, mostrar un estado de carga
   if (!mounted || !hasHydrated) {
@@ -264,8 +298,8 @@ export default function DashboardLayout({
     );
   }
 
-  // POS_OPERATOR: layout ligero — sin Assistant, sin RateConfigModal, sin MarfylAssistant
-  if (isPosOperator) {
+  // Estaciones (caja / anfitrión / cocina): layout ligero
+  if (isStationRole) {
     return (
       <NotificationFeedProvider>
         <div className="dm-app-shell flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden md:flex-row md:gap-0">
@@ -273,7 +307,7 @@ export default function DashboardLayout({
           <Sidebar />
           <main className="admin-main-pane flex flex-1 flex-col min-h-0 min-w-0 w-full bg-background">
             <AdminTopbar onOpenRateConfig={() => setRateConfigModalOpen(true)} />
-            <div className={cn('app-main-scroll', isPosRoute && 'app-main-scroll--pos')}>
+            <div className={cn('app-main-scroll', (isPosRoute || isComandaRoute) && 'app-main-scroll--pos')}>
               <div className={cn('app-page-shell', isPosRoute && 'app-page-shell--pos')}>
                 <RouteGuard pathname={pathname}>
                   {children}

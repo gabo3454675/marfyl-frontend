@@ -66,7 +66,10 @@ export default function AcceptInvitationPage() {
       ADMIN: 'Administrador',
       MANAGER: 'Gerente',
       SELLER: 'Cajero/Vendedor',
-      WAREHOUSE: 'Almacén',
+      POS_OPERATOR: 'Caja (POS)',
+      WAITER: 'Anfitri?n / Pasillero',
+      KITCHEN: 'Cocina / Barra',
+      WAREHOUSE: 'Almac?n',
     };
     return labels[role] || role;
   };

@@ -1,52 +1,43 @@
 /**
  * PermissionMap — Fuente de verdad de permisos en el frontend.
- *
- * Cada permiso es un booleano derivado del rol del usuario.
- * El hook usePermission() consume este mapa.
+ * Puestos: WAITER (tomar pedido), KITCHEN (cola), SELLER/POS_OPERATOR (caja).
  */
 
 export type PermissionKey =
-  // Dashboard
   | 'canViewDashboard'
   | 'canAccessPOS'
+  | 'canAccessComanda'
+  | 'canTakeFloorOrder'
+  | 'canViewKitchenQueue'
   | 'canViewFinancialCharts'
-  // Reportes
   | 'canViewReports'
-  // Productos
   | 'canManageProducts'
   | 'canViewProducts'
   | 'canManageInventory'
-  // Clientes y Ventas
   | 'canManageCustomers'
   | 'canManageInvoices'
   | 'canAnulateInvoices'
   | 'canDeleteInvoices'
-  // Créditos
   | 'canViewCredits'
   | 'canManageCredits'
-  // Caja
   | 'canManageCierreCaja'
-  // Gastos
   | 'canManageExpenses'
-  // Equipo
   | 'canManageTeam'
   | 'canManageSettings'
   | 'canInviteMembers'
   | 'canAssignTasks'
   | 'canCreateOrganization'
-  // Fiscal
-  | 'canManageFiscal';
+  | 'canManageFiscal'
 
 export type PermissionMap = Record<PermissionKey, boolean>;
 
-/**
- * Matriz de permisos por rol.
- * Usado por usePermission() para computar permisos desde el rol.
- */
 export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
   SUPER_ADMIN: {
     canViewDashboard: true,
     canAccessPOS: true,
+    canAccessComanda: true,
+    canTakeFloorOrder: true,
+    canViewKitchenQueue: true,
     canViewFinancialCharts: true,
     canViewReports: true,
     canManageProducts: true,
@@ -70,6 +61,9 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
   ADMIN: {
     canViewDashboard: true,
     canAccessPOS: true,
+    canAccessComanda: true,
+    canTakeFloorOrder: true,
+    canViewKitchenQueue: true,
     canViewFinancialCharts: true,
     canViewReports: true,
     canManageProducts: true,
@@ -93,6 +87,9 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
   MANAGER: {
     canViewDashboard: true,
     canAccessPOS: true,
+    canAccessComanda: true,
+    canTakeFloorOrder: true,
+    canViewKitchenQueue: true,
     canViewFinancialCharts: true,
     canViewReports: true,
     canManageProducts: true,
@@ -116,6 +113,9 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
   SELLER: {
     canViewDashboard: true,
     canAccessPOS: true,
+    canAccessComanda: false,
+    canTakeFloorOrder: false,
+    canViewKitchenQueue: false,
     canViewFinancialCharts: false,
     canViewReports: false,
     canManageProducts: false,
@@ -139,6 +139,9 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
   WAREHOUSE: {
     canViewDashboard: true,
     canAccessPOS: false,
+    canAccessComanda: false,
+    canTakeFloorOrder: false,
+    canViewKitchenQueue: false,
     canViewFinancialCharts: false,
     canViewReports: false,
     canManageProducts: true,
@@ -162,6 +165,9 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
   POS_OPERATOR: {
     canViewDashboard: false,
     canAccessPOS: true,
+    canAccessComanda: false,
+    canTakeFloorOrder: false,
+    canViewKitchenQueue: false,
     canViewFinancialCharts: false,
     canViewReports: false,
     canManageProducts: false,
@@ -182,9 +188,64 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
     canCreateOrganization: false,
     canManageFiscal: false,
   },
+  WAITER: {
+    canViewDashboard: false,
+    canAccessPOS: false,
+    canAccessComanda: true,
+    canTakeFloorOrder: true,
+    canViewKitchenQueue: false,
+    canViewFinancialCharts: false,
+    canViewReports: false,
+    canManageProducts: false,
+    canViewProducts: true,
+    canManageInventory: false,
+    canManageCustomers: false,
+    canManageInvoices: false,
+    canAnulateInvoices: false,
+    canDeleteInvoices: false,
+    canViewCredits: false,
+    canManageCredits: false,
+    canManageCierreCaja: false,
+    canManageExpenses: false,
+    canManageTeam: false,
+    canManageSettings: false,
+    canInviteMembers: false,
+    canAssignTasks: false,
+    canCreateOrganization: false,
+    canManageFiscal: false,
+  },
+  KITCHEN: {
+    canViewDashboard: false,
+    canAccessPOS: false,
+    canAccessComanda: true,
+    canTakeFloorOrder: false,
+    canViewKitchenQueue: true,
+    canViewFinancialCharts: false,
+    canViewReports: false,
+    canManageProducts: false,
+    canViewProducts: true,
+    canManageInventory: false,
+    canManageCustomers: false,
+    canManageInvoices: false,
+    canAnulateInvoices: false,
+    canDeleteInvoices: false,
+    canViewCredits: false,
+    canManageCredits: false,
+    canManageCierreCaja: false,
+    canManageExpenses: false,
+    canManageTeam: false,
+    canManageSettings: false,
+    canInviteMembers: false,
+    canAssignTasks: false,
+    canCreateOrganization: false,
+    canManageFiscal: false,
+  },
   FISCAL: {
     canViewDashboard: true,
     canAccessPOS: false,
+    canAccessComanda: false,
+    canTakeFloorOrder: false,
+    canViewKitchenQueue: false,
     canViewFinancialCharts: false,
     canViewReports: false,
     canManageProducts: false,
@@ -207,16 +268,15 @@ export const ROLE_PERMISSIONS: Record<string, PermissionMap> = {
   },
 };
 
-/**
- * Obtiene los permisos para un rol dado.
- * Si el rol no existe, retorna un objeto con todos los permisos en false.
- */
 export function getPermissionsForRole(role: string): PermissionMap {
   const normalizedRole = role.toUpperCase().trim();
   return (
     ROLE_PERMISSIONS[normalizedRole] ?? {
       canViewDashboard: false,
       canAccessPOS: false,
+      canAccessComanda: false,
+      canTakeFloorOrder: false,
+      canViewKitchenQueue: false,
       canViewFinancialCharts: false,
       canViewReports: false,
       canManageProducts: false,
