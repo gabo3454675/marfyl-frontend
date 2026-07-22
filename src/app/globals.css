@@ -938,6 +938,36 @@
     color: hsl(var(--foreground) / 0.92);
   }
 
+  .gallery-org-chip {
+    @apply inline-flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold text-foreground;
+    border-color: hsl(var(--border) / 0.9);
+    background: linear-gradient(
+      165deg,
+      hsl(var(--card) / 0.95) 0%,
+      hsl(var(--muted) / 0.45) 100%
+    );
+    box-shadow: 0 1px 2px hsl(0 0% 0% / 0.04);
+  }
+  .gallery-org-chip:hover {
+    border-color: hsl(var(--primary) / 0.35);
+    background: linear-gradient(
+      165deg,
+      hsl(var(--card)) 0%,
+      hsl(var(--primary) / 0.06) 100%
+    );
+  }
+  .dark .gallery-org-chip {
+    border-color: hsl(0 0% 100% / 0.14);
+    background: linear-gradient(
+      165deg,
+      hsl(var(--dm-a-elevated) / 0.9) 0%,
+      hsl(var(--dm-a-base) / 0.95) 100%
+    );
+  }
+  .dark .gallery-org-chip:hover {
+    border-color: hsl(var(--dm-a-accent) / 0.4);
+  }
+
   .admin-sidebar {
     @apply border-r border-sidebar-border z-[2] flex-shrink-0;
     width: var(--admin-sidebar-width-expanded);

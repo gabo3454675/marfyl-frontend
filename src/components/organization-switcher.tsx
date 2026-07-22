@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { useOrganizationSwitcher } from '@/hooks/useOrganizationSwitcher';
 
 type OrganizationSwitcherProps = {
-  variant: 'topbar' | 'menu-list' | 'dropdown';
+  variant: 'topbar' | 'menu-list' | 'dropdown' | 'gallery';
   className?: string;
   onBeforeSwitch?: () => void;
 };
@@ -41,11 +41,17 @@ export function OrganizationSwitcher({
   const orgName = currentOrg?.name || 'Mi organización';
 
   if (!hasMultipleOrganizations) {
-    if (variant === 'topbar') {
+    if (variant === 'topbar' || variant === 'gallery') {
       return (
-        <span className={cn('admin-org-chip', className)} title={orgName}>
+        <span
+          className={cn(
+            variant === 'gallery' ? 'gallery-org-chip' : 'admin-org-chip',
+            className,
+          )}
+          title={orgName}
+        >
           <Building2 className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
-          <span className="truncate max-w-[10rem] sm:max-w-[14rem]">{orgName}</span>
+          <span className="truncate">{orgName}</span>
         </span>
       );
     }
@@ -103,6 +109,11 @@ export function OrganizationSwitcher({
           'admin-org-chip touch-manipulation cursor-pointer hover:bg-muted/80 active:scale-[0.98] transition-transform',
           className,
         )
+      : variant === 'gallery'
+        ? cn(
+            'gallery-org-chip touch-manipulation cursor-pointer active:scale-[0.98] transition-transform',
+            className,
+          )
       : cn(
           'admin-org-switcher w-full justify-between text-sidebar-foreground min-h-[44px] py-3 cursor-pointer',
           className,
@@ -111,7 +122,7 @@ export function OrganizationSwitcher({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        {variant === 'topbar' ? (
+        {variant === 'topbar' || variant === 'gallery' ? (
           <button
             type="button"
             className={triggerClassName}
@@ -119,7 +130,7 @@ export function OrganizationSwitcher({
             disabled={isSwitching}
           >
             <Building2 className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
-            <span className="truncate max-w-[10rem] sm:max-w-[14rem]">{orgName}</span>
+            <span className="min-w-0 flex-1 truncate text-left">{orgName}</span>
             <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
           </button>
         ) : (
@@ -134,12 +145,12 @@ export function OrganizationSwitcher({
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        align="start"
+        align="end"
         side="bottom"
         collisionPadding={10}
-        className="w-[--radix-dropdown-menu-trigger-width] max-w-[calc(100vw-20px)] z-[120]"
+        className="min-w-[14rem] w-[var(--radix-dropdown-menu-trigger-width)] max-w-[calc(100vw-20px)] z-[120]"
       >
-        <DropdownMenuLabel>Seleccionar organización</DropdownMenuLabel>
+        <DropdownMenuLabel>Empresa / organización</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {organizations.length === 0 ? (
           <div className="px-2 py-3 text-sm text-muted-foreground">

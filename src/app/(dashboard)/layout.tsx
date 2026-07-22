@@ -13,6 +13,7 @@ import { RateConfigModal } from '@/components/rate-config-modal';
 import { AssistantProvider } from '@/components/assistant/assistant-provider';
 import { DmAmbientMotion } from '@/components/ui/dm-ambient-motion';
 import { DevAppSwitcher } from '@/components/marketing/dev-app-switcher';
+import { GalleryAppBar } from '@/components/gallery/gallery-app-bar';
 import { useSync } from '@/hooks/useSync';
 import { usePermission } from '@/hooks/usePermission';
 import { Button } from '@/components/ui/button';
@@ -308,9 +309,13 @@ export default function DashboardLayout({
       <NotificationFeedProvider>
         <div className="dm-app-shell flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden md:flex-row md:gap-0">
           <DmAmbientMotion palette="a" intensity="subtle" />
-           {!isModuleGalleryEnabled() && <Sidebar />}
-           <main className="admin-main-pane flex flex-1 flex-col min-h-0 min-w-0 w-full bg-background">
-             {!isModuleGalleryEnabled() && <AdminTopbar onOpenRateConfig={() => setRateConfigModalOpen(true)} />}
+          {!isModuleGalleryEnabled() && <Sidebar />}
+          <main className="admin-main-pane flex flex-1 flex-col min-h-0 min-w-0 w-full bg-background">
+            {isModuleGalleryEnabled() ? (
+              <GalleryAppBar />
+            ) : (
+              <AdminTopbar onOpenRateConfig={() => setRateConfigModalOpen(true)} />
+            )}
             <div className={cn('app-main-scroll', (isPosRoute || isComandaRoute) && 'app-main-scroll--pos')}>
               <div className={cn('app-page-shell', isPosRoute && 'app-page-shell--pos')}>
                 <RouteGuard pathname={pathname}>
@@ -319,11 +324,11 @@ export default function DashboardLayout({
               </div>
             </div>
           </main>
-           {!isModuleGalleryEnabled() && <BottomNav />}
-         </div>
-       </NotificationFeedProvider>
-     );
-   }
+          {!isModuleGalleryEnabled() && <BottomNav />}
+        </div>
+      </NotificationFeedProvider>
+    );
+  }
 
   // Layout completo para otros roles
   return (
@@ -339,9 +344,12 @@ export default function DashboardLayout({
         {!isPosOnlySeller && !isModuleGalleryEnabled() && <DmAmbientMotion palette="a" intensity="subtle" />}
         {!isPosOnlySeller && !isModuleGalleryEnabled() && <Sidebar />}
         <main className="admin-main-pane flex flex-1 flex-col min-h-0 min-w-0 w-full bg-background">
-          {!isPosOnlySeller && !isModuleGalleryEnabled() && (
-            <AdminTopbar onOpenRateConfig={() => setRateConfigModalOpen(true)} />
-          )}
+          {!isPosOnlySeller &&
+            (isModuleGalleryEnabled() ? (
+              <GalleryAppBar />
+            ) : (
+              <AdminTopbar onOpenRateConfig={() => setRateConfigModalOpen(true)} />
+            ))}
           {devPreview && !isPosOnlySeller && !isModuleGalleryEnabled() && <DevAppSwitcher />}
           <div
             className={
