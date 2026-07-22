@@ -18,6 +18,7 @@ import { usePermission } from '@/hooks/usePermission';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { RouteGuard } from '@/components/RouteGuard';
+import { isModuleGalleryEnabled } from '@/lib/gallery/feature';
 import { Loader2 } from 'lucide-react';
 
 const Sidebar = dynamic(() => import('@/components/sidebar'), { ssr: false });
@@ -307,9 +308,9 @@ export default function DashboardLayout({
       <NotificationFeedProvider>
         <div className="dm-app-shell flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden md:flex-row md:gap-0">
           <DmAmbientMotion palette="a" intensity="subtle" />
-          <Sidebar />
-          <main className="admin-main-pane flex flex-1 flex-col min-h-0 min-w-0 w-full bg-background">
-            <AdminTopbar onOpenRateConfig={() => setRateConfigModalOpen(true)} />
+           {!isModuleGalleryEnabled() && <Sidebar />}
+           <main className="admin-main-pane flex flex-1 flex-col min-h-0 min-w-0 w-full bg-background">
+             {!isModuleGalleryEnabled() && <AdminTopbar onOpenRateConfig={() => setRateConfigModalOpen(true)} />}
             <div className={cn('app-main-scroll', (isPosRoute || isComandaRoute) && 'app-main-scroll--pos')}>
               <div className={cn('app-page-shell', isPosRoute && 'app-page-shell--pos')}>
                 <RouteGuard pathname={pathname}>
@@ -318,11 +319,11 @@ export default function DashboardLayout({
               </div>
             </div>
           </main>
-          <BottomNav />
-        </div>
-      </NotificationFeedProvider>
-    );
-  }
+           {!isModuleGalleryEnabled() && <BottomNav />}
+         </div>
+       </NotificationFeedProvider>
+     );
+   }
 
   // Layout completo para otros roles
   return (
@@ -335,13 +336,13 @@ export default function DashboardLayout({
           isPosOnlySeller && 'dm-app-shell--pos-only',
         )}
       >
-        {!isPosOnlySeller && <DmAmbientMotion palette="a" intensity="subtle" />}
-        {!isPosOnlySeller && <Sidebar />}
+        {!isPosOnlySeller && !isModuleGalleryEnabled() && <DmAmbientMotion palette="a" intensity="subtle" />}
+        {!isPosOnlySeller && !isModuleGalleryEnabled() && <Sidebar />}
         <main className="admin-main-pane flex flex-1 flex-col min-h-0 min-w-0 w-full bg-background">
-          {!isPosOnlySeller && (
+          {!isPosOnlySeller && !isModuleGalleryEnabled() && (
             <AdminTopbar onOpenRateConfig={() => setRateConfigModalOpen(true)} />
           )}
-          {devPreview && !isPosOnlySeller && <DevAppSwitcher />}
+          {devPreview && !isPosOnlySeller && !isModuleGalleryEnabled() && <DevAppSwitcher />}
           <div
             className={
               isAssistantRoute
@@ -366,7 +367,7 @@ export default function DashboardLayout({
           <RateConfigModal open={rateConfigModalOpen} onOpenChange={setRateConfigModalOpen} />
         )}
 
-        {!isPosOnlySeller && <BottomNav />}
+        {!isPosOnlySeller && !isModuleGalleryEnabled() && <BottomNav />}
       </div>
 
       {!isAssistantRoute && !isPosOnlySeller && (

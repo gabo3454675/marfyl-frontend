@@ -24,6 +24,7 @@ import {
   UtensilsCrossed,
   ChefHat,
   ClipboardList,
+  Layers,
 } from 'lucide-react';
 import type { PermissionKey } from '@/config/permissions';
 
@@ -171,6 +172,14 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     permission: 'canManageProducts',
   },
   {
+    id: 'servicios-combos',
+    label: 'Servicios y Combos',
+    href: '/servicios-combos',
+    icon: Layers,
+    permission: 'canManageProducts',
+    hint: 'Paquetes y servicios',
+  },
+  {
     id: 'movements',
     label: 'Movimientos',
     icon: PackageMinus,
@@ -316,7 +325,7 @@ export function resolveAppNavId(pathname: string): string {
   if (pathname.startsWith('/comanda/historial')) return 'comanda-historial';
   if (pathname.startsWith('/comanda/cocina')) return 'comanda-cocina';
   if (pathname.startsWith('/comanda')) return 'comanda';
-  if (pathname.startsWith('/servicios-combos')) return 'products';
+  if (pathname.startsWith('/servicios-combos')) return 'servicios-combos';
   if (pathname.startsWith('/products')) return 'products';
   if (pathname.startsWith('/inventory/movements')) return 'movements';
   if (pathname.startsWith('/autoconsumo')) return 'autoconsumo';
