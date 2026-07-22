@@ -1,12 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { LayoutGrid, LogOut } from 'lucide-react';
+import { useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { LogOut } from 'lucide-react';
 import { OrganizationSwitcher } from '@/components/organization-switcher';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { MarfylLogo } from '@/components/brand/marfyl-logo';
+import { BackToGalleryButton } from '@/components/gallery/back-to-gallery-button';
+import { ExchangeRateIndicator } from '@/components/exchange-rate-indicator';
 import { useAuthStore } from '@/store/useAuthStore';
 import { markExplicitLogout } from '@/lib/fiscal-preview';
 import { cn } from '@/lib/utils';
@@ -17,9 +20,9 @@ import { cn } from '@/lib/utils';
  */
 export function GalleryAppBar({ className }: { className?: string }) {
   const pathname = usePathname() ?? '';
-  const router = useRouter();
   const logout = useAuthStore((s) => s.logout);
   const isHome = pathname === '/' || pathname === '';
+  const [rateCurrency, setRateCurrency] = useState<'USD' | 'EUR'>('USD');
 
   const handleLogout = async () => {
     markExplicitLogout();
@@ -55,23 +58,44 @@ export function GalleryAppBar({ className }: { className?: string }) {
           </span>
         </Link>
 
-        {!isHome && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="hidden h-9 gap-1.5 rounded-xl text-muted-foreground sm:inline-flex"
-            onClick={() => router.push('/')}
-          >
-            <LayoutGrid className="h-3.5 w-3.5" />
-            Módulos
-          </Button>
-        )}
+        {!isHome && <BackToGalleryButton />}
 
         <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-2.5">
           <OrganizationSwitcher
             variant="gallery"
             className="max-w-[min(100%,18rem)] sm:max-w-[22rem]"
+          />
+          <div className="hidden shrink-0 items-center rounded-xl border bg-muted/30 p-0.5 sm:flex">
+            <button
+              type="button"
+              onClick={() => setRateCurrency('USD')}
+              className={cn(
+                'rounded-lg px-2 py-1 text-[11px] font-semibold transition-colors',
+                rateCurrency === 'USD'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+              aria-pressed={rateCurrency === 'USD'}
+            >
+              USD
+            </button>
+            <button
+              type="button"
+              onClick={() => setRateCurrency('EUR')}
+              className={cn(
+                'rounded-lg px-2 py-1 text-[11px] font-semibold transition-colors',
+                rateCurrency === 'EUR'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+              aria-pressed={rateCurrency === 'EUR'}
+            >
+              EUR
+            </button>
+          </div>
+          <ExchangeRateIndicator
+            currency={rateCurrency}
+            className="hidden h-9 min-h-9 shrink-0 gap-1.5 rounded-xl px-2 text-xs sm:inline-flex sm:px-2.5 sm:text-sm"
           />
           <ThemeToggle variant="compact" className="shrink-0" />
           <Button

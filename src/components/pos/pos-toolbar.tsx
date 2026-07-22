@@ -5,13 +5,16 @@ import { useRouter } from 'next/navigation';
 import { LogOut, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { OrganizationSwitcher } from '@/components/organization-switcher';
+import { BackToGalleryButton } from '@/components/gallery/back-to-gallery-button';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePermission } from '@/hooks/usePermission';
+import { isModuleGalleryEnabled } from '@/lib/gallery/feature';
 
 export function PosToolbar() {
   const router = useRouter();
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const { canManageInventory } = usePermission();
+  const galleryEnabled = isModuleGalleryEnabled();
 
   const handleLogout = () => {
     clearAuth();
@@ -19,8 +22,13 @@ export function PosToolbar() {
   };
 
   return (
-    <div className="flex items-center justify-between border-b bg-muted/30 px-3 py-1.5 sm:px-4 sm:py-2">
-      <OrganizationSwitcher variant="topbar" />
+    <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-3 py-1.5 sm:px-4 sm:py-2">
+      <div className="flex min-w-0 items-center gap-2">
+        {galleryEnabled && (
+          <BackToGalleryButton className="h-8" label="Galería" />
+        )}
+        <OrganizationSwitcher variant="topbar" />
+      </div>
       <div className="flex items-center gap-1">
         {canManageInventory && (
           <Button

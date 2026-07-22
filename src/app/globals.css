@@ -1577,44 +1577,52 @@
     }
   }
 
-  /* POS móvil: catálogo a pantalla completa, sin scroll de página duplicado */
+  /*
+   * POS: la página no debe competir por el scroll con catálogo y carrito.
+   * El catálogo y el carrito gestionan su propio scroll, manteniendo visibles
+   * sus acciones de cobro tanto en escritorio como en móvil.
+   */
+  .app-main-scroll--pos {
+    padding-bottom: 0;
+    overflow: hidden;
+  }
+  .app-page-shell--pos {
+    @apply flex h-full min-h-0 flex-col p-3 pt-2 sm:p-4;
+    padding-bottom: 0;
+  }
+  .admin-pos-shell {
+    @apply flex min-h-0 flex-1 flex-col;
+  }
+  .admin-pos-page-body {
+    @apply flex min-h-0 flex-1 flex-col;
+  }
+  .admin-pos-grid {
+    @apply flex min-h-0 flex-1 flex-col overflow-hidden;
+  }
+  .admin-pos-catalog {
+    @apply min-h-0 flex-1 overflow-hidden;
+  }
+  .admin-pos-catalog-card {
+    @apply flex min-h-0 flex-1 flex-col overflow-hidden;
+  }
+  .admin-pos-catalog-card.admin-card {
+    @apply flex min-h-0 flex-1 flex-col;
+  }
+  .admin-pos-catalog-scroll {
+    flex: 1 1 0%;
+    min-height: 4rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
   @media (max-width: 1023px) {
-    .app-main-scroll--pos {
-      padding-bottom: 0;
-      overflow: hidden;
-    }
-    .app-page-shell--pos {
-      @apply flex h-full min-h-0 flex-col p-3 pt-2 sm:p-4;
-      padding-bottom: 0;
-    }
     .admin-pos-shell {
-      @apply flex min-h-0 flex-1 flex-col;
-    }
-    .admin-pos-page-body {
-      @apply flex min-h-0 flex-1 flex-col;
+      min-height: 0;
     }
     .admin-pos-page-header .admin-page-title {
       @apply text-lg;
     }
     .admin-pos-page-header .admin-page-eyebrow {
       @apply hidden;
-    }
-    .admin-pos-grid {
-      @apply flex min-h-0 flex-1 flex-col overflow-hidden;
-    }
-    .admin-pos-catalog {
-      @apply min-h-0 flex-1 overflow-hidden;
-    }
-    .admin-pos-catalog-card {
-      @apply flex min-h-0 flex-1 flex-col overflow-hidden;
-    }
-    .admin-pos-catalog-card.admin-card {
-      @apply flex min-h-0 flex-1 flex-col;
-    }
-    .admin-pos-catalog-scroll {
-      flex: 1 1 0%;
-      min-height: 4rem;
-      -webkit-overflow-scrolling: touch;
     }
   }
 

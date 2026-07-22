@@ -34,10 +34,10 @@ function formatRateUpdatedAt(rateUpdatedAt: string | null | undefined): string {
 
 /** Solo lectura: la tasa BCV se actualiza sola en el servidor. */
 export function RateConfigModal({ open, onOpenChange }: RateConfigModalProps) {
-  const getCurrentOrganization = useAuthStore((s) => s.getCurrentOrganization);
-  const currentOrg = getCurrentOrganization();
+  const currentOrg = useAuthStore((s) => s.getCurrentOrganization());
   const orgWithRate = currentOrg && 'exchangeRate' in currentOrg ? currentOrg : null;
   const rate = orgWithRate?.exchangeRate;
+  const euroRate = orgWithRate?.euroExchangeRate;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -64,9 +64,20 @@ export function RateConfigModal({ open, onOpenChange }: RateConfigModalProps) {
               Última actualización: {formatRateUpdatedAt(orgWithRate?.rateUpdatedAt)}
             </p>
           </div>
+          <div className="rounded-lg border border-border bg-muted/40 px-4 py-3">
+            <p className="text-xs text-muted-foreground">Tasa Euro BCV vigente</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+              {euroRate != null && Number.isFinite(Number(euroRate))
+                ? `${Number(euroRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} Bs por EUR`
+                : '—'}
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Última actualización: {formatRateUpdatedAt(orgWithRate?.euroRateUpdatedAt)}
+            </p>
+          </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Fuente: Euro oficial BCV vía DolarApi. Se sincroniza al iniciar el servidor y varias
-            veces al día. Un monto en USD se multiplica por esta tasa para obtener Bs.
+            Fuente: tasas oficiales BCV vía DolarApi. USD/VES es el único factor usado en
+            POS, facturas y reportes; EUR/VES es solo informativa.
           </p>
         </div>
         <DialogFooter>

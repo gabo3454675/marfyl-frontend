@@ -1,7 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 
@@ -39,27 +38,66 @@ function formatRateUpdatedAt(rateUpdatedAt: string | null | undefined): string {
 interface ExchangeRateIndicatorProps {
   onOpenConfig?: () => void;
   className?: string;
+  currency?: 'USD' | 'EUR';
 }
 
 /**
  * Indicador de tasa BCV en header. La tasa se sincroniza sola desde el servidor.
  */
-export function ExchangeRateIndicator({ onOpenConfig, className }: ExchangeRateIndicatorProps) {
-  const selectedOrganizationId = useAuthStore((s) => s.selectedOrganizationId);
-  const selectedCompanyId = useAuthStore((s) => s.selectedCompanyId);
-  const currentOrg = useMemo(
-    () => useAuthStore.getState().getCurrentOrganization(),
-    [selectedOrganizationId, selectedCompanyId],
-  );
-  const orgWithRate = currentOrg && 'exchangeRate' in currentOrg ? currentOrg : null;
-  const rate = orgWithRate?.exchangeRate;
-  const hasRate = rate != null && Number.isFinite(rate);
-  const isUpToDate = isRateUpdatedToday(orgWithRate?.rateUpdatedAt);
-  const rateUpdatedAtFormatted = formatRateUpdatedAt(orgWithRate?.rateUpdatedAt);
-  const isLoading = !currentOrg;
+export function ExchangeRateIndicator({
+  onOpenConfig,
+  className,
+  currency = 'USD',
+}: ExchangeRateIndicatorProps) {
+  const [apiRate, setApiRate] = useState<{
+    rate: number;
+    updatedAt: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setApiRate(null);
+    const endpoint =
+      currency === 'EUR'
+        ? 'https://ve.dolarapi.com/v1/euros/oficial'
+        : 'https://ve.dolarapi.com/v1/dolares/oficial';
+
+    void fetch(endpoint, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`DolarApi HTTP ${response.status}`);
+        const quote = await response.json() as {
+          promedio?: number | null;
+          venta?: number | null;
+          compra?: number | null;
+          fechaActualizacion?: string | null;
+        };
+        const rate = Number(quote.promedio ?? quote.venta ?? quote.compra);
+        if (!Number.isFinite(rate) || rate <= 0) {
+          throw new Error('Cotización EUR inválida');
+        }
+        setApiRate({ rate, updatedAt: quote.fechaActualizacion ?? null });
+      })
+      .catch((error: unknown) => {
+        if ((error as { name?: string })?.name !== 'AbortError') {
+          setApiRate(null);
+        }
+      });
+
+    return () => controller.abort();
+  }, [currency]);
+
+  const rate = apiRate?.rate;
+  const hasRate = rate != null && Number.isFinite(Number(rate));
+  const isUpToDate = isRateUpdatedToday(apiRate?.updatedAt);
+  const rateUpdatedAtFormatted = formatRateUpdatedAt(apiRate?.updatedAt);
+  const rateLabel = currency === 'EUR' ? 'Euro BCV' : 'Dólar BCV';
+  const isLoading = !apiRate;
 
   const title = [
-    'Tasa BCV — se actualiza automáticamente',
+    `${rateLabel} — se actualiza automáticamente`,
     rateUpdatedAtFormatted ? `Última sync: ${rateUpdatedAtFormatted}` : undefined,
     onOpenConfig ? 'Clic para ver detalle' : undefined,
   ]
@@ -79,7 +117,7 @@ export function ExchangeRateIndicator({ onOpenConfig, className }: ExchangeRateI
       {isLoading ? (
         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-hidden />
       ) : hasRate ? (
-        <span className="tabular-nums">Bs. {Number(rate).toFixed(2)}</span>
+        <span className="tabular-nums">{currency} · Bs. {Number(rate).toFixed(2)}</span>
       ) : (
         <span className="text-muted-foreground tabular-nums">---</span>
       )}

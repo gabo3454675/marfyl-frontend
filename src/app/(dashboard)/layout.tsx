@@ -74,13 +74,15 @@ export default function DashboardLayout({
     const id = useAuthStore.getState().selectedOrganizationId || useAuthStore.getState().selectedCompanyId;
     if (!id) return;
     apiClient
-      .get<{ exchangeRate?: number; rateUpdatedAt?: string | null; rateUpdatedBy?: string | null; currencyCode?: string; currencySymbol?: string }>('/tenants/organization')
+      .get<{ exchangeRate?: number; rateUpdatedAt?: string | null; rateUpdatedBy?: string | null; euroExchangeRate?: number | null; euroRateUpdatedAt?: string | null; currencyCode?: string; currencySymbol?: string }>('/tenants/organization')
       .then((res) => {
         const d = res.data;
         useAuthStore.getState().setOrganizationConfig(id, {
           exchangeRate: d.exchangeRate,
           rateUpdatedAt: d.rateUpdatedAt ?? undefined,
           rateUpdatedBy: d.rateUpdatedBy ?? undefined,
+          euroExchangeRate: d.euroExchangeRate ?? null,
+          euroRateUpdatedAt: d.euroRateUpdatedAt ?? null,
           currencyCode: d.currencyCode,
           currencySymbol: d.currencySymbol,
         });
@@ -307,7 +309,12 @@ export default function DashboardLayout({
   if (isStationRole) {
     return (
       <NotificationFeedProvider>
-        <div className="dm-app-shell flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden md:flex-row md:gap-0">
+        <div
+          className={cn(
+            'dm-app-shell flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden md:flex-row md:gap-0',
+            isPosOnlySeller && 'dm-app-shell--pos-only',
+          )}
+        >
           <DmAmbientMotion palette="a" intensity="subtle" />
           {!isModuleGalleryEnabled() && <Sidebar />}
           <main className="admin-main-pane flex flex-1 flex-col min-h-0 min-w-0 w-full bg-background">
@@ -316,7 +323,13 @@ export default function DashboardLayout({
             ) : (
               <AdminTopbar onOpenRateConfig={() => setRateConfigModalOpen(true)} />
             )}
-            <div className={cn('app-main-scroll', (isPosRoute || isComandaRoute) && 'app-main-scroll--pos')}>
+            <div
+              className={cn(
+                'app-main-scroll',
+                (isPosRoute || isComandaRoute) && 'app-main-scroll--pos',
+                isPosRoute && 'flex flex-col',
+              )}
+            >
               <div className={cn('app-page-shell', isPosRoute && 'app-page-shell--pos')}>
                 <RouteGuard pathname={pathname}>
                   {children}
@@ -344,18 +357,22 @@ export default function DashboardLayout({
         {!isPosOnlySeller && !isModuleGalleryEnabled() && <DmAmbientMotion palette="a" intensity="subtle" />}
         {!isPosOnlySeller && !isModuleGalleryEnabled() && <Sidebar />}
         <main className="admin-main-pane flex flex-1 flex-col min-h-0 min-w-0 w-full bg-background">
-          {!isPosOnlySeller &&
-            (isModuleGalleryEnabled() ? (
-              <GalleryAppBar />
-            ) : (
+          {isModuleGalleryEnabled() ? (
+            <GalleryAppBar />
+          ) : (
+            !isPosOnlySeller && (
               <AdminTopbar onOpenRateConfig={() => setRateConfigModalOpen(true)} />
-            ))}
+            )
+          )}
           {devPreview && !isPosOnlySeller && !isModuleGalleryEnabled() && <DevAppSwitcher />}
           <div
             className={
               isAssistantRoute
                 ? 'flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden'
-                : cn('app-main-scroll', isPosRoute && 'app-main-scroll--pos')
+                : cn(
+                  'app-main-scroll',
+                  isPosRoute && 'app-main-scroll--pos flex flex-col',
+                )
             }
           >
             <div

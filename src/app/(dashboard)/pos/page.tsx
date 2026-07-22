@@ -42,6 +42,7 @@ import { VariantSelector } from '@/components/pos/variant-selector';
 import { variantService } from '@/lib/api/product-variants';
 import type { ProductVariant } from '@/lib/api/product-variants';
 import { PosOpenTabs } from '@/components/pos/pos-open-tabs';
+import { isModuleGalleryEnabled } from '@/lib/gallery/feature';
 
 interface Product {
   id: number;
@@ -750,7 +751,8 @@ export default function POSPage() {
 
   return (
     <>
-      {isPosOnlySeller && <PosToolbar />}
+      {/* La barra global de galería ya contiene empresa, acceso a módulos y sesión. */}
+      {isPosOnlySeller && !isModuleGalleryEnabled() && <PosToolbar />}
       <AdminPageShell
       animate={false}
       eyebrow={isPosOnlySeller ? undefined : 'Ventas'}

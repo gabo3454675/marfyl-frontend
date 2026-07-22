@@ -58,6 +58,7 @@ export default function TasasPage() {
   const { formatUsdAmount, formatBsAmount } = useDisplayCurrency();
   const defaultRange = getDefaultRange();
   const [tasas, setTasas] = useState<TasaHistorica[]>([]);
+  const [tasasEuro, setTasasEuro] = useState<TasaHistorica[]>([]);
   const [reporte, setReporte] = useState<ReporteDiferencial | null>(null);
   const [desde, setDesde] = useState(defaultRange.desde);
   const [hasta, setHasta] = useState(defaultRange.hasta);
@@ -67,12 +68,19 @@ export default function TasasPage() {
   const fetchTasas = useCallback(async () => {
     setLoadingTasas(true);
     try {
-      const res = await apiClient.get<TasaHistorica[]>('/tenants/organization/tasas-historicas', {
-        params: { limit: 100 },
-      });
-      setTasas(Array.isArray(res.data) ? res.data : []);
+      const [usdRes, euroRes] = await Promise.all([
+        apiClient.get<TasaHistorica[]>('/tenants/organization/tasas-historicas', {
+          params: { limit: 100 },
+        }),
+        apiClient.get<TasaHistorica[]>('/tenants/organization/tasas-euro-historicas', {
+          params: { limit: 100 },
+        }),
+      ]);
+      setTasas(Array.isArray(usdRes.data) ? usdRes.data : []);
+      setTasasEuro(Array.isArray(euroRes.data) ? euroRes.data : []);
     } catch {
       setTasas([]);
+      setTasasEuro([]);
     } finally {
       setLoadingTasas(false);
     }
@@ -102,8 +110,8 @@ export default function TasasPage() {
   return (
     <AdminPageShell
       eyebrow="Finanzas"
-      title="Tasas Dólar BCV y diferencial cambiario"
-      subtitle="Historial de la cotización Dólar BCV (factor USD↔Bs) y reporte de diferencial cambiario por período."
+      title="Tasas BCV y diferencial cambiario"
+      subtitle="Histórico USD/VES usado en cálculos y cotización EUR/VES informativa."
     >
       <AdminCard
         title={
@@ -157,6 +165,47 @@ export default function TasasPage() {
               Actualizar
             </Button>
           </div>
+      </AdminCard>
+
+      <AdminCard
+        title={
+          <span className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Historial tasa Euro BCV
+          </span>
+        }
+        description="Cotización EUR/VES de referencia. No afecta POS, facturas ni cierres de caja."
+      >
+        {loadingTasas ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : tasasEuro.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No hay cotizaciones EUR registradas aún.</p>
+        ) : (
+          <AdminTableWrap>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fecha / hora</TableHead>
+                  <TableHead className="text-right">Euro BCV (Bs/EUR)</TableHead>
+                  <TableHead>Fuente</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tasasEuro.slice(0, 50).map((t) => (
+                  <TableRow key={t.id}>
+                    <TableCell className="text-sm">
+                      {new Date(t.effectiveAt).toLocaleString('es')}
+                    </TableCell>
+                    <TableCell className="text-right font-mono">{t.rate.toFixed(4)}</TableCell>
+                    <TableCell>{t.source}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </AdminTableWrap>
+        )}
       </AdminCard>
 
       <AdminCard

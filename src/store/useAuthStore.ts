@@ -26,6 +26,10 @@ export interface Organization {
   rateUpdatedAt?: string | null;
   /** Email de quien actualizó la tasa por última vez (toda la org ve lo mismo) */
   rateUpdatedBy?: string | null;
+  /** Tasa informativa EUR/VES; no interviene en conversiones USD/VES. */
+  euroExchangeRate?: number | null;
+  /** Fecha de sincronización de la tasa informativa EUR/VES. */
+  euroRateUpdatedAt?: string | null;
   /** Grupo fundador: suscripción siempre activa sin cobro */
   billingExempt?: boolean;
   /** Boletería / concierto temporal habilitado en esta org */
@@ -69,7 +73,7 @@ interface AuthState {
   getOrganizations: () => Organization[];
   setOrganizationExchangeRate: (organizationId: number, exchangeRate: number, rateUpdatedAt?: string | null) => void;
   /** Actualiza la configuración de moneda/tasa de la organización en el store (tras guardar en backend). */
-  setOrganizationConfig: (organizationId: number, config: { exchangeRate?: number; rateUpdatedAt?: string | null; rateUpdatedBy?: string | null; currencyCode?: string; currencySymbol?: string }) => void;
+  setOrganizationConfig: (organizationId: number, config: { exchangeRate?: number; rateUpdatedAt?: string | null; rateUpdatedBy?: string | null; euroExchangeRate?: number | null; euroRateUpdatedAt?: string | null; currencyCode?: string; currencySymbol?: string }) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -300,7 +304,7 @@ export const useAuthStore = create<AuthState>()(
         );
         set({ user: state.user ? { ...state.user, organizations: updated } : null });
       },
-      setOrganizationConfig: (organizationId: number, config: { exchangeRate?: number; rateUpdatedAt?: string | null; rateUpdatedBy?: string | null; currencyCode?: string; currencySymbol?: string }) => {
+      setOrganizationConfig: (organizationId: number, config: { exchangeRate?: number; rateUpdatedAt?: string | null; rateUpdatedBy?: string | null; euroExchangeRate?: number | null; euroRateUpdatedAt?: string | null; currencyCode?: string; currencySymbol?: string }) => {
         const state = get();
         const patch = (o: Organization): Organization => (o.id === organizationId ? { ...o, ...config } : o);
         if (state.user?.organizations?.length) {

@@ -137,7 +137,7 @@ export function PosOpenTabs({ className }: { className?: string }) {
 
             {/* Expanded detail */}
             {expandedCustomerId === tab.customerId && (
-              <div className="border-t border-blue-500/20 px-2.5 py-2 space-y-2">
+              <div className="max-h-[min(28dvh,16rem)] overflow-y-auto overscroll-y-contain border-t border-blue-500/20 px-2.5 py-2 space-y-2">
                 {tab.orders.map((order) => (
                   <div
                     key={order.id}

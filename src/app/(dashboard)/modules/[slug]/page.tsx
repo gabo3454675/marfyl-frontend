@@ -4,9 +4,10 @@ import { useParams } from 'next/navigation';
 import { GALLERY_MODULES, resolveModuleItems, type GalleryModuleConfig } from '@/config/modules';
 import { usePermission } from '@/hooks/usePermission';
 import { AdminPanel } from '@/components/admin/admin-panel';
+import { BackToGalleryButton } from '@/components/gallery/back-to-gallery-button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, LayoutGrid } from 'lucide-react';
+import { LayoutGrid } from 'lucide-react';
 
 function getModuleBySlug(slug: string): GalleryModuleConfig | undefined {
   return GALLERY_MODULES.find((m) => m.id === slug);
@@ -27,10 +28,7 @@ export default function ModuleOverviewPage() {
             <LayoutGrid className="h-8 w-8 text-muted-foreground/40" />
           </div>
           <h2 className="text-xl font-semibold text-muted-foreground">Módulo no encontrado</h2>
-          <Link href="/" className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline">
-            <ArrowLeft className="h-4 w-4" />
-            Volver a la galería
-          </Link>
+          <BackToGalleryButton variant="page" className="mt-6 text-primary hover:underline" />
         </div>
       </AdminPanel>
     );
@@ -43,10 +41,7 @@ export default function ModuleOverviewPage() {
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <h2 className="text-xl font-semibold text-muted-foreground">Acceso no disponible</h2>
           <p className="text-sm text-muted-foreground/60 mt-2">Tu rol no tiene acceso a esta sección</p>
-          <Link href="/" className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline">
-            <ArrowLeft className="h-4 w-4" />
-            Volver
-          </Link>
+          <BackToGalleryButton variant="page" className="mt-6" label="Volver" />
         </div>
       </AdminPanel>
     );
@@ -59,10 +54,7 @@ export default function ModuleOverviewPage() {
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <h2 className="text-xl font-semibold text-muted-foreground">Sin acceso</h2>
           <p className="text-sm text-muted-foreground/60 mt-2">No tienes permisos para ver este módulo</p>
-          <Link href="/" className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline">
-            <ArrowLeft className="h-4 w-4" />
-            Volver a la galería
-          </Link>
+          <BackToGalleryButton variant="page" className="mt-6 text-primary hover:underline" />
         </div>
       </AdminPanel>
     );
@@ -75,10 +67,7 @@ export default function ModuleOverviewPage() {
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <h2 className="text-xl font-semibold text-muted-foreground">Módulo no disponible</h2>
           <p className="text-sm text-muted-foreground/60 mt-2">Este módulo no está habilitado actualmente</p>
-          <Link href="/" className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline">
-            <ArrowLeft className="h-4 w-4" />
-            Volver a la galería
-          </Link>
+          <BackToGalleryButton variant="page" className="mt-6 text-primary hover:underline" />
         </div>
       </AdminPanel>
     );
@@ -89,16 +78,7 @@ export default function ModuleOverviewPage() {
   return (
     <AdminPanel className="p-6 md:p-8 lg:p-10">
       <div className="mb-8">
-        <Link
-          href="/"
-          className={cn(
-            'inline-flex items-center gap-2 text-sm font-medium',
-            'text-muted-foreground hover:text-foreground transition-colors duration-200',
-          )}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Galería de módulos
-        </Link>
+        <BackToGalleryButton variant="page" label="Galería de módulos" />
       </div>
 
       <div className="mb-10">

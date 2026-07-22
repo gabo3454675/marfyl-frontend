@@ -6,6 +6,7 @@ import {
   UtensilsCrossed,
   Wallet,
   TrendingUp,
+  Beer,
   Box,
   DollarSign,
   UsersRound,
@@ -82,7 +83,7 @@ export function resolveModuleItems(module: GalleryModuleConfig): (AppNavItem & {
     .filter(Boolean) as (AppNavItem & { hint?: string; itemAccentGradient?: string })[];
 }
 
-/** 10 módulos de la galería — el orden determina la visualización. */
+/** Módulos de la galería — el orden determina la visualización. */
 export const GALLERY_MODULES: GalleryModuleConfig[] = [
   {
     id: 'panel-general',
@@ -150,6 +151,25 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
     order: 3,
   },
   {
+    id: 'licores',
+    label: 'Licores y tobos',
+    description: 'Apertura, vendido y quedan del día',
+    icon: Beer,
+    accentColor: 'text-amber-600',
+    accentGradient: 'from-amber-500 to-amber-700',
+    bgGradient: 'from-amber-500/10 to-amber-700/5',
+    itemRefs: [
+      {
+        navId: 'licores',
+        hintOverride: 'Apertura · vendido · quedan',
+        itemAccentGradient: 'from-amber-400 to-amber-600',
+      },
+    ],
+    requiredPermissions: ['canManageInvoices'],
+    directHref: '/licores',
+    order: 4,
+  },
+  {
     id: 'inventario',
     label: 'Inventario',
     description: 'Productos, movimientos y compras',
@@ -167,7 +187,7 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
       { navId: 'alertas-stock', itemAccentGradient: 'from-red-400 to-red-500' },
     ],
     requiredPermissions: ['canManageProducts', 'canManageInventory'],
-    order: 4,
+    order: 5,
   },
   {
     id: 'finanzas',
@@ -184,7 +204,7 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
       { navId: 'tasas', itemAccentGradient: 'from-lime-400 to-lime-500' },
     ],
     requiredPermissions: ['canManageExpenses'],
-    order: 5,
+    order: 6,
   },
   {
     id: 'equipo',
@@ -199,7 +219,7 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
     ],
     requiredPermissions: ['canManageTeam'],
     directHref: '/nomina',
-    order: 6,
+    order: 7,
   },
   {
     id: 'sistema',
@@ -214,7 +234,7 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
     ],
     requiredPermissions: ['canManageSettings'],
     directHref: '/settings',
-    order: 7,
+    order: 8,
   },
   {
     id: 'fiscal-marfyl',
@@ -235,7 +255,7 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
       { navId: 'fiscal-predecl', itemAccentGradient: 'from-rose-400 to-rose-500' },
     ],
     requiredPermissions: ['canManageFiscal'],
-    order: 8,
+    order: 9,
   },
   {
     id: 'concierto',
@@ -253,6 +273,6 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
     ],
     requiredPermissions: ['canManageCustomers'],
     featureFlag: () => isConcertFeatureEnabled(),
-    order: 9,
+    order: 10,
   },
 ];
