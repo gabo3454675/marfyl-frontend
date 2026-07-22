@@ -10,6 +10,8 @@ export type FloorOrderStatus =
 
 export type FloorStation = 'BAR' | 'KITCHEN' | 'OTHER';
 
+export type FloorPaymentMode = 'INMEDIATO' | 'CUENTA_ABIERTA';
+
 export type FloorOrderItem = {
   id: number;
   productId: number;
@@ -32,9 +34,12 @@ export type FloorOrder = {
   id: number;
   organizationId: number;
   tableLabel: string;
+  zone?: string | null;
   customerName?: string | null;
   customerId?: number | null;
   status: FloorOrderStatus;
+  paymentMode: FloorPaymentMode;
+  isOpen: boolean;
   notes?: string | null;
   createdAt: string;
   sentAt?: string | null;
@@ -46,15 +51,50 @@ export type FloorOrder = {
 
 export type CreateFloorOrderPayload = {
   tableLabel: string;
+  zone?: string;
   customerName?: string;
   customerId?: number;
   notes?: string;
   items: { productId: number; quantity: number; notes?: string }[];
   sendNow?: boolean;
+  paymentMode?: FloorPaymentMode;
+  customerTaxId?: string;
+  customerPhone?: string;
+  customerFirstName?: string;
+  customerLastName?: string;
 };
 
 export type ChargeFloorOrderPayload = {
   customerId?: number;
+  paymentMethod?: string;
+  payments?: { method: string; amount: number; currency: string }[];
+  notes?: string;
+};
+
+export type OpenTabCustomer = {
+  customerId: number;
+  customerName: string;
+  totalUsd: number;
+  ordersCount: number;
+  orders: FloorOrder[];
+};
+
+export type CustomerLookupResult = {
+  id: number;
+  name: string;
+  taxId: string | null;
+  phone: string | null;
+  email: string | null;
+} | null;
+
+export type QuickRegisterPayload = {
+  taxId: string;
+  phone: string;
+  firstName: string;
+  lastName: string;
+};
+
+export type ChargeCustomerOpenTabPayload = {
   paymentMethod?: string;
   payments?: { method: string; amount: number; currency: string }[];
   notes?: string;
@@ -160,6 +200,39 @@ export const floorOrdersApi = {
     apiClient
       .post<FloorOrder>(`/floor-orders/${id}/cancel`)
       .then((r) => r.data),
+
+  findCustomerByTaxId: (taxId: string) =>
+    apiClient
+      .get<CustomerLookupResult>(`/floor-orders/customer-by-taxid/${encodeURIComponent(taxId)}`)
+      .then((r) => r.data),
+
+  quickRegisterCustomer: (payload: QuickRegisterPayload) =>
+    apiClient
+      .post<{ id: number; name: string; taxId: string; phone: string }>(
+        '/floor-orders/quick-register-customer',
+        payload,
+      )
+      .then((r) => r.data),
+
+  getOpenTabs: () =>
+    apiClient
+      .get<OpenTabCustomer[]>('/floor-orders/open-tabs')
+      .then((r) => r.data),
+
+  getCustomerOpenOrders: (customerId: number) =>
+    apiClient
+      .get<{ customerId: number; totalUsd: number; ordersCount: number; orders: FloorOrder[] }>(
+        `/floor-orders/open-by-customer/${customerId}`,
+      )
+      .then((r) => r.data),
+
+  chargeCustomerOpenTab: (customerId: number, payload: ChargeCustomerOpenTabPayload) =>
+    apiClient
+      .post<{ orders: FloorOrder[]; invoice: unknown }>(
+        `/floor-orders/charge-customer/${customerId}`,
+        payload,
+      )
+      .then((r) => r.data),
 };
 
 export function floorOrderTotal(order: FloorOrder): number {
@@ -171,6 +244,8 @@ export function floorOrderTotal(order: FloorOrder): number {
 
 export function floorOrderStatusLabel(status: FloorOrderStatus): string {
   switch (status) {
+    case 'DRAFT':
+      return 'Borrador';
     case 'SENT':
       return 'Enviado';
     case 'IN_PREP':

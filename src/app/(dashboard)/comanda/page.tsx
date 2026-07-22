@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Loader2,
@@ -87,6 +87,43 @@ export default function ComandaMenuPage() {
   const [orderNotes, setOrderNotes] = useState('');
   const [cart, setCart] = useState<CartLine[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [paymentMode, setPaymentMode] = useState<'INMEDIATO' | 'CUENTA_ABIERTA'>('INMEDIATO');
+  const [zone, setZone] = useState('');
+  const [customerTaxId, setCustomerTaxId] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerFirstName, setCustomerFirstName] = useState('');
+  const [customerLastName, setCustomerLastName] = useState('');
+  const [foundCustomer, setFoundCustomer] = useState<{ id: number; name: string; taxId: string | null; phone: string | null } | null>(null);
+  const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
+
+  // Search customer by taxId with debounce
+  const debouncedTaxId = useDebounce(customerTaxId, 300);
+
+  useEffect(() => {
+    if (paymentMode !== 'CUENTA_ABIERTA' || !debouncedTaxId.trim()) {
+      setFoundCustomer(null);
+      return;
+    }
+
+    let cancelled = false;
+    setIsSearchingCustomer(true);
+
+    floorOrdersApi.findCustomerByTaxId(debouncedTaxId.trim())
+      .then((result) => {
+        if (!cancelled) {
+          setFoundCustomer(result);
+          setIsSearchingCustomer(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setFoundCustomer(null);
+          setIsSearchingCustomer(false);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [debouncedTaxId, paymentMode]);
 
   useComandaSocket({ enabled: canTakeFloorOrder && !!orgId });
 
@@ -170,48 +207,97 @@ export default function ComandaMenuPage() {
   };
 
   const sendMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       const mesa = tableLabel.trim();
-      const cliente = customerName.trim();
       if (!mesa) throw new Error('Indica la mesa o zona');
-      if (!cliente) throw new Error('Indica el nombre del cliente');
-      return floorOrdersApi.create({
-        tableLabel: mesa,
-        customerName: cliente,
-        notes: orderNotes.trim() || undefined,
-        sendNow: true,
-        items: cart.map((l) => ({
-          productId: l.product.id,
-          quantity: l.quantity,
-          notes: l.notes,
-        })),
-      });
+
+      if (paymentMode === 'CUENTA_ABIERTA') {
+        // Cuenta abierta: requiere cliente identificado por cédula
+        if (!customerTaxId.trim()) throw new Error('Indica la cédula del cliente');
+
+        let customerId = foundCustomer?.id;
+
+        // Si no se encontró el cliente, registrar rápido
+        if (!customerId) {
+          if (!customerPhone.trim()) throw new Error('Indica el teléfono del cliente');
+          if (!customerFirstName.trim()) throw new Error('Indica el nombre del cliente');
+          if (!customerLastName.trim()) throw new Error('Indica el apellido del cliente');
+
+          const registered = await floorOrdersApi.quickRegisterCustomer({
+            taxId: customerTaxId.trim(),
+            phone: customerPhone.trim(),
+            firstName: customerFirstName.trim(),
+            lastName: customerLastName.trim(),
+          });
+          customerId = registered.id;
+        }
+
+        return floorOrdersApi.create({
+          tableLabel: mesa,
+          zone: zone.trim() || undefined,
+          customerId,
+          notes: orderNotes.trim() || undefined,
+          sendNow: true,
+          paymentMode: 'CUENTA_ABIERTA',
+          items: cart.map((l) => ({
+            productId: l.product.id,
+            quantity: l.quantity,
+            notes: l.notes,
+          })),
+        });
+      } else {
+        // Pago inmediato: comportamiento actual
+        const cliente = customerName.trim();
+        if (!cliente) throw new Error('Indica el nombre del cliente');
+
+        return floorOrdersApi.create({
+          tableLabel: mesa,
+          zone: zone.trim() || undefined,
+          customerName: cliente,
+          notes: orderNotes.trim() || undefined,
+          sendNow: true,
+          items: cart.map((l) => ({
+            productId: l.product.id,
+            quantity: l.quantity,
+            notes: l.notes,
+          })),
+        });
+      }
     },
     onSuccess: (order) => {
-      const dest = floorOrderDestLabel(order);
-      const cliente = order.customerName || customerName.trim();
-      toast.success(
-        `Pedido #${order.id} → ${dest} · ${order.tableLabel}${cliente ? ` · ${cliente}` : ''}`,
-        {
-          description: `${cliente || 'Cliente'}: pedido pendiente hasta que caja cobre. Caja ya puede verlo en la cola.`,
-          duration: 8_000,
-        },
-      );
-      setCart([]);
-      setOrderNotes('');
-      setCartOpen(false);
-      void queryClient.invalidateQueries({ queryKey: ['products'] });
-      void queryClient.invalidateQueries({ queryKey: ['floor-orders'] });
-    },
-    onError: (err: unknown) => {
-      const msg =
-        err instanceof Error
-          ? err.message
-          : (err as { response?: { data?: { message?: string } } })?.response
-              ?.data?.message || 'No se pudo enviar el pedido';
-      toast.error(typeof msg === 'string' ? msg : 'No se pudo enviar el pedido');
-    },
-  });
+    const dest = floorOrderDestLabel(order);
+    const cliente = order.customerName || customerName.trim();
+    const modeLabel = paymentMode === 'CUENTA_ABIERTA' ? 'Cuenta abierta' : 'Pago inmediato';
+    toast.success(
+      `Pedido #${order.id} → ${dest} · ${order.tableLabel}${cliente ? ` · ${cliente}` : ''}`,
+      {
+        description: `${modeLabel}${cliente ? ` · ${cliente}` : ''}. ${paymentMode === 'CUENTA_ABIERTA' ? 'Se agregó a la cuenta abierta.' : 'Caja ya puede verlo en la cola.'}`,
+        duration: 8_000,
+      },
+    );
+    // Reset form
+    setCart([]);
+    setOrderNotes('');
+    setCartOpen(false);
+    setCustomerTaxId('');
+    setCustomerPhone('');
+    setCustomerFirstName('');
+    setCustomerLastName('');
+    setFoundCustomer(null);
+    setZone('');
+    if (paymentMode === 'INMEDIATO') setCustomerName('');
+    void queryClient.invalidateQueries({ queryKey: ['products'] });
+    void queryClient.invalidateQueries({ queryKey: ['floor-orders'] });
+  },
+  onError: (err: unknown) => {
+    const msg =
+      err instanceof Error
+        ? err.message
+        : (err as { response?: { data?: { message?: string } } })?.response
+            ?.data?.message || 'No se pudo enviar el pedido';
+    toast.error(typeof msg === 'string' ? msg : 'No se pudo enviar el pedido');
+  },
+});
 
   if (!canTakeFloorOrder) {
     return (
@@ -228,74 +314,28 @@ export default function ComandaMenuPage() {
       eyebrow={FLOOR_COPY.module}
       title={FLOOR_COPY.host.title}
       subtitle={FLOOR_COPY.host.blurb}
-      actions={
-        <Button
-          type="button"
-          className="h-10 min-h-12 sm:min-h-10 gap-2"
-          onClick={() => setCartOpen(true)}
-        >
-          <ShoppingBag className="h-4 w-4" />
-          Pedido ({cartCount})
-        </Button>
-      }
+      actions={undefined}
     >
-      <FloorServiceNav />
-      <div className="space-y-4">
-        <div className="rounded-2xl border border-border/70 bg-card/60 px-3.5 py-3 sm:px-4">
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            Tu estación · {FLOOR_COPY.host.short}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Elige productos → envía a preparación → caja cobra cuando esté lista.
-          </p>
-          {myPendingCharge.length > 0 && (
-            <div className="mt-3 rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2.5">
-              <p className="text-sm font-medium text-amber-100">
-                {myPendingCharge.length} pedido
-                {myPendingCharge.length === 1 ? '' : 's'} pendiente
-                {myPendingCharge.length === 1 ? '' : 's'} de cobro
-              </p>
-              <p className="mt-0.5 text-xs text-amber-100/80">
-                El cliente ya tiene el pedido; caja debe cobrarlo en el POS.
-              </p>
-            </div>
-          )}
-          {myOpenOrders.length > 0 && (
-            <div className="mt-3 space-y-2">
-              <p className="text-xs text-muted-foreground">Mis pedidos en curso</p>
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {myOpenOrders.map((o) => (
-                  <div
-                    key={o.id}
-                    className={cn(
-                      'min-w-[10.5rem] shrink-0 rounded-xl border px-3 py-2',
-                      STATUS_TONE[o.status] ?? 'border-border bg-muted/40',
-                    )}
-                  >
-                    <p className="truncate text-sm font-semibold">
-                      {o.tableLabel}
-                      {o.customerName ? ` · ${o.customerName}` : ''}
-                    </p>
-                    <p className="text-[11px] opacity-90">
-                      #{o.id} · {floorStatusLabel(o.status)}
-                    </p>
-                    <p className="text-[10px] opacity-75">{floorOrderDestLabel(o)}</p>
-                    <p className="mt-0.5 text-xs tabular-nums opacity-80">
-                      {formatUsdAmount(floorOrderTotal(o))}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {myOpenOrders.length === 0 && (
-            <p className="mt-2 text-xs text-muted-foreground inline-flex items-center gap-1.5">
-              <UtensilsCrossed className="h-3.5 w-3.5" />
-              Sin pedidos abiertos. Arma uno desde el menú.
-            </p>
-          )}
+      {/* Floating Pedido button */}
+      <div className="sticky top-0 z-30 -mx-4 px-4 py-2 sm:-mx-6 sm:px-6">
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            className="gap-2 rounded-xl shadow-md"
+            onClick={() => setCartOpen(true)}
+          >
+            <ShoppingBag className="h-4 w-4" />
+            Pedido
+            {cartCount > 0 && (
+              <span className="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-bold text-primary-foreground">
+                {cartCount}
+              </span>
+            )}
+          </Button>
         </div>
-
+      </div>
+      <FloorServiceNav />
+      <div className="space-y-2">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -422,29 +462,141 @@ export default function ComandaMenuPage() {
         </div>
 
         <div className="space-y-3">
+          {/* Payment Mode Toggle */}
+          <div className="space-y-1.5">
+            <Label>Modo de pago</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setPaymentMode('INMEDIATO')}
+                className={cn(
+                  'rounded-xl border px-3 py-2.5 text-sm font-medium transition',
+                  paymentMode === 'INMEDIATO'
+                    ? 'border-emerald-500 bg-emerald-500/15 text-emerald-400'
+                    : 'border-border bg-muted/40 text-muted-foreground hover:bg-muted/60',
+                )}
+              >
+                💵 Pago inmediato
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentMode('CUENTA_ABIERTA')}
+                className={cn(
+                  'rounded-xl border px-3 py-2.5 text-sm font-medium transition',
+                  paymentMode === 'CUENTA_ABIERTA'
+                    ? 'border-blue-500 bg-blue-500/15 text-blue-400'
+                    : 'border-border bg-muted/40 text-muted-foreground hover:bg-muted/60',
+                )}
+              >
+                📋 Cuenta abierta
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="mesa">Mesa / zona *</Label>
-              <Input
-                id="mesa"
-                value={tableLabel}
-                onChange={(e) => setTableLabel(e.target.value)}
-                placeholder="Ej. Mesa 4 · Terraza"
-                className="h-12 text-base"
-                autoComplete="off"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="mesa">Mesa *</Label>
+                <Input
+                  id="mesa"
+                  value={tableLabel}
+                  onChange={(e) => setTableLabel(e.target.value)}
+                  placeholder="Ej. Mesa 4"
+                  className="h-12 text-base"
+                  autoComplete="off"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="zona">Zona</Label>
+                <Input
+                  id="zona"
+                  value={zone}
+                  onChange={(e) => setZone(e.target.value)}
+                  placeholder="Ej. Terraza"
+                  className="h-12 text-base"
+                  autoComplete="off"
+                />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="cliente">Cliente *</Label>
-              <Input
-                id="cliente"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="Nombre del cliente"
-                className="h-12 text-base"
-                autoComplete="name"
-              />
-            </div>
+
+            {paymentMode === 'CUENTA_ABIERTA' ? (
+              <>
+                {/* Cuenta abierta: búsqueda por cédula */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="cedula">Cédula *</Label>
+                  <Input
+                    id="cedula"
+                    value={customerTaxId}
+                    onChange={(e) => setCustomerTaxId(e.target.value)}
+                    placeholder="V-12345678"
+                    className="h-12 text-base"
+                    autoComplete="off"
+                  />
+                  {isSearchingCustomer && (
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Buscando cliente…
+                    </p>
+                  )}
+                  {foundCustomer && (
+                    <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2">
+                      <span className="text-sm">✅</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-emerald-400">
+                          {foundCustomer.name}
+                        </p>
+                        <p className="text-xs text-emerald-400/70">
+                          {foundCustomer.taxId}{foundCustomer.phone ? ` · ${foundCustomer.phone}` : ''}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {!foundCustomer && !isSearchingCustomer && customerTaxId.trim().length >= 3 && (
+                    <div className="space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
+                      <p className="text-xs font-medium text-amber-400">
+                        Cliente no encontrado. Regístralo:
+                      </p>
+                      <Input
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        placeholder="Teléfono"
+                        className="h-10 text-sm"
+                        autoComplete="tel"
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <Input
+                          value={customerFirstName}
+                          onChange={(e) => setCustomerFirstName(e.target.value)}
+                          placeholder="Nombre"
+                          className="h-10 text-sm"
+                          autoComplete="given-name"
+                        />
+                        <Input
+                          value={customerLastName}
+                          onChange={(e) => setCustomerLastName(e.target.value)}
+                          placeholder="Apellido"
+                          className="h-10 text-sm"
+                          autoComplete="family-name"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              /* Pago inmediato: nombre libre */
+              <div className="space-y-1.5">
+                <Label htmlFor="cliente">Cliente *</Label>
+                <Input
+                  id="cliente"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Nombre del cliente"
+                  className="h-12 text-base"
+                  autoComplete="name"
+                />
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <Label htmlFor="notas">Notas (opcional)</Label>
               <textarea
@@ -553,11 +705,17 @@ export default function ComandaMenuPage() {
             ) : (
               <Send className="h-5 w-5" />
             )}
-            {sendButtonLabel(cart)}
+            {paymentMode === 'CUENTA_ABIERTA' ? 'Agregar a cuenta abierta' : sendButtonLabel(cart)}
           </Button>
-          <p className="text-center text-[11px] text-muted-foreground leading-snug">
-            Tú no cobras. Queda pendiente hasta que caja cierre el cobro en el POS.
-          </p>
+          {paymentMode === 'CUENTA_ABIERTA' ? (
+            <p className="text-center text-[11px] text-muted-foreground leading-snug">
+              La orden se agregará a la cuenta abierta del cliente. Caja cobra al final.
+            </p>
+          ) : (
+            <p className="text-center text-[11px] text-muted-foreground leading-snug">
+              Tú no cobras. Queda pendiente hasta que caja cierre el cobro en el POS.
+            </p>
+          )}
         </div>
       </aside>
     </AdminPageShell>

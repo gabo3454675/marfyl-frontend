@@ -86,7 +86,7 @@ export function FloorServiceNav({ className }: { className?: string }) {
     <nav
       aria-label="Estaciones del servicio en piso"
       className={cn(
-        'floor-service-nav mb-5 overflow-hidden rounded-2xl border border-border/60',
+        'floor-service-nav overflow-hidden rounded-2xl border border-border/60',
         'bg-gradient-to-br from-card/90 via-card/70 to-background/80',
         className,
       )}

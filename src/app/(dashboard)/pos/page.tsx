@@ -41,6 +41,7 @@ import { PosComandaQueue } from '@/components/pos/pos-comanda-queue';
 import { VariantSelector } from '@/components/pos/variant-selector';
 import { variantService } from '@/lib/api/product-variants';
 import type { ProductVariant } from '@/lib/api/product-variants';
+import { PosOpenTabs } from '@/components/pos/pos-open-tabs';
 
 interface Product {
   id: number;
@@ -776,6 +777,7 @@ export default function POSPage() {
     >
 
       <PosComandaQueue className="mb-3 shrink-0 sm:mb-4" />
+      <PosOpenTabs className="mb-3 shrink-0 sm:mb-4" />
 
       {/* Barra fija móvil/tablet: carrito + COBRAR rápido */}
       <div
