@@ -3,7 +3,7 @@
  * Usar en layout, apiClient y páginas públicas (pago por token).
  */
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api';
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 /** Rutas públicas de facturas (por token) — evita strings manuales en páginas */
 export const publicInvoiceRoutes = {

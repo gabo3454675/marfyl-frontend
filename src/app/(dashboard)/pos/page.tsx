@@ -38,6 +38,7 @@ import { PosCalculatorDrawer, PosCalculatorFab } from '@/components/pos/pos-calc
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { PosToolbar } from '@/components/pos/pos-toolbar';
 import { PosComandaQueue } from '@/components/pos/pos-comanda-queue';
+import { PosOpenTabs } from '@/components/pos/pos-open-tabs';
 
 interface Product {
   id: number;
@@ -692,6 +693,7 @@ export default function POSPage() {
     >
 
       <PosComandaQueue className="mb-3 shrink-0 sm:mb-4" />
+      <PosOpenTabs className="mb-3 shrink-0 sm:mb-4" />
 
       {/* Barra fija móvil/tablet: carrito + COBRAR rápido */}
       <div
