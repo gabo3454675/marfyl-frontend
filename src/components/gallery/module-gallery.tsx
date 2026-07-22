@@ -16,7 +16,7 @@ function getGreeting(): string {
 export function ModuleGallery() {
   const modules = useVisibleModules();
   const user = useAuthStore((s) => s.user);
-  const firstName = user?.name?.split(' ')[0] ?? '';
+  const firstName = user?.fullName?.split(' ')[0] ?? '';
 
   return (
     <div className="w-full">
