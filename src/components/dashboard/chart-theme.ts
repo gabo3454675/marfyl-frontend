@@ -17,6 +17,4 @@ export const CHART_COLORS = {
   muted: 'hsl(var(--muted-foreground))',
 };
 
-export const DONUT_COLORS = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#06b6d4'];
-
 export const CHART_HEIGHT = 'h-[240px] sm:h-[280px] md:h-[300px]';

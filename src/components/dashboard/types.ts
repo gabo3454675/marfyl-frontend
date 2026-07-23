@@ -13,8 +13,6 @@ export interface DashboardSummary {
 }
 
 export interface DashboardHealth {
-  salesChartLastMonth: { date: string; ventasUsd: number; ventasBs: number }[];
-  topProductsByMargin: { productId: number; productName: string; margin: number }[];
   ticketPromedio: number;
   ticketPromedioPrev: number;
   crecimientoMensual: number;
@@ -22,8 +20,6 @@ export interface DashboardHealth {
   dailySalesGoal: number;
   estimatedNetProfit: number;
   estimatedNetProfitPrev: number;
-  monthlySalesChart: { month: string; ventas: number }[];
-  breakEvenPoint: number;
 }
 
 export interface MarginErosionProduct {
@@ -48,14 +44,6 @@ export interface DashboardDiagnosis {
   debtAgeByCustomer: DebtAgeCustomer[];
 }
 
-export interface ParetoCustomer {
-  customerId: number;
-  customerName: string;
-  volume: number;
-  frequency: number;
-  segment: 'Leales' | 'En Riesgo' | 'Transaccionales';
-}
-
 export interface FrictionFunnel {
   totalCreadas: number;
   totalPagadas: number;
@@ -72,7 +60,6 @@ export interface StrategyInsight {
 }
 
 export interface DashboardStrategy {
-  paretoCustomers: ParetoCustomer[];
   frictionFunnel: FrictionFunnel;
   insights: StrategyInsight[];
 }

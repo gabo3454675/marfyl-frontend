@@ -1374,24 +1374,7 @@
     }
   }
 
-  /* 2. Gráfico principal + secundarios: 60/40 en desktop */
-  .admin-dash-chart-main {
-    display: grid;
-    width: 100%;
-    gap: 1rem;
-    grid-template-columns: 1fr;
-  }
-  @media (min-width: 640px) {
-    .admin-dash-chart-main { gap: 1.25rem; }
-  }
-  @media (min-width: 768px) {
-    .admin-dash-chart-main { grid-template-columns: 1fr 1fr; }
-  }
-  @media (min-width: 1024px) {
-    .admin-dash-chart-main { gap: 1.5rem; grid-template-columns: 3fr 2fr; }
-  }
-
-  /* 3. Paneles lado a lado: 50/50 en desktop */
+  /* 2. Paneles lado a lado: 50/50 en desktop */
   .admin-dash-panels {
     display: grid;
     width: 100%;

@@ -1,8 +1,6 @@
 import type { DashboardDiagnosis, DashboardHealth, DashboardStrategy, DashboardSummary } from './types';
 
 export const EMPTY_HEALTH: DashboardHealth = {
-  salesChartLastMonth: [],
-  topProductsByMargin: [],
   ticketPromedio: 0,
   ticketPromedioPrev: 0,
   crecimientoMensual: 0,
@@ -10,8 +8,6 @@ export const EMPTY_HEALTH: DashboardHealth = {
   dailySalesGoal: 0,
   estimatedNetProfit: 0,
   estimatedNetProfitPrev: 0,
-  monthlySalesChart: [],
-  breakEvenPoint: 0,
 };
 
 export const EMPTY_SUMMARY: DashboardSummary = {
@@ -28,7 +24,6 @@ export const EMPTY_DIAGNOSIS: DashboardDiagnosis = {
 };
 
 export const EMPTY_STRATEGY: DashboardStrategy = {
-  paretoCustomers: [],
   frictionFunnel: {
     totalCreadas: 0,
     totalPagadas: 0,
@@ -53,26 +48,7 @@ export const DEMO_SUMMARY: DashboardSummary = {
   ],
 };
 
-const lastMonthDays = Array.from({ length: 28 }, (_, i) => {
-  const d = new Date();
-  d.setDate(d.getDate() - 27 + i);
-  const base = 800 + Math.sin(i * 0.4) * 200 + i * 15;
-  return {
-    date: d.toISOString().slice(0, 10),
-    ventasUsd: Math.round(base * 100) / 100,
-    ventasBs: Math.round(base * 42.5 * 100) / 100,
-  };
-});
-
 export const DEMO_HEALTH: DashboardHealth = {
-  salesChartLastMonth: lastMonthDays,
-  topProductsByMargin: [
-    { productId: 1, productName: 'Café Premium', margin: 420 },
-    { productId: 2, productName: 'Arepa Reina', margin: 380 },
-    { productId: 3, productName: 'Jugo Natural', margin: 290 },
-    { productId: 4, productName: 'Empanada', margin: 210 },
-    { productId: 5, productName: 'Agua 1.5L', margin: 95 },
-  ],
   ticketPromedio: 42.5,
   ticketPromedioPrev: 38.2,
   crecimientoMensual: 12.4,
@@ -80,15 +56,6 @@ export const DEMO_HEALTH: DashboardHealth = {
   dailySalesGoal: 1500,
   estimatedNetProfit: 4625,
   estimatedNetProfitPrev: 3850,
-  monthlySalesChart: [
-    { month: 'Ene 2026', ventas: 14200 },
-    { month: 'Feb 2026', ventas: 15800 },
-    { month: 'Mar 2026', ventas: 16500 },
-    { month: 'Abr 2026', ventas: 17200 },
-    { month: 'May 2026', ventas: 17800 },
-    { month: 'Jun 2026', ventas: 18500 },
-  ],
-  breakEvenPoint: 12000,
 };
 
 export const DEMO_DIAGNOSIS: DashboardDiagnosis = {
@@ -102,11 +69,6 @@ export const DEMO_DIAGNOSIS: DashboardDiagnosis = {
 };
 
 export const DEMO_STRATEGY: DashboardStrategy = {
-  paretoCustomers: [
-    { customerId: 1, customerName: 'Cliente A', volume: 5200, frequency: 12, segment: 'Leales' },
-    { customerId: 2, customerName: 'Cliente B', volume: 3100, frequency: 8, segment: 'Leales' },
-    { customerId: 3, customerName: 'Cliente C', volume: 800, frequency: 2, segment: 'En Riesgo' },
-  ],
   frictionFunnel: {
     totalCreadas: 48,
     totalPagadas: 42,
@@ -133,8 +95,7 @@ export function withDemoHealth(data: DashboardHealth, useDemo: boolean): Dashboa
   if (!useDemo) return data;
   const hasData =
     data.totalVentasMes > 0 ||
-    data.topProductsByMargin.length > 0 ||
-    data.salesChartLastMonth.some((d) => d.ventasUsd > 0);
+    data.estimatedNetProfit !== 0;
   return hasData ? data : DEMO_HEALTH;
 }
 
@@ -145,7 +106,7 @@ export function withDemoDiagnosis(data: DashboardDiagnosis, useDemo: boolean): D
 
 export function withDemoStrategy(data: DashboardStrategy, useDemo: boolean): DashboardStrategy {
   if (!useDemo) return data;
-  return data.paretoCustomers.length > 0 ? data : DEMO_STRATEGY;
+  return data.frictionFunnel.totalCreadas > 0 || data.insights.length > 0 ? data : DEMO_STRATEGY;
 }
 
 export function pctChange(current: number, previous: number): number {
