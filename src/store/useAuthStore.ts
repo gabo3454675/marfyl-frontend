@@ -61,6 +61,8 @@ interface AuthState {
   setToken: (token: string) => void;
   /** Actualiza solo el refresh token (ej. tras refresh exitoso). */
   setRefreshToken: (token: string | null) => void;
+  /** Sincroniza las organizaciones del usuario tras recuperar una sesión persistida. */
+  setUserOrganizations: (organizations: Organization[]) => void;
   clearAuth: () => void;
   logout: () => Promise<void>;
   selectCompany: (companyId: number) => void; // Legacy
@@ -154,6 +156,11 @@ export const useAuthStore = create<AuthState>()(
           }
         }
         set({ refreshToken: token });
+      },
+      setUserOrganizations: (organizations: Organization[]) => {
+        const user = get().user;
+        if (!user) return;
+        set({ user: { ...user, organizations } });
       },
       clearAuth: () => {
         if (typeof window !== 'undefined') {

@@ -12,16 +12,20 @@ import { slugifyOrganizationName } from '@/lib/org-slug';
 export default function OnboardingPage() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasHydrated = useAuthStore((s) => s._hasHydrated);
   const user = useAuthStore((s) => s.user);
   const setAuth = useAuthStore((s) => s.setAuth);
+  const setUserOrganizations = useAuthStore((s) => s.setUserOrganizations);
   const token = useAuthStore((s) => s.token);
   const [organizationName, setOrganizationName] = useState('');
   const [organizationSlug, setOrganizationSlug] = useState('');
   const [slugTouched, setSlugTouched] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingOrganizations, setCheckingOrganizations] = useState(true);
 
   useEffect(() => {
+    if (!hasHydrated) return;
     if (!isAuthenticated) {
       router.replace('/login');
       return;
@@ -33,14 +37,59 @@ export default function OnboardingPage() {
     const orgs = user?.organizations ?? [];
     if (orgs.length > 0) {
       router.replace('/');
+      return;
     }
-  }, [isAuthenticated, user, router]);
+
+    // Una sesión persistida puede contener datos antiguos (por ejemplo, si un
+    // administrador acaba de activar la membresía). Confirmar con la API antes
+    // de ofrecer al usuario crear una empresa nueva.
+    let cancelled = false;
+    apiClient
+      .get<{ id: number; name: string; slug: string; plan: string; role: string }[]>(
+        '/auth/organizations',
+      )
+      .then((res) => {
+        if (cancelled) return;
+        const organizations = res.data ?? [];
+        if (organizations.length > 0) {
+          setUserOrganizations(organizations);
+          useAuthStore.getState().selectOrganization(organizations[0].id);
+          router.replace('/');
+          return;
+        }
+        setCheckingOrganizations(false);
+      })
+      .catch(() => {
+        if (!cancelled) setCheckingOrganizations(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    hasHydrated,
+    isAuthenticated,
+    user?.isSuperAdmin,
+    user?.organizations?.length,
+    router,
+    setUserOrganizations,
+  ]);
 
   useEffect(() => {
     if (!slugTouched && organizationName) {
       setOrganizationSlug(slugifyOrganizationName(organizationName));
     }
   }, [organizationName, slugTouched]);
+
+  if (!hasHydrated || checkingOrganizations) {
+    return (
+      <Card className="w-full card-elevated">
+        <CardContent className="py-12 text-center text-sm text-muted-foreground">
+          Verificando acceso a tu empresa…
+        </CardContent>
+      </Card>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
