@@ -18,10 +18,22 @@ import { cn } from '@/lib/utils';
  * Barra superior del modo Galería de Módulos.
  * Sustituye sidebar/topbar: mantiene selector de empresa, home y sesión.
  */
-export function GalleryAppBar({ className }: { className?: string }) {
+export function GalleryAppBar({
+  className,
+  homeHref = '/',
+  homeLabel = 'Ir a galería de módulos',
+  showGalleryBack = true,
+}: {
+  className?: string;
+  /** Inicio autorizado para el rol actual (galería o estación operativa). */
+  homeHref?: string;
+  homeLabel?: string;
+  /** Oculta el retorno a galería en estaciones sin acceso al hub. */
+  showGalleryBack?: boolean;
+}) {
   const pathname = usePathname() ?? '';
   const logout = useAuthStore((s) => s.logout);
-  const isHome = pathname === '/' || pathname === '';
+  const isHome = pathname === homeHref || pathname === '';
   const [rateCurrency, setRateCurrency] = useState<'USD' | 'EUR'>('USD');
 
   const handleLogout = async () => {
@@ -40,12 +52,12 @@ export function GalleryAppBar({ className }: { className?: string }) {
     >
       <div className="mx-auto flex w-full max-w-7xl items-center gap-3 px-3 py-2.5 sm:gap-4 sm:px-5 md:px-6">
         <Link
-          href="/"
+          href={homeHref}
           className={cn(
             'flex min-w-0 items-center gap-2.5 rounded-xl px-1 py-1 transition-colors',
             'hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
           )}
-          aria-label="Ir a galería de módulos"
+          aria-label={homeLabel}
         >
           <MarfylLogo variant="icon" className="shrink-0" />
           <span className="hidden min-w-0 flex-col leading-tight sm:flex">
@@ -53,12 +65,12 @@ export function GalleryAppBar({ className }: { className?: string }) {
               MARFYL
             </span>
             <span className="truncate text-[11px] text-muted-foreground">
-              {isHome ? 'Módulos' : 'Galería'}
+              {homeHref === '/' ? (isHome ? 'Módulos' : 'Galería') : 'Operación'}
             </span>
           </span>
         </Link>
 
-        {!isHome && <BackToGalleryButton />}
+        {showGalleryBack && !isHome && <BackToGalleryButton />}
 
         <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-2.5">
           <OrganizationSwitcher

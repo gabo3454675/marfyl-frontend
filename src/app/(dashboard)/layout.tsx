@@ -65,6 +65,11 @@ export default function DashboardLayout({
   const orgRole = String(currentOrgForRole?.role ?? '').toUpperCase();
   const isStationRole =
     isPosOperator || orgRole === 'WAITER' || orgRole === 'KITCHEN' || isStationLocked;
+  const stationHomeHref = isKitchenOnly || orgRole === 'KITCHEN'
+    ? '/comanda/cocina'
+    : isWaiterOnly || orgRole === 'WAITER'
+      ? '/comanda'
+      : '/pos';
 
   // Sincronizar facturas pendientes al volver online
   useSync();
@@ -319,7 +324,11 @@ export default function DashboardLayout({
           {!isModuleGalleryEnabled() && <Sidebar />}
           <main className="admin-main-pane flex flex-1 flex-col min-h-0 min-w-0 w-full bg-background">
             {isModuleGalleryEnabled() ? (
-              <GalleryAppBar />
+              <GalleryAppBar
+                homeHref={stationHomeHref}
+                homeLabel="Ir a la pantalla operativa"
+                showGalleryBack={false}
+              />
             ) : (
               <AdminTopbar onOpenRateConfig={() => setRateConfigModalOpen(true)} />
             )}

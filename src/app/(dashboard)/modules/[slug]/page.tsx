@@ -77,10 +77,6 @@ export default function ModuleOverviewPage() {
 
   return (
     <AdminPanel className="p-6 md:p-8 lg:p-10">
-      <div className="mb-8">
-        <BackToGalleryButton variant="page" label="Galería de módulos" />
-      </div>
-
       <div className="mb-10">
         <div className="flex items-center gap-5">
           <div

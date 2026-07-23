@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, LayoutGrid } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -44,13 +44,13 @@ export function BackToGalleryButton({
       size="sm"
       asChild
       className={cn(
-        'h-9 shrink-0 gap-1.5 rounded-xl px-2.5 sm:px-3',
+          'h-11 shrink-0 gap-1.5 rounded-xl px-3 sm:h-9',
         className,
       )}
     >
       <Link href="/" aria-label={label}>
-        <LayoutGrid className="h-3.5 w-3.5 shrink-0" />
-        <span className="sm:hidden">Galería</span>
+          <ArrowLeft className="h-4 w-4 shrink-0" />
+          <span className="sm:hidden">Atrás</span>
         <span className="hidden sm:inline">{label}</span>
       </Link>
     </Button>

@@ -85,6 +85,7 @@ export default function ComandaMenuPage() {
   const [tableLabel, setTableLabel] = useState('');
   const [tableId, setTableId] = useState<number | null>(null);
   const [newTableLabel, setNewTableLabel] = useState('');
+  const [newTableZone, setNewTableZone] = useState('Salón principal');
   const [tablePaymentAmount, setTablePaymentAmount] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
@@ -312,7 +313,10 @@ export default function ComandaMenuPage() {
 });
 
   const createTableMutation = useMutation({
-    mutationFn: () => floorOrdersApi.createTable({ label: newTableLabel.trim() }),
+    mutationFn: () => floorOrdersApi.createTable({
+      label: newTableLabel.trim(),
+      zone: newTableZone.trim() || undefined,
+    }),
     onSuccess: (table) => {
       setNewTableLabel('');
       setTableId(table.id);
@@ -390,7 +394,52 @@ export default function ComandaMenuPage() {
         </div>
       </div>
       <FloorServiceNav />
+      {!tableId ? (
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold">Selecciona una mesa</h2>
+            <p className="text-sm text-muted-foreground">
+              El pedido y la cuenta se acumularán en la mesa seleccionada.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {tables.map((table) => (
+              <button
+                key={table.id}
+                type="button"
+                onClick={() => {
+                  setTableId(table.id);
+                  setTableLabel(table.label);
+                  setZone(table.zone || '');
+                }}
+                className={cn(
+                  'min-h-28 rounded-2xl border p-4 text-left transition',
+                  table.status === 'OCCUPIED'
+                    ? 'border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/15'
+                    : 'border-border bg-card hover:border-primary/60 hover:bg-primary/5',
+                )}
+              >
+                <span className="block text-base font-semibold">{table.label}</span>
+                <span className="mt-1 block text-xs text-muted-foreground">{table.zone || 'Sin área'}</span>
+                <span className="mt-3 block text-sm tabular-nums">
+                  {table.status === 'OCCUPIED' ? `Saldo ${formatUsdAmount(table.balanceUsd)}` : 'Libre'}
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="grid gap-2 rounded-xl border border-dashed p-3 sm:grid-cols-[1fr_1fr_auto]">
+            <Input value={newTableLabel} onChange={(event) => setNewTableLabel(event.target.value)} placeholder="Nombre de mesa" />
+            <Input value={newTableZone} onChange={(event) => setNewTableZone(event.target.value)} placeholder="Área: terraza, barra..." />
+            <Button type="button" disabled={!newTableLabel.trim() || createTableMutation.isPending} onClick={() => createTableMutation.mutate()}>
+              Crear mesa
+            </Button>
+          </div>
+        </section>
+      ) : (
       <div className="space-y-2">
+        <Button type="button" variant="ghost" size="sm" onClick={() => setTableId(null)}>
+          ← Cambiar mesa
+        </Button>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -486,6 +535,7 @@ export default function ComandaMenuPage() {
           </div>
         )}
       </div>
+      )}
 
       <div
         className={cn(
