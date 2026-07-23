@@ -76,13 +76,16 @@ export default function ComandaMenuPage() {
   const { selectedOrganizationId, selectedCompanyId, user } = useAuthStore();
   const orgId = selectedOrganizationId || selectedCompanyId;
   const userId = user?.id;
-  const { canTakeFloorOrder } = usePermission();
+  const { canTakeFloorOrder, canAccessPOS } = usePermission();
   const { formatUsdAmount } = useDisplayCurrency();
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState('');
   const debounced = useDebounce(search, 200);
   const [tableLabel, setTableLabel] = useState('');
+  const [tableId, setTableId] = useState<number | null>(null);
+  const [newTableLabel, setNewTableLabel] = useState('');
+  const [tablePaymentAmount, setTablePaymentAmount] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -146,6 +149,12 @@ export default function ComandaMenuPage() {
   const { data: liveOrders = [] } = useQuery({
     queryKey: ['floor-orders', orgId, 'host'],
     queryFn: () => floorOrdersApi.list(),
+    enabled: !!orgId && canTakeFloorOrder,
+    refetchInterval: 20_000,
+  });
+  const { data: tables = [] } = useQuery({
+    queryKey: ['floor-tables', orgId],
+    queryFn: () => floorOrdersApi.listTables(),
     enabled: !!orgId && canTakeFloorOrder,
     refetchInterval: 20_000,
   });
@@ -233,6 +242,7 @@ export default function ComandaMenuPage() {
         }
 
         return floorOrdersApi.create({
+          tableId: tableId ?? undefined,
           tableLabel: mesa,
           zone: zone.trim() || undefined,
           customerId,
@@ -251,6 +261,7 @@ export default function ComandaMenuPage() {
         if (!cliente) throw new Error('Indica el nombre del cliente');
 
         return floorOrdersApi.create({
+          tableId: tableId ?? undefined,
           tableLabel: mesa,
           zone: zone.trim() || undefined,
           customerName: cliente,
@@ -288,6 +299,7 @@ export default function ComandaMenuPage() {
     if (paymentMode === 'INMEDIATO') setCustomerName('');
     void queryClient.invalidateQueries({ queryKey: ['products'] });
     void queryClient.invalidateQueries({ queryKey: ['floor-orders'] });
+    void queryClient.invalidateQueries({ queryKey: ['floor-tables'] });
   },
   onError: (err: unknown) => {
     const msg =
@@ -298,6 +310,49 @@ export default function ComandaMenuPage() {
     toast.error(typeof msg === 'string' ? msg : 'No se pudo enviar el pedido');
   },
 });
+
+  const createTableMutation = useMutation({
+    mutationFn: () => floorOrdersApi.createTable({ label: newTableLabel.trim() }),
+    onSuccess: (table) => {
+      setNewTableLabel('');
+      setTableId(table.id);
+      setTableLabel(table.label);
+      void queryClient.invalidateQueries({ queryKey: ['floor-tables'] });
+    },
+    onError: () => toast.error('No se pudo crear la mesa'),
+  });
+  const selectedTable = tables.find((table) => table.id === tableId);
+  const refreshTables = () => void queryClient.invalidateQueries({ queryKey: ['floor-tables'] });
+  const paymentMutation = useMutation({
+    mutationFn: () => {
+      if (!selectedTable?.accountId) throw new Error('Selecciona una mesa ocupada');
+      return floorOrdersApi.recordTablePayment(selectedTable.accountId, {
+        amount: Number(tablePaymentAmount),
+        method: 'CASH_USD',
+        currency: 'USD',
+      });
+    },
+    onSuccess: () => {
+      setTablePaymentAmount('');
+      refreshTables();
+      toast.success('Abono registrado en la cuenta de la mesa');
+    },
+    onError: () => toast.error('No se pudo registrar el abono'),
+  });
+  const closeTableMutation = useMutation({
+    mutationFn: () => {
+      if (!selectedTable?.accountId) throw new Error('Selecciona una mesa ocupada');
+      return floorOrdersApi.closeTableAccount(selectedTable.accountId, {
+        payments: [{ method: 'CASH_USD', amount: selectedTable.balanceUsd, currency: 'USD' }],
+      });
+    },
+    onSuccess: () => {
+      refreshTables();
+      toast.success('Mesa cobrada y cerrada');
+      setTableId(null);
+    },
+    onError: () => toast.error('No se pudo cerrar la mesa'),
+  });
 
   if (!canTakeFloorOrder) {
     return (
@@ -492,6 +547,96 @@ export default function ComandaMenuPage() {
               </button>
             </div>
           </div>
+
+          {tables.length > 0 && (
+            <div className="space-y-2">
+              <Label>Selecciona una mesa</Label>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {tables.map((table) => (
+                  <button
+                    key={table.id}
+                    type="button"
+                    onClick={() => {
+                      setTableId(table.id);
+                      setTableLabel(table.label);
+                      setZone(table.zone || '');
+                    }}
+                    className={cn(
+                      'rounded-xl border p-3 text-left transition-colors',
+                      tableId === table.id
+                        ? 'border-primary bg-primary/10'
+                        : table.status === 'OCCUPIED'
+                          ? 'border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/15'
+                          : 'border-border bg-muted/30 hover:bg-muted/60',
+                    )}
+                  >
+                    <span className="block text-sm font-semibold">{table.label}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {table.status === 'OCCUPIED'
+                        ? `Saldo $${table.balanceUsd.toFixed(2)}`
+                        : 'Libre'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={newTableLabel}
+                  onChange={(event) => setNewTableLabel(event.target.value)}
+                  placeholder="Nueva mesa, ej. Mesa 8"
+                  className="h-10"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!newTableLabel.trim() || createTableMutation.isPending}
+                  onClick={() => createTableMutation.mutate()}
+                >
+                  Crear
+                </Button>
+              </div>
+              {canAccessPOS && selectedTable?.accountId && (
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="font-medium">{selectedTable.label} · cuenta abierta</span>
+                    <span className="tabular-nums">
+                      Total {formatUsdAmount(selectedTable.totalUsd)} · saldo {formatUsdAmount(selectedTable.balanceUsd)}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={tablePaymentAmount}
+                      onChange={(event) => setTablePaymentAmount(event.target.value)}
+                      placeholder="Abono USD"
+                      className="h-10 max-w-36"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={!Number(tablePaymentAmount) || paymentMutation.isPending}
+                      onClick={() => paymentMutation.mutate()}
+                    >
+                      Registrar abono
+                    </Button>
+                    <Button
+                      type="button"
+                      disabled={selectedTable.balanceUsd <= 0 || closeTableMutation.isPending}
+                      onClick={() => {
+                        if (confirm(`¿Cobrar ${formatUsdAmount(selectedTable.balanceUsd)} y cerrar ${selectedTable.label}?`)) {
+                          closeTableMutation.mutate();
+                        }
+                      }}
+                    >
+                      Cobrar todo y cerrar
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-3">
             <div className="grid grid-cols-2 gap-3">

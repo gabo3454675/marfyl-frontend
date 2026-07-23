@@ -49,7 +49,21 @@ export type FloorOrder = {
   createdBy?: { id: number; fullName?: string | null };
 };
 
+export type FloorTable = {
+  id: number;
+  label: string;
+  zone: string;
+  capacity?: number | null;
+  accountId: number | null;
+  status: 'FREE' | 'OCCUPIED';
+  totalUsd: number;
+  paidUsd: number;
+  balanceUsd: number;
+  ordersCount: number;
+};
+
 export type CreateFloorOrderPayload = {
+  tableId?: number;
   tableLabel: string;
   zone?: string;
   customerName?: string;
@@ -144,6 +158,24 @@ export type FloorOrderHistoryResponse = {
 };
 
 export const floorOrdersApi = {
+  listTables: () =>
+    apiClient.get<FloorTable[]>('/floor-orders/tables').then((r) => r.data),
+  createTable: (payload: { label: string; zone?: string }) =>
+    apiClient.post<FloorTable>('/floor-orders/tables', payload).then((r) => r.data),
+  recordTablePayment: (
+    accountId: number,
+    payload: { amount: number; method: string; currency?: string; notes?: string },
+  ) =>
+    apiClient
+      .post(`/floor-orders/tables/accounts/${accountId}/payments`, payload)
+      .then((r) => r.data),
+  closeTableAccount: (
+    accountId: number,
+    payload: { payments: { method: string; amount: number; currency: string }[]; notes?: string },
+  ) =>
+    apiClient
+      .post(`/floor-orders/tables/accounts/${accountId}/close`, payload)
+      .then((r) => r.data),
   list: (params?: { status?: string; day?: string; station?: string }) =>
     apiClient
       .get<FloorOrder[]>('/floor-orders', { params })
@@ -155,11 +187,16 @@ export const floorOrdersApi = {
         {
           userId: number;
           fullName: string;
+          taken: number;
           pending: number;
           sent: number;
           inPrep: number;
           ready: number;
-          totalUsd: number;
+          charged: number;
+          cancelled: number;
+          totalTakenUsd: number;
+          chargedUsd: number;
+          pendingUsd: number;
         }[]
       >('/floor-orders/stats/by-user', { params })
       .then((r) => r.data),

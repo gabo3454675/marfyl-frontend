@@ -7,7 +7,6 @@ import {
   ChefHat,
   Loader2,
   Banknote,
-  Timer,
   XCircle,
   Wine,
   Users,
@@ -34,8 +33,7 @@ import { formatBeerQty, isBeerProduct } from '@/lib/liquor-units';
 import { cn } from '@/lib/utils';
 
 const COLUMNS: { key: FloorOrderStatus; label: string }[] = [
-  { key: 'SENT', label: 'Nuevas' },
-  { key: 'IN_PREP', label: 'Preparando' },
+  { key: 'SENT', label: 'Pendientes' },
   { key: 'READY', label: 'Listas' },
 ];
 
@@ -50,7 +48,6 @@ function orderTotal(order: FloorOrder) {
 
 function OrderCard({
   order,
-  onPrep,
   onReady,
   onCharge,
   onCancel,
@@ -58,7 +55,6 @@ function OrderCard({
   canCharge,
 }: {
   order: FloorOrder;
-  onPrep: () => void;
   onReady: () => void;
   onCharge: () => void;
   onCancel: () => void;
@@ -119,17 +115,6 @@ function OrderCard({
         <p className="mb-3 text-xs text-muted-foreground">{order.notes}</p>
       )}
       <div className="flex flex-wrap gap-2">
-        {order.status === 'SENT' && (
-          <Button
-            type="button"
-            className="min-h-12 flex-1 gap-1.5"
-            disabled={busy}
-            onClick={onPrep}
-          >
-            <Timer className="h-4 w-4" />
-            Preparar
-          </Button>
-        )}
         {(order.status === 'SENT' || order.status === 'IN_PREP') && (
           <Button
             type="button"
@@ -139,7 +124,7 @@ function OrderCard({
             onClick={onReady}
           >
             <Check className="h-4 w-4" />
-            Lista
+            Marcar lista
           </Button>
         )}
         {order.status === 'READY' && canCharge && (
@@ -219,11 +204,11 @@ export default function ComandaCocinaPage() {
   const byStatus = useMemo(() => {
     const map: Record<string, FloorOrder[]> = {
       SENT: [],
-      IN_PREP: [],
       READY: [],
     };
     for (const o of orders) {
-      if (map[o.status]) map[o.status].push(o);
+      if (o.status === 'SENT' || o.status === 'IN_PREP') map.SENT.push(o);
+      else if (map[o.status]) map[o.status].push(o);
     }
     return map;
   }, [orders]);
@@ -304,7 +289,7 @@ export default function ComandaCocinaPage() {
           title={
             <span className="inline-flex items-center gap-2">
               <Users className="h-4 w-4" />
-              Pendientes por anfitrión
+              Trazabilidad de anfitriones · hoy
             </span>
           }
           className="mb-4"
@@ -318,15 +303,15 @@ export default function ComandaCocinaPage() {
                 <div>
                   <p className="text-sm font-medium">{row.fullName}</p>
                   <p className="text-[11px] text-muted-foreground">
-                    {row.sent} nuevas · {row.inPrep} prep. · {row.ready} listas
+                    {row.taken} tomada{row.taken === 1 ? '' : 's'} · {row.sent + row.inPrep} pendiente{row.sent + row.inPrep === 1 ? '' : 's'} · {row.ready} lista{row.ready === 1 ? '' : 's'} · {row.cancelled} anulada{row.cancelled === 1 ? '' : 's'}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-semibold tabular-nums">
-                    {row.pending} abierto{row.pending === 1 ? '' : 's'}
+                    Cobrado {formatUsdAmount(row.chargedUsd)}
                   </p>
                   <p className="text-xs tabular-nums text-muted-foreground">
-                    {formatUsdAmount(row.totalUsd)}
+                    Abierto {formatUsdAmount(row.pendingUsd)} · {row.pending} cuenta{row.pending === 1 ? '' : 's'}
                   </p>
                 </div>
               </li>
@@ -370,13 +355,6 @@ export default function ComandaCocinaPage() {
                       order={order}
                       busy={busyId === order.id}
                       canCharge={canAccessPOS}
-                      onPrep={() =>
-                        void run(
-                          order.id,
-                          () => floorOrdersApi.updateStatus(order.id, 'IN_PREP'),
-                          'En preparación',
-                        )
-                      }
                       onReady={() =>
                         void run(
                           order.id,
