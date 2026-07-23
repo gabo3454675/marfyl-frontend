@@ -437,9 +437,6 @@ export default function ComandaMenuPage() {
         </section>
       ) : (
       <div className="space-y-2">
-        <Button type="button" variant="ghost" size="sm" onClick={() => setTableId(null)}>
-          ← Cambiar mesa
-        </Button>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -598,52 +595,17 @@ export default function ComandaMenuPage() {
             </div>
           </div>
 
-          {tables.length > 0 && (
+          {selectedTable && (
             <div className="space-y-2">
-              <Label>Selecciona una mesa</Label>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                {tables.map((table) => (
-                  <button
-                    key={table.id}
-                    type="button"
-                    onClick={() => {
-                      setTableId(table.id);
-                      setTableLabel(table.label);
-                      setZone(table.zone || '');
-                    }}
-                    className={cn(
-                      'rounded-xl border p-3 text-left transition-colors',
-                      tableId === table.id
-                        ? 'border-primary bg-primary/10'
-                        : table.status === 'OCCUPIED'
-                          ? 'border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/15'
-                          : 'border-border bg-muted/30 hover:bg-muted/60',
-                    )}
-                  >
-                    <span className="block text-sm font-semibold">{table.label}</span>
-                    <span className="block text-xs text-muted-foreground">
-                      {table.status === 'OCCUPIED'
-                        ? `Saldo $${table.balanceUsd.toFixed(2)}`
-                        : 'Libre'}
-                    </span>
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  value={newTableLabel}
-                  onChange={(event) => setNewTableLabel(event.target.value)}
-                  placeholder="Nueva mesa, ej. Mesa 8"
-                  className="h-10"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={!newTableLabel.trim() || createTableMutation.isPending}
-                  onClick={() => createTableMutation.mutate()}
-                >
-                  Crear
-                </Button>
+              <Label>Mesa asignada</Label>
+              <div className="rounded-xl border border-primary/40 bg-primary/10 p-3">
+                <span className="block text-sm font-semibold">{selectedTable.label}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {selectedTable.zone || 'Sin área'}
+                  {selectedTable.status === 'OCCUPIED'
+                    ? ` · Saldo ${formatUsdAmount(selectedTable.balanceUsd)}`
+                    : ''}
+                </span>
               </div>
               {canAccessPOS && selectedTable?.accountId && (
                 <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
