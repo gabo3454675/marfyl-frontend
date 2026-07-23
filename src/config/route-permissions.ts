@@ -9,6 +9,7 @@ import type { PermissionKey } from './permissions';
 export const ROUTE_PERMISSIONS: Record<string, PermissionKey> = {
   // Dashboard
   '/': 'canViewDashboard',
+  '/panel-general': 'canViewDashboard',
 
   // POS
   '/pos': 'canAccessPOS',
@@ -55,6 +56,12 @@ export const ROUTE_PERMISSIONS: Record<string, PermissionKey> = {
   '/fiscal/calendario': 'canManageFiscal',
   '/fiscal/predeclaracion': 'canManageFiscal',
   '/assistant': 'canManageFiscal',
+
+  // Concierto
+  '/concierto': 'canManageCustomers',
+  '/concierto/mapa': 'canManageCustomers',
+  '/concierto/ordenes': 'canManageCustomers',
+  '/concierto/escaner': 'canManageCustomers',
 };
 
 /**

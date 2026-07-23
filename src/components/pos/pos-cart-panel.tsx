@@ -42,6 +42,10 @@ interface Customer {
 interface CartItem {
   product: PosProduct;
   quantity: number;
+  variantId?: number;
+  variantName?: string;
+  variantUnitQuantity?: number;
+  unitPrice: number;
 }
 
 export interface PosCartPanelProps {
@@ -70,10 +74,9 @@ export interface PosCartPanelProps {
   splitEquivalentUsd: number;
   processing: boolean;
   formatCurrency: (amount: number, forceCurrency?: CurrencyMode) => string;
-  getUnitPriceDisplay: (product: PosProduct) => number;
   sellableUnits: (product: PosProduct) => number;
-  onUpdateQuantity: (productId: number, delta: number) => void;
-  onRemoveFromCart: (productId: number) => void;
+  onUpdateQuantity: (productId: number, delta: number, variantId?: number) => void;
+  onRemoveFromCart: (productId: number, variantId?: number) => void;
   onCheckout: () => void;
   showCheckoutButton?: boolean;
   compact?: boolean;
@@ -101,7 +104,6 @@ export function PosCartPanel({
   splitEquivalentUsd,
   processing,
   formatCurrency,
-  getUnitPriceDisplay,
   sellableUnits,
   onUpdateQuantity,
   onRemoveFromCart,
@@ -349,7 +351,7 @@ export function PosCartPanel({
           <div className="space-y-2.5">
             {cart.map((item, idx) => (
               <div
-                key={item.product.id}
+                key={`${item.product.id}-${item.variantId ?? ''}`}
                 className="admin-pos-cart-item rounded-xl border border-border/80 bg-card p-3 shadow-sm transition-all duration-200 ease-out"
                 style={{
                   animation: `cartItemIn 300ms ease-out both`,
@@ -358,15 +360,27 @@ export function PosCartPanel({
               >
                 <div className="mb-2.5 flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <h4 className="text-sm font-semibold leading-snug text-foreground/90">{item.product.name}</h4>
+                    <h4 className="text-sm font-semibold leading-snug text-foreground/90">
+                      {item.product.name}
+                      {item.variantName && (
+                        <span className="ml-1.5 text-xs font-normal text-muted-foreground/70">
+                          · {item.variantName}
+                          {item.variantUnitQuantity && item.variantUnitQuantity > 1 && (
+                            <span className="ml-1 inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none text-primary">
+                              x{item.variantUnitQuantity}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </h4>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      {formatCurrency(getUnitPriceDisplay(item.product))} c/u
+                      {formatCurrency(item.unitPrice)} c/u
                     </p>
                   </div>
                   <button
                     type="button"
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground/60 transition-all duration-150 ease-out hover:border-destructive/30 hover:bg-destructive/5 hover:text-destructive active:scale-95 touch-manipulation"
-                    onClick={() => onRemoveFromCart(item.product.id)}
+                    onClick={() => onRemoveFromCart(item.product.id, item.variantId)}
                     aria-label="Quitar del carrito"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -377,7 +391,7 @@ export function PosCartPanel({
                     <button
                       type="button"
                       className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground transition-all duration-150 ease-out hover:border-primary/30 hover:text-primary active:scale-95 touch-manipulation"
-                      onClick={() => onUpdateQuantity(item.product.id, -1)}
+                      onClick={() => onUpdateQuantity(item.product.id, -1, item.variantId)}
                       aria-label="Reducir cantidad"
                     >
                       <Minus className="h-3.5 w-3.5" />
@@ -388,7 +402,7 @@ export function PosCartPanel({
                     <button
                       type="button"
                       className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground transition-all duration-150 ease-out hover:border-primary/30 hover:text-primary active:scale-95 touch-manipulation"
-                      onClick={() => onUpdateQuantity(item.product.id, 1)}
+                      onClick={() => onUpdateQuantity(item.product.id, 1, item.variantId)}
                       disabled={item.quantity >= sellableUnits(item.product)}
                       aria-label="Aumentar cantidad"
                     >
@@ -396,7 +410,7 @@ export function PosCartPanel({
                     </button>
                   </div>
                   <span className="text-sm font-bold tabular-nums text-foreground">
-                    {formatCurrency(round2(getUnitPriceDisplay(item.product) * item.quantity))}
+                    {formatCurrency(round2(item.unitPrice * item.quantity))}
                   </span>
                 </div>
               </div>

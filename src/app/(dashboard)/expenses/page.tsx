@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/tabs';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
+import { ImportPreviewShell } from '@/components/import';
 import { AdminStatCard } from '@/components/admin/admin-stat-card';
 import { Plus, Edit, Trash2, Search, Loader2, DollarSign, TrendingDown, Package, Briefcase, FileSpreadsheet, Upload, Download, Camera } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -803,74 +804,41 @@ export default function ExpensesPage() {
                 </div>
 
                 {importPreview && (
-                  <div className="space-y-4 rounded-lg border p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
+                  <ImportPreviewShell
+                    canConfirm={importPreview.canConfirm}
+                    summary={
                       <p className="font-semibold">
                         Total estimado: {formatForDisplay(importPreview.totalAmount)}
                       </p>
-                      {!importPreview.canConfirm && (
-                        <span className="text-sm text-destructive">
-                          Corrija errores antes de confirmar
-                        </span>
-                      )}
-                    </div>
-                    {importPreview.lines.length > 0 && (
-                      <AdminTableWrap>
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Producto</TableHead>
-                              <TableHead>SKU</TableHead>
-                              <TableHead className="text-right">Cant.</TableHead>
-                              <TableHead className="text-right">Costo u.</TableHead>
-                              <TableHead className="text-right">Subtotal</TableHead>
+                    }
+                    errors={importPreview.errors}
+                    unmatched={importPreview.unmatched}
+                  >
+                    {importPreview.lines.length > 0 ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Producto</TableHead>
+                            <TableHead>SKU</TableHead>
+                            <TableHead className="text-right">Cant.</TableHead>
+                            <TableHead className="text-right">Costo u.</TableHead>
+                            <TableHead className="text-right">Subtotal</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {importPreview.lines.map((line) => (
+                            <TableRow key={line.productId}>
+                              <TableCell>{line.name}</TableCell>
+                              <TableCell className="text-muted-foreground">{line.sku || '—'}</TableCell>
+                              <TableCell className="text-right">{line.quantity}</TableCell>
+                              <TableCell className="text-right">{formatForDisplay(line.unitCostUsd)}</TableCell>
+                              <TableCell className="text-right">{formatForDisplay(line.lineTotal)}</TableCell>
                             </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {importPreview.lines.map((line) => (
-                              <TableRow key={line.productId}>
-                                <TableCell>{line.name}</TableCell>
-                                <TableCell className="text-muted-foreground">{line.sku || '—'}</TableCell>
-                                <TableCell className="text-right">{line.quantity}</TableCell>
-                                <TableCell className="text-right">{formatForDisplay(line.unitCostUsd)}</TableCell>
-                                <TableCell className="text-right">{formatForDisplay(line.lineTotal)}</TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </AdminTableWrap>
-                    )}
-                    {importPreview.errors.length > 0 && (
-                      <div>
-                        <p className="text-sm font-medium text-destructive mb-2">Errores</p>
-                        <ul className="list-disc pl-5 text-sm space-y-1">
-                          {importPreview.errors.map((err, i) => (
-                            <li key={i}>
-                              {err.row != null && `Fila ${err.row}: `}
-                              {err.line != null && `Línea PDF ${err.line}: `}
-                              {err.message}
-                            </li>
                           ))}
-                        </ul>
-                      </div>
-                    )}
-                    {importPreview.unmatched.length > 0 && (
-                      <div>
-                        <p className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-2">
-                          Códigos no reconocidos o no aplicables
-                        </p>
-                        <ul className="list-disc pl-5 text-sm space-y-1">
-                          {importPreview.unmatched.map((u, i) => (
-                            <li key={i}>
-                              {u.code}: {u.reason}
-                              {u.row != null && ` (fila ${u.row})`}
-                              {u.line != null && ` (línea PDF ${u.line})`}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
+                        </TableBody>
+                      </Table>
+                    ) : null}
+                  </ImportPreviewShell>
                 )}
               </div>
             </AdminCard>

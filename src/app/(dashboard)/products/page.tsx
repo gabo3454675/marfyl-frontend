@@ -36,6 +36,13 @@ import {
   parseRecipeFromUnknown,
   type RecipeLine,
 } from '@/components/bundle-recipe-editor';
+import { VariantManager } from '@/components/products';
+import { InventoryImportPreviewDialog } from '@/components/products/inventory-import-preview-dialog';
+import type { ProductVariant } from '@/types/product-variant';
+import {
+  inventoryService,
+  type InventoryImportPreviewResult,
+} from '@/lib/api/inventory';
 
 type SalePriceCurrency = 'USD' | 'VES';
 
@@ -55,6 +62,44 @@ interface Product {
   isBundle?: boolean;
   isService?: boolean;
   bundleComponents?: unknown;
+  /** Variantes incluidas por el API (opcional — productos sin variantes no tienen este campo) */
+  variants?: ProductVariant[];
+  /** Conteos relacionales del API */
+  _count?: { variants: number };
+}
+
+// ── Helpers de variantes ──────────────────────────────────────────────────
+
+/** Número de variantes activas de un producto (desde _count o variants[]) */
+function getVariantCount(product: Product): number {
+  if (product._count?.variants != null) return product._count.variants;
+  if (product.variants) return product.variants.length;
+  return 0;
+}
+
+/** Precio de la variante default (o primera variante activa) */
+function getDefaultVariantPrice(product: Product): number | null {
+  const variants = product.variants;
+  if (!variants || variants.length === 0) return null;
+  const active = variants.filter((v) => v.isActive);
+  if (active.length === 0) return null;
+  const def = active.find((v) => v.isDefault) ?? active[0];
+  return def.salePrice;
+}
+
+/** Rango de precios formateado para productos con variantes */
+function getVariantPriceRange(
+  product: Product,
+  fmt: (n: number) => string,
+): string | null {
+  const variants = product.variants;
+  if (!variants || variants.length === 0) return null;
+  const active = variants.filter((v) => v.isActive);
+  if (active.length === 0) return null;
+  const prices = active.map((v) => v.salePrice);
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  return min === max ? fmt(min) : `${fmt(min)} – ${fmt(max)}`;
 }
 
 export default function ProductsPage() {
@@ -101,6 +146,18 @@ export default function ProductsPage() {
     total?: number;
     errors?: string[];
   } | null>(null);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<InventoryImportPreviewResult | null>(null);
+  const [importPreviewOpen, setImportPreviewOpen] = useState(false);
+  const [importConfirming, setImportConfirming] = useState(false);
+
+  /** Sincroniza salePrice del producto cuando cambia la variante default */
+  const handleDefaultVariantChanged = useCallback(
+    (variant: ProductVariant) => {
+      setFormData((prev) => ({ ...prev, salePrice: String(variant.salePrice) }));
+    },
+    [],
+  );
 
   const handleDownloadInventoryTemplate = useCallback(async () => {
     try {
@@ -133,6 +190,75 @@ export default function ProductsPage() {
         error.response?.data?.message ||
           'No se pudo descargar la plantilla. Verifica que estás logueado y tienes una organización seleccionada.',
       );
+    }
+  }, []);
+
+  const handleImportFileSelected = useCallback(async (file: File) => {
+    setImporting(true);
+    setImportFile(file);
+    setImportPreview(null);
+    setImportPreviewOpen(true);
+
+    try {
+      const preview = await inventoryService.previewImport(file);
+      setImportPreview(preview);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      setImportPreviewOpen(false);
+      setImportFile(null);
+      alert(err.response?.data?.message || 'Error al leer el archivo Excel');
+    } finally {
+      setImporting(false);
+    }
+  }, []);
+
+  const handleConfirmImport = useCallback(async () => {
+    if (!importFile || !importPreview || importPreview.errors.length > 0) return;
+
+    setImportConfirming(true);
+    try {
+      const result = await inventoryService.confirmImport(importFile);
+      const created = result.created ?? 0;
+      const updated = result.updated ?? 0;
+
+      setImportPreviewOpen(false);
+      setImportPreview(null);
+      setImportFile(null);
+
+      setImportProgress({
+        uploading: false,
+        created,
+        updated,
+        total: created + updated,
+        errors: [],
+      });
+
+      setTimeout(() => {
+        refetch();
+        setImportProgress(null);
+      }, 3000);
+    } catch (error: unknown) {
+      const errData = (error as { response?: { data?: { message?: string; errors?: Array<{ message?: string } | string> } } })
+        .response?.data;
+      const errors = Array.isArray(errData?.errors)
+        ? errData.errors.map((e) => (typeof e === 'string' ? e : e?.message ?? 'Error'))
+        : [errData?.message || 'Error al importar productos'];
+      setImportProgress({
+        uploading: false,
+        errors,
+      });
+      setImportPreviewOpen(false);
+      setTimeout(() => setImportProgress(null), 3000);
+    } finally {
+      setImportConfirming(false);
+    }
+  }, [importFile, importPreview, refetch]);
+
+  const handleImportPreviewOpenChange = useCallback((open: boolean) => {
+    setImportPreviewOpen(open);
+    if (!open) {
+      setImportPreview(null);
+      setImportFile(null);
     }
   }, []);
 
@@ -346,63 +472,8 @@ export default function ProductsPage() {
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
-
-                setImporting(true);
-                setImportProgress({ uploading: true });
-
-                try {
-                  const formData = new FormData();
-                  formData.append('file', file);
-                  formData.append('confirm', 'true');
-
-                  const response = await apiClient.post('/inventory/import', formData, {
-                    headers: {
-                      'Content-Type': 'multipart/form-data',
-                    },
-                  });
-
-                  const data = response.data as { created?: number; updated?: number; summary?: { toCreate?: number; toUpdate?: number }; errors?: Array<{ message?: string } | string> };
-                  const created = data.created ?? 0;
-                  const updated = data.updated ?? 0;
-                  const total = created + updated;
-                  const errors = Array.isArray(data.errors)
-                    ? data.errors.map((err) => (typeof err === 'string' ? err : err?.message ?? 'Error'))
-                    : [];
-
-                  setImportProgress({
-                    uploading: false,
-                    created,
-                    updated,
-                    total,
-                    errors,
-                  });
-
-                  // Recargar productos después de 2 segundos para mostrar el resumen
-                  setTimeout(() => {
-                    refetch();
-                    setImportProgress(null);
-                  }, 3000);
-                } catch (error: any) {
-                  console.error('Error importing products:', error);
-                  const errData = error.response?.data;
-                  const errors = Array.isArray(errData?.errors)
-                    ? errData.errors.map((e: { message?: string } | string) => (typeof e === 'string' ? e : e?.message ?? 'Error'))
-                    : [errData?.message || 'Error al importar productos'];
-                  setImportProgress({
-                    uploading: false,
-                    errors,
-                  });
-                  
-                  setTimeout(() => {
-                    setImportProgress(null);
-                  }, 3000);
-                } finally {
-                  setImporting(false);
-                  // Reset input
-                  if (e.target) {
-                    e.target.value = '';
-                  }
-                }
+                await handleImportFileSelected(file);
+                if (e.target) e.target.value = '';
               }}
             />
             {canManageProducts && (
@@ -524,9 +595,17 @@ export default function ProductsPage() {
                                 Servicio
                               </Badge>
                             ) : null}
+                            {getVariantCount(product) > 0 && (
+                              <Badge variant="secondary" className="text-[10px] shrink-0">
+                                Multi-precio
+                              </Badge>
+                            )}
                           </div>
                           <p className="text-sm text-muted-foreground mt-1">
-                            {formatCurrency(Number(product.salePrice))} · Stock: {product.stock}
+                            {formatCurrency(
+                              getDefaultVariantPrice(product) ?? Number(product.salePrice),
+                            )}{' '}
+                            · Stock: {product.stock}
                             {product.barcode ? ` · ${product.barcode}` : ''}
                           </p>
                         </div>
@@ -578,6 +657,7 @@ export default function ProductsPage() {
                       <TableRow>
                         <TableHead>Nombre</TableHead>
                         <TableHead>Tipo</TableHead>
+                        <TableHead>Variantes</TableHead>
                         <TableHead>Precio</TableHead>
                         <TableHead>Stock</TableHead>
                         <TableHead>Código de Barras</TableHead>
@@ -585,7 +665,10 @@ export default function ProductsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {products.map((product) => (
+                      {products.map((product) => {
+                        const vCount = getVariantCount(product);
+                        const vRange = getVariantPriceRange(product, formatCurrency);
+                        return (
                         <TableRow key={product.id}>
                           <TableCell className="font-medium">{product.name}</TableCell>
                           <TableCell>
@@ -600,6 +683,22 @@ export default function ProductsPage() {
                               </Badge>
                             ) : (
                               <span className="text-muted-foreground text-sm">Inventario</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {vCount > 0 ? (
+                              <div className="flex flex-col gap-0.5">
+                                <Badge variant="secondary" className="text-[10px] w-fit">
+                                  {vCount} variante{vCount !== 1 ? 's' : ''}
+                                </Badge>
+                                {vRange && (
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                    {vRange}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">–</span>
                             )}
                           </TableCell>
                           <TableCell>{formatCurrency(Number(product.salePrice))}</TableCell>
@@ -644,7 +743,8 @@ export default function ProductsPage() {
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
                   </AdminTableWrap>
@@ -864,6 +964,16 @@ export default function ProductsPage() {
                     excludeProductId={editingProduct?.id ?? null}
                   />
                 )}
+
+                {/* Variantes — solo visible al editar un producto existente */}
+                {editingProduct && (
+                  <div className="border-t border-border/50 pt-4">
+                    <VariantManager
+                      productId={editingProduct.id}
+                      onDefaultChanged={handleDefaultVariantChanged}
+                    />
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button
@@ -889,6 +999,15 @@ export default function ProductsPage() {
             </form>
           </DialogContent>
         </Dialog>
+
+        <InventoryImportPreviewDialog
+          open={importPreviewOpen}
+          onOpenChange={handleImportPreviewOpenChange}
+          fileName={importFile?.name ?? null}
+          preview={importPreview}
+          confirming={importConfirming}
+          onConfirm={handleConfirmImport}
+        />
 
         <StockAdjustSheet
           product={stockSheetProduct}

@@ -13,6 +13,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { ImportPreviewShell } from '@/components/import';
 import { receiptScanService, type ScannedReceiptResult } from '@/lib/api/receipt-scan';
 import { toast } from 'sonner';
 
@@ -199,24 +208,55 @@ export function ReceiptScanSheet({
               </Select>
             </div>
 
-            <div className="max-h-[28dvh] space-y-2 overflow-y-auto rounded-lg border border-border/60 p-2">
-              {scan.lines.map((line, i) => (
-                <div
-                  key={`${line.name}-${i}`}
-                  className="flex items-start justify-between gap-2 border-b border-border/40 pb-2 last:border-0"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{line.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      x{line.quantity}
-                      {line.unitCostUsd != null ? ` · $${line.unitCostUsd.toFixed(2)} c/u` : ''}
-                    </p>
-                  </div>
-                  <Badge variant={line.action === 'match' ? 'secondary' : 'outline'} className="shrink-0 text-[10px]">
-                    {line.action === 'match' ? 'Existe' : 'Nuevo'}
-                  </Badge>
-                </div>
-              ))}
+            <div className="max-h-[28dvh] overflow-y-auto">
+              <ImportPreviewShell
+                canConfirm={scan.lines.length > 0}
+                confirmBlockedMessage="No hay líneas detectadas para registrar"
+                summary={
+                  <p className="font-semibold">
+                    {scan.lines.length} línea{scan.lines.length === 1 ? '' : 's'} detectada
+                    {scan.totalUsd != null ? ` · Ref. $${scan.totalUsd.toFixed(2)}` : ''}
+                  </p>
+                }
+                errors={scan.warnings.map((message) => ({ message }))}
+              >
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Producto</TableHead>
+                      <TableHead className="text-right">Cant.</TableHead>
+                      <TableHead className="text-right">Costo u.</TableHead>
+                      <TableHead>Estado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {scan.lines.map((line, i) => (
+                      <TableRow key={`${line.name}-${i}`}>
+                        <TableCell>
+                          <p className="truncate text-sm font-medium">{line.name}</p>
+                          {line.matchedProductName ? (
+                            <p className="text-xs text-muted-foreground">
+                              Match: {line.matchedProductName}
+                            </p>
+                          ) : null}
+                        </TableCell>
+                        <TableCell className="text-right">{line.quantity}</TableCell>
+                        <TableCell className="text-right">
+                          {line.unitCostUsd != null ? `$${line.unitCostUsd.toFixed(2)}` : '—'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={line.action === 'match' ? 'secondary' : 'outline'}
+                            className="text-[10px]"
+                          >
+                            {line.action === 'match' ? 'Existe' : 'Nuevo'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ImportPreviewShell>
             </div>
 
             <Button

@@ -40,6 +40,7 @@ src/
 │   ├── admin/        # Componentes del admin
 │   ├── dashboard/    # Charts y métricas
 │   ├── pos/          # Punto de venta
+│   ├── products/     # Variantes de producto (VariantManager, VariantForm, VariantListItem)
 │   ├── assistant/    # Asistente IA
 │   ├── concert/      # Boletería
 │   └── fiscal/       # Módulo fiscal
