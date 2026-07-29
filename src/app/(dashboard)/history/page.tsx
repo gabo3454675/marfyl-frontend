@@ -168,22 +168,22 @@ export default function HistoryPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Intl.DateTimeFormat('es-VE', {
+  /** Formato corto DD/MM/YYYY para listados (Emisión / Registro). */
+  const formatShortDate = (date: string | Date) =>
+    new Intl.DateTimeFormat('es-VE', {
+      day: '2-digit',
+      month: '2-digit',
       year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(new Date(dateString));
+    }).format(new Date(date));
+
+  /** Emisión: issueDate; si falta (legacy) → "—". */
+  const formatIssueDate = (invoice: HistoryInvoice): string => {
+    if (invoice.issueDate == null) return '—';
+    return formatShortDate(invoice.issueDate);
   };
 
-  /** Fecha de venta: issueDate (emisión) con fallback a createdAt. */
-  const getSaleDateIso = (invoice: HistoryInvoice): string => {
-    const raw = invoice.issueDate ?? invoice.createdAt;
-    if (typeof raw === 'string') return raw;
-    return new Date(raw).toISOString();
-  };
+  const formatCreatedAt = (invoice: HistoryInvoice): string =>
+    formatShortDate(invoice.createdAt);
 
   const paymentMethodLabels: Record<string, string> = {
     CASH: 'Efectivo $',
@@ -386,7 +386,10 @@ export default function HistoryPage() {
                         <div>
                           <p className="font-semibold">#{invoice.id}</p>
                           <p className="text-sm text-muted-foreground">
-                            {invoice.customer?.name || 'Cliente General'} · {formatDate(getSaleDateIso(invoice))}
+                            {invoice.customer?.name || 'Cliente General'}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Emisión: {formatIssueDate(invoice)} · Registro: {formatCreatedAt(invoice)}
                           </p>
                         </div>
                         <span
@@ -428,7 +431,8 @@ export default function HistoryPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Fecha</TableHead>
+                        <TableHead>Emisión</TableHead>
+                        <TableHead>Registro</TableHead>
                         <TableHead>Cliente</TableHead>
                         <TableHead>Monto Total</TableHead>
                         <TableHead>Método de pago</TableHead>
@@ -439,7 +443,8 @@ export default function HistoryPage() {
                     <TableBody>
                       {data.invoices.map((invoice: HistoryInvoice) => (
                         <TableRow key={invoice.id}>
-                          <TableCell className="text-muted-foreground">{formatDate(getSaleDateIso(invoice))}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatIssueDate(invoice)}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatCreatedAt(invoice)}</TableCell>
                           <TableCell>{invoice.customer?.name || 'Cliente General'}</TableCell>
                           <TableCell className="font-semibold">
                             {formatForDisplay(Number(invoice.totalAmount))}

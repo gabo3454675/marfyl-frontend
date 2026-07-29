@@ -57,7 +57,12 @@ export interface Invoice {
   createdAt: Date;
   updatedAt: Date;
   invoiceNumber?: string;
-  issueDate?: Date;
+  /**
+   * Fecha de emisión/venta. History y detalle deben mostrar Emisión + Registro
+   * por separado (`issueDate` y `createdAt`), sin colapsarlas.
+   * Opcional por filas legacy; en operativa nueva el BE la persiste (NOT NULL próximo).
+   */
+  issueDate?: Date | null;
   dueDate?: Date;
   subtotal?: number;
   tax?: number;

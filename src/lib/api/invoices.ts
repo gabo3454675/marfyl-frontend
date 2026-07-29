@@ -2,13 +2,22 @@ import type { AxiosResponse } from 'axios';
 import type { Invoice, InvoiceItem, Customer } from '@/types/shared-types';
 import { apiClient } from './client';
 
-/** Respuesta del endpoint GET /invoices/history. id explícito para compatibilidad con build. */
+/**
+ * Respuesta del endpoint GET /invoices/history.
+ * El BE devuelve el invoice completo (findMany sin select restrictivo):
+ * siempre incluye `createdAt` y `issueDate` cuando el registro los tiene.
+ * `issueDate` puede ser null en filas legacy; la UI muestra "—" en Emisión.
+ */
 export interface HistoryInvoice extends Omit<Invoice, 'id' | 'createdAt' | 'issueDate'> {
   id: number;
   totalAmount: number | string;
   paymentMethod?: string;
-  /** Fecha de emisión/venta (FastReport); preferir sobre createdAt en UI. */
+  /**
+   * Fecha de emisión/venta (filtro diario y columna Emisión).
+   * Opcional/null por legacy; operativa nueva debería enviarla siempre.
+   */
   issueDate?: string | Date | null;
+  /** Timestamp de creación del registro en sistema (columna Registro). */
   createdAt: string | Date;
   customer: Customer | null;
   items: (InvoiceItem & {
@@ -83,7 +92,10 @@ export const invoiceService = {
     return apiClient.get<Invoice[]>('/invoices').then((res) => res.data);
   },
 
-  /** Historial de ventas por rango de fechas (y opcionalmente por organización para Super Admin) */
+  /**
+   * Historial de ventas por rango (filtro por issueDate; fallback createdAt si null).
+   * Cada invoice incluye issueDate + createdAt para UI Emisión/Registro.
+   */
   getHistory(params: HistoryParams): Promise<HistoryResponse> {
     const query: Record<string, string> = {
       startDate: params.startDate,

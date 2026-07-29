@@ -58,8 +58,9 @@ interface Invoice {
   montoBs?: number | null;
   paymentLines?: PaymentLine[];
   notes?: string | null;
-  /** Fecha de emisión/venta; preferir sobre createdAt. */
+  /** Emisión/venta; null legacy → UI muestra "—". No colapsar con createdAt. */
   issueDate?: string | Date | null;
+  /** Registro en sistema. */
   createdAt: string;
   customer: Customer | null;
   items: InvoiceItem[];
@@ -211,9 +212,13 @@ export function InvoiceDetailSheet({
                 >
                   {statusLabel}
                 </Badge>
-                <span className="text-sm text-muted-foreground">
-                  {formatDate(invoice.issueDate ?? invoice.createdAt)}
-                </span>
+                <div className="text-sm text-muted-foreground space-y-0.5">
+                  <p>
+                    Emisión:{' '}
+                    {invoice.issueDate != null ? formatDate(invoice.issueDate) : '—'}
+                  </p>
+                  <p>Registro: {formatDate(invoice.createdAt)}</p>
+                </div>
               </div>
 
               <div>
