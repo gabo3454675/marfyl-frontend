@@ -43,13 +43,21 @@ import {
   maskDisplayDateInput,
 } from '@/lib/dates';
 
+/** Rango por defecto en YYYY-MM-DD usando calendario local (evita desfase UTC en VE). */
+function toLocalYmd(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function getDefaultDateRange(): { start: string; end: string } {
   const end = new Date();
   const start = new Date();
   start.setDate(start.getDate() - 30);
   return {
-    start: start.toISOString().slice(0, 10),
-    end: end.toISOString().slice(0, 10),
+    start: toLocalYmd(start),
+    end: toLocalYmd(end),
   };
 }
 
@@ -80,10 +88,12 @@ export default function HistoryPage() {
     refetch,
   } = useQuery<HistoryResponse>({
     queryKey: ['history', activeOrgId, startDate, endDate, filterOrgId, isSuperAdmin],
+    // Wire format: YYYY-MM-DD (compatible con BE viejo @IsDateString y BE nuevo @IsFlexibleDate).
+    // La UI usa DD/MM/YYYY solo en inputs; startDate/endDate state ya son YYYY-MM-DD.
     queryFn: () =>
       invoiceService.getHistory({
-        startDate: isoToDisplayDate(startDate),
-        endDate: isoToDisplayDate(endDate),
+        startDate,
+        endDate,
         ...(filterOrgId != null && filterOrgId !== activeOrgId && isSuperAdmin && { organizationId: filterOrgId }),
       }),
     enabled: !!activeOrgId,

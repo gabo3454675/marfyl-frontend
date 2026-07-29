@@ -47,8 +47,16 @@ export interface HistoryResponse {
   invoices: HistoryInvoice[];
 }
 
+/**
+ * Query params para GET /invoices/history.
+ * `startDate` / `endDate` deben ir en wire format `YYYY-MM-DD` (o ISO con T00:00/T23:59),
+ * no en formato de display DD/MM/YYYY. Así es compatible con BE viejo (@IsDateString)
+ * y BE nuevo (@IsFlexibleDate).
+ */
 export interface HistoryParams {
+  /** Wire: YYYY-MM-DD o ISO 8601 — no DD/MM/YYYY */
   startDate: string;
+  /** Wire: YYYY-MM-DD o ISO 8601 — no DD/MM/YYYY */
   endDate: string;
   organizationId?: number;
 }
