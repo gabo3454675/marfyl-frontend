@@ -46,7 +46,7 @@ export interface Invoice {
   companyId?: number;
   organizationId?: number | null;
   customerId?: number | null;
-  sellerId?: number;
+  sellerId?: number | null;
   totalAmount: number | string;
   status: InvoiceStatus;
   paymentMethod?: string;
@@ -62,6 +62,7 @@ export interface Invoice {
   subtotal?: number;
   tax?: number;
   total?: number;
+  isLegacyImport?: boolean;
 }
 
 export interface Customer {
@@ -81,8 +82,16 @@ export interface Customer {
 export interface InvoiceItem {
   id: number;
   invoiceId: number;
-  productId: number;
-  quantity: number;
+  productId?: number | null;
+  quantity?: number | null;
+  effectiveQuantity?: number | string | null;
+  displayQuantity?: number;
+  displayName?: string;
+  displaySku?: string | null;
+  sourceSkuExact?: string | null;
+  sourceDescription?: string | null;
+  recordClass?: 'OPERATIONAL' | 'RECONCILED_HISTORY';
+  lineageStatus?: 'ACTIVE' | 'SUPERSEDED';
   unitPrice: number | string;
   subtotal: number | string;
   description?: string;

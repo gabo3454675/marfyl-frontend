@@ -44,6 +44,15 @@ function buildContext(pathname: string) {
 }
 
 const SCROLL_BOTTOM_THRESHOLD = 72;
+const ASSISTANT_MODE_STORAGE_KEY = 'marfyl-assistant-mode';
+
+type AssistantMode = 'advisor' | 'agent';
+
+function loadAssistantMode(): AssistantMode {
+  if (typeof window === 'undefined') return 'advisor';
+  const stored = window.localStorage.getItem(ASSISTANT_MODE_STORAGE_KEY);
+  return stored === 'agent' ? 'agent' : 'advisor';
+}
 
 export function AssistantPanel({
   className,
@@ -68,6 +77,7 @@ export function AssistantPanel({
   const [error, setError] = useState<string | null>(null);
   const [auroraActivity, setAuroraActivity] = useState<AuroraActivity>('idle');
   const [showScrollDown, setShowScrollDown] = useState(false);
+  const [mode, setMode] = useState<AssistantMode>('advisor');
   const { loadingLabel, setStatusPhase } = useAssistantLoadingLabel(loading, Boolean(streamingText));
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -125,6 +135,10 @@ export function AssistantPanel({
   }, [messages.length, loading, scrollToBottom]);
 
   useEffect(() => {
+    setMode(loadAssistantMode());
+  }, []);
+
+  useEffect(() => {
     if (loading) setAuroraActivity('receiving');
   }, [loading]);
 
@@ -154,19 +168,27 @@ export function AssistantPanel({
         switchOrganization?: { access_token: string; organizationId: number };
       };
       let auditWarnings: ChatMessage['auditWarnings'];
-      try {
-        const advisor = await sendFiscalAdvisorStream(trimmed, {
-          onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
-          onStatus: setStatusPhase,
-        });
-        res = { reply: advisor.reply, model: advisor.model };
-        auditWarnings = advisor.warnings.length > 0 ? advisor.warnings : undefined;
-      } catch {
+      if (mode === 'agent') {
         res = await sendAssistantMessageStream(trimmed, history, buildContext(pathname), {
           onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
           onToolRound: () => setStreamingText(''),
         });
         auditWarnings = undefined;
+      } else {
+        try {
+          const advisor = await sendFiscalAdvisorStream(trimmed, {
+            onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
+            onStatus: setStatusPhase,
+          });
+          res = { reply: advisor.reply, model: advisor.model };
+          auditWarnings = advisor.warnings.length > 0 ? advisor.warnings : undefined;
+        } catch {
+          res = await sendAssistantMessageStream(trimmed, history, buildContext(pathname), {
+            onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
+            onToolRound: () => setStreamingText(''),
+          });
+          auditWarnings = undefined;
+        }
       }
       if (res.switchOrganization?.access_token) {
         setToken(res.switchOrganization.access_token);
@@ -256,19 +278,27 @@ export function AssistantPanel({
         switchOrganization?: { access_token: string; organizationId: number };
       };
       let auditWarnings: ChatMessage['auditWarnings'];
-      try {
-        const advisor = await sendFiscalAdvisorStream(lastUser.content, {
-          onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
-          onStatus: setStatusPhase,
-        });
-        res = { reply: advisor.reply, model: advisor.model };
-        auditWarnings = advisor.warnings.length > 0 ? advisor.warnings : undefined;
-      } catch {
+      if (mode === 'agent') {
         res = await sendAssistantMessageStream(lastUser.content, history, buildContext(pathname), {
           onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
           onToolRound: () => setStreamingText(''),
         });
         auditWarnings = undefined;
+      } else {
+        try {
+          const advisor = await sendFiscalAdvisorStream(lastUser.content, {
+            onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
+            onStatus: setStatusPhase,
+          });
+          res = { reply: advisor.reply, model: advisor.model };
+          auditWarnings = advisor.warnings.length > 0 ? advisor.warnings : undefined;
+        } catch {
+          res = await sendAssistantMessageStream(lastUser.content, history, buildContext(pathname), {
+            onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
+            onToolRound: () => setStreamingText(''),
+          });
+          auditWarnings = undefined;
+        }
       }
       if (res.switchOrganization?.access_token) {
         setToken(res.switchOrganization.access_token);
@@ -301,6 +331,19 @@ export function AssistantPanel({
     setError(null);
   };
 
+  const toggleAssistantMode = () => {
+    const next: AssistantMode = mode === 'advisor' ? 'agent' : 'advisor';
+    setMode(next);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(ASSISTANT_MODE_STORAGE_KEY, next);
+    }
+  };
+
+  const assistantModeLabel =
+    mode === 'agent'
+      ? 'Modo: Agente Marfyl (click para cambiar a Asesor Fiscal)'
+      : 'Modo: Asesor Fiscal (click para cambiar a Agente Marfyl)';
+
   return (
     <div className={cn('ai-panel relative isolate flex h-full min-h-0 w-full flex-col', className)}>
       <AssistantAuroraBackground activity={auroraActivity} />
@@ -329,10 +372,22 @@ export function AssistantPanel({
           </button>
           <button
             type="button"
-            className="ai-icon-btn hidden h-10 w-10 sm:flex"
-            aria-label="IA activa"
+            className="ai-icon-btn relative hidden h-10 w-10 sm:flex"
+            onClick={toggleAssistantMode}
+            aria-label={assistantModeLabel}
+            title={assistantModeLabel}
           >
-            <Sparkles className="h-4 w-4 text-white" />
+            <Sparkles
+              className={cn(
+                'h-4 w-4 transition-colors',
+                mode === 'agent' ? 'text-[hsl(var(--dm-b-accent))]' : 'text-white/60',
+              )}
+            />
+            {mode === 'agent' && (
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-[hsl(var(--dm-b-accent))] px-1 text-[9px] font-semibold leading-tight text-black">
+                Agente
+              </span>
+            )}
           </button>
           <button
             type="button"
