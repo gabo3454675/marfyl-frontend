@@ -25,10 +25,13 @@ import { Loader2, UserPlus, Download, MessageCircle, CheckCircle } from 'lucide-
 
 interface InvoiceItem {
   id: number;
-  quantity: number;
+  quantity?: number | string | null;
+  effectiveQuantity?: number | string | null;
+  displayQuantity?: number;
   unitPrice: number;
   subtotal: number;
-  product: { id: number; name: string };
+  product: { id: number; name: string } | null;
+  displayName?: string | null;
 }
 
 interface Customer {
@@ -55,6 +58,8 @@ interface Invoice {
   montoBs?: number | null;
   paymentLines?: PaymentLine[];
   notes?: string | null;
+  /** Fecha de emisión/venta; preferir sobre createdAt. */
+  issueDate?: string | Date | null;
   createdAt: string;
   customer: Customer | null;
   items: InvoiceItem[];
@@ -72,14 +77,14 @@ interface InvoiceDetailSheetProps {
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(amount);
 
-const formatDate = (dateString: string) =>
+const formatDate = (date: string | Date) =>
   new Intl.DateTimeFormat('es-VE', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date(dateString));
+  }).format(new Date(date));
 
 const PAYMENT_LABELS: Record<string, string> = {
   CASH: 'Efectivo $',
@@ -207,7 +212,7 @@ export function InvoiceDetailSheet({
                   {statusLabel}
                 </Badge>
                 <span className="text-sm text-muted-foreground">
-                  {formatDate(invoice.createdAt)}
+                  {formatDate(invoice.issueDate ?? invoice.createdAt)}
                 </span>
               </div>
 
@@ -236,10 +241,20 @@ export function InvoiceDetailSheet({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {invoice.items.map((item) => (
+                    {invoice.items.map((item) => {
+                      const qtyRaw =
+                        item.displayQuantity ??
+                        item.quantity ??
+                        item.effectiveQuantity ??
+                        0;
+                      const qty = Number(qtyRaw);
+                      const qtyDisplay = Number.isFinite(qty) ? qty : 0;
+                      return (
                       <TableRow key={item.id}>
-                        <TableCell>{item.product.name}</TableCell>
-                        <TableCell className="text-right">{item.quantity}</TableCell>
+                        <TableCell>
+                          {item.displayName ?? item.product?.name ?? 'Producto'}
+                        </TableCell>
+                        <TableCell className="text-right">{qtyDisplay}</TableCell>
                         <TableCell className="text-right">
                           {formatCurrency(Number(item.unitPrice))}
                         </TableCell>
@@ -247,7 +262,8 @@ export function InvoiceDetailSheet({
                           {formatCurrency(Number(item.subtotal))}
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>

@@ -81,8 +81,10 @@ export interface Customer {
 export interface InvoiceItem {
   id: number;
   invoiceId: number;
-  productId: number;
-  quantity: number;
+  productId?: number | null;
+  quantity?: number | string | null;
+  effectiveQuantity?: number | string | null;
+  displayQuantity?: number;
   unitPrice: number | string;
   subtotal: number | string;
   description?: string;

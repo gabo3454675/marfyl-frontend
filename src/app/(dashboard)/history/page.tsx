@@ -37,6 +37,11 @@ import type { HistoryResponse, HistoryInvoice } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePermission } from '@/hooks/usePermission';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
+import {
+  displayDateToIso,
+  isoToDisplayDate,
+  maskDisplayDateInput,
+} from '@/lib/dates';
 
 function getDefaultDateRange(): { start: string; end: string } {
   const end = new Date();
@@ -56,8 +61,12 @@ export default function HistoryPage() {
   const organizations = getOrganizations();
 
   const defaultRange = getDefaultDateRange();
+  /** Fechas internas YYYY-MM-DD (fuente de verdad para la query). */
   const [startDate, setStartDate] = useState(defaultRange.start);
   const [endDate, setEndDate] = useState(defaultRange.end);
+  /** Texto visible DD/MM/YYYY en los inputs. */
+  const [startInput, setStartInput] = useState(() => isoToDisplayDate(defaultRange.start));
+  const [endInput, setEndInput] = useState(() => isoToDisplayDate(defaultRange.end));
   const [filterOrgId, setFilterOrgId] = useState<number | null>(null);
   const [detailInvoiceId, setDetailInvoiceId] = useState<number | null>(null);
   const [detailSheetOpen, setDetailSheetOpen] = useState(false);
@@ -73,8 +82,8 @@ export default function HistoryPage() {
     queryKey: ['history', activeOrgId, startDate, endDate, filterOrgId, isSuperAdmin],
     queryFn: () =>
       invoiceService.getHistory({
-        startDate: startDate + 'T00:00:00.000Z',
-        endDate: endDate + 'T23:59:59.999Z',
+        startDate: isoToDisplayDate(startDate),
+        endDate: isoToDisplayDate(endDate),
         ...(filterOrgId != null && filterOrgId !== activeOrgId && isSuperAdmin && { organizationId: filterOrgId }),
       }),
     enabled: !!activeOrgId,
@@ -83,6 +92,44 @@ export default function HistoryPage() {
   useEffect(() => {
     if (!isSuperAdmin && activeOrgId != null) setFilterOrgId(activeOrgId);
   }, [activeOrgId, isSuperAdmin]);
+
+  const handleStartInputChange = (raw: string) => {
+    const masked = maskDisplayDateInput(raw);
+    setStartInput(masked);
+    if (masked.length === 10) {
+      const iso = displayDateToIso(masked);
+      if (iso) setStartDate(iso);
+    }
+  };
+
+  const handleEndInputChange = (raw: string) => {
+    const masked = maskDisplayDateInput(raw);
+    setEndInput(masked);
+    if (masked.length === 10) {
+      const iso = displayDateToIso(masked);
+      if (iso) setEndDate(iso);
+    }
+  };
+
+  const handleStartBlur = () => {
+    const iso = displayDateToIso(startInput);
+    if (iso) {
+      setStartDate(iso);
+      setStartInput(isoToDisplayDate(iso));
+    } else {
+      setStartInput(isoToDisplayDate(startDate));
+    }
+  };
+
+  const handleEndBlur = () => {
+    const iso = displayDateToIso(endInput);
+    if (iso) {
+      setEndDate(iso);
+      setEndInput(isoToDisplayDate(iso));
+    } else {
+      setEndInput(isoToDisplayDate(endDate));
+    }
+  };
 
   const handleDownloadPDF = async (invoiceId: number) => {
     try {
@@ -119,6 +166,13 @@ export default function HistoryPage() {
       hour: '2-digit',
       minute: '2-digit',
     }).format(new Date(dateString));
+  };
+
+  /** Fecha de venta: issueDate (emisión) con fallback a createdAt. */
+  const getSaleDateIso = (invoice: HistoryInvoice): string => {
+    const raw = invoice.issueDate ?? invoice.createdAt;
+    if (typeof raw === 'string') return raw;
+    return new Date(raw).toISOString();
   };
 
   const paymentMethodLabels: Record<string, string> = {
@@ -199,20 +253,30 @@ export default function HistoryPage() {
                   <Label htmlFor="startDate">Desde</Label>
                   <Input
                     id="startDate"
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full sm:w-auto"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="DD/MM/YYYY"
+                    value={startInput}
+                    onChange={(e) => handleStartInputChange(e.target.value)}
+                    onBlur={handleStartBlur}
+                    maxLength={10}
+                    className="w-full sm:w-[11rem]"
+                    autoComplete="off"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="endDate">Hasta</Label>
                   <Input
                     id="endDate"
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full sm:w-auto"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="DD/MM/YYYY"
+                    value={endInput}
+                    onChange={(e) => handleEndInputChange(e.target.value)}
+                    onBlur={handleEndBlur}
+                    maxLength={10}
+                    className="w-full sm:w-[11rem]"
+                    autoComplete="off"
                   />
                 </div>
                 {(organizations.length > 1 || isSuperAdmin) && (
@@ -312,7 +376,7 @@ export default function HistoryPage() {
                         <div>
                           <p className="font-semibold">#{invoice.id}</p>
                           <p className="text-sm text-muted-foreground">
-                            {invoice.customer?.name || 'Cliente General'} · {formatDate(typeof invoice.createdAt === 'string' ? invoice.createdAt : new Date(invoice.createdAt).toISOString())}
+                            {invoice.customer?.name || 'Cliente General'} · {formatDate(getSaleDateIso(invoice))}
                           </p>
                         </div>
                         <span
@@ -365,7 +429,7 @@ export default function HistoryPage() {
                     <TableBody>
                       {data.invoices.map((invoice: HistoryInvoice) => (
                         <TableRow key={invoice.id}>
-                          <TableCell className="text-muted-foreground">{formatDate(typeof invoice.createdAt === 'string' ? invoice.createdAt : new Date(invoice.createdAt).toISOString())}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatDate(getSaleDateIso(invoice))}</TableCell>
                           <TableCell>{invoice.customer?.name || 'Cliente General'}</TableCell>
                           <TableCell className="font-semibold">
                             {formatForDisplay(Number(invoice.totalAmount))}

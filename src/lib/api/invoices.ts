@@ -3,12 +3,20 @@ import type { Invoice, InvoiceItem, Customer } from '@/types/shared-types';
 import { apiClient } from './client';
 
 /** Respuesta del endpoint GET /invoices/history. id explícito para compatibilidad con build. */
-export interface HistoryInvoice extends Omit<Invoice, 'id'> {
+export interface HistoryInvoice extends Omit<Invoice, 'id' | 'createdAt' | 'issueDate'> {
   id: number;
   totalAmount: number | string;
   paymentMethod?: string;
+  /** Fecha de emisión/venta (FastReport); preferir sobre createdAt en UI. */
+  issueDate?: string | Date | null;
+  createdAt: string | Date;
   customer: Customer | null;
-  items: (InvoiceItem & { product: { id: number; name: string } })[];
+  items: (InvoiceItem & {
+    product: { id: number; name: string } | null;
+    quantity?: number | string | null;
+    effectiveQuantity?: number | string | null;
+    displayQuantity?: number;
+  })[];
   paymentLines?: { method: string; amount: number; currency: string }[];
   montoUsd?: number | null;
   montoBs?: number | null;
