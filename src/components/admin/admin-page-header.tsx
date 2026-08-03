@@ -20,7 +20,9 @@ export function AdminPageHeader({
   return (
     <header
       className={cn(
-        'admin-page-header flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between',
+        'admin-page-header flex flex-col gap-3',
+        'min-[600px]:flex-row min-[600px]:items-end min-[600px]:justify-between',
+        'sm:flex-row sm:items-end sm:justify-between',
         border && 'border-b border-border/60 pb-4 sm:pb-5 mb-1',
         className,
       )}
@@ -35,7 +37,9 @@ export function AdminPageHeader({
         ) : null}
       </div>
       {actions ? (
-        <div className="flex flex-wrap items-center gap-2 shrink-0">{actions}</div>
+        <div className="flex min-w-0 w-full flex-wrap items-center gap-2 min-[600px]:w-auto min-[600px]:shrink-0 sm:w-auto sm:shrink-0">
+          {actions}
+        </div>
       ) : null}
     </header>
   );

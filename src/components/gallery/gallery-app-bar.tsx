@@ -50,7 +50,7 @@ export function GalleryAppBar({
         className,
       )}
     >
-      <div className="mx-auto flex w-full max-w-7xl items-center gap-3 px-3 py-2.5 sm:gap-4 sm:px-5 md:px-6">
+      <div className="gallery-app-bar-inner mx-auto flex w-full max-w-7xl min-w-0 items-center gap-2 sm:gap-4">
         <Link
           href={homeHref}
           className={cn(
@@ -72,10 +72,10 @@ export function GalleryAppBar({
 
         {showGalleryBack && !isHome && <BackToGalleryButton />}
 
-        <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-2.5">
+        <div className="ml-auto flex min-w-0 items-center gap-1.5 sm:gap-2.5">
           <OrganizationSwitcher
             variant="gallery"
-            className="max-w-[min(100%,18rem)] sm:max-w-[22rem]"
+            className="max-w-[min(42vw,10.5rem)] min-[400px]:max-w-[min(50vw,14rem)] sm:max-w-[22rem]"
           />
           <div className="hidden shrink-0 items-center rounded-xl border bg-muted/30 p-0.5 sm:flex">
             <button

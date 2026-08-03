@@ -63,61 +63,61 @@ function PackSummary({
   compact?: boolean;
 }) {
   return (
-    <div className={cn('tabular-nums', compact ? 'space-y-1.5' : 'space-y-2')}>
+    <div className={cn('tabular-nums min-w-0', compact ? 'space-y-1' : 'space-y-2')}>
       <div
         className={cn(
-          'grid grid-cols-2 gap-2',
-          compact ? 'gap-1.5' : 'gap-2.5',
+          'grid grid-cols-2 min-w-0',
+          compact ? 'gap-1.5' : 'gap-2 sm:gap-2.5',
         )}
       >
         <div
           className={cn(
-            'rounded-xl border border-border/50 bg-muted/30',
-            compact ? 'px-2 py-1.5' : 'px-3 py-2.5',
+            'min-w-0 rounded-xl border border-border/50 bg-muted/30',
+            compact ? 'px-1.5 py-1.5 sm:px-2' : 'px-2.5 py-2 sm:px-3 sm:py-2.5',
           )}
         >
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground truncate">
             Tobos
           </p>
           <p
             className={cn(
-              'font-semibold text-foreground leading-none',
-              compact ? 'text-lg mt-0.5' : 'text-2xl mt-1',
+              'font-semibold text-foreground leading-none tabular-nums',
+              compact ? 'text-base sm:text-lg mt-0.5' : 'text-xl sm:text-2xl mt-1',
             )}
           >
             {pack.tobos}
           </p>
           {pack.looseBottles > 0 && (
-            <p className="mt-0.5 text-[10px] text-muted-foreground">
+            <p className="mt-0.5 text-[9px] sm:text-[10px] text-muted-foreground truncate">
               +{pack.looseBottles} bot
             </p>
           )}
         </div>
         <div
           className={cn(
-            'rounded-xl border border-border/50 bg-muted/30',
-            compact ? 'px-2 py-1.5' : 'px-3 py-2.5',
+            'min-w-0 rounded-xl border border-border/50 bg-muted/30',
+            compact ? 'px-1.5 py-1.5 sm:px-2' : 'px-2.5 py-2 sm:px-3 sm:py-2.5',
           )}
         >
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted-foreground truncate">
             Cajas
           </p>
           <p
             className={cn(
-              'font-semibold text-foreground leading-none',
-              compact ? 'text-lg mt-0.5' : 'text-2xl mt-1',
+              'font-semibold text-foreground leading-none tabular-nums',
+              compact ? 'text-base sm:text-lg mt-0.5' : 'text-xl sm:text-2xl mt-1',
             )}
           >
             {pack.cajas}
           </p>
           {pack.tobosSueltos > 0 && (
-            <p className="mt-0.5 text-[10px] text-muted-foreground">
+            <p className="mt-0.5 text-[9px] sm:text-[10px] text-muted-foreground truncate">
               +{pack.tobosSueltos} tobo{pack.tobosSueltos === 1 ? '' : 's'}
             </p>
           )}
         </div>
       </div>
-      <p className={cn('text-muted-foreground', compact ? 'text-[11px]' : 'text-xs')}>
+      <p className={cn('text-muted-foreground leading-snug', compact ? 'text-[10px] sm:text-[11px]' : 'text-[11px] sm:text-xs')}>
         {pack.bottles} botellas
         {pack.cajasExact > 0 && pack.cajasExact !== pack.cajas && (
           <span className="opacity-70"> · {pack.cajasExact} caj. exactas</span>
@@ -168,21 +168,38 @@ function TripleStock({
   ] as const;
 
   return (
-    <div className="mt-5 grid grid-cols-1 gap-3.5 sm:grid-cols-3 sm:gap-4">
+    <div
+      className={cn(
+        'mt-4 grid min-w-0 gap-2.5',
+        /* Teléfono estrecho: 1 col; ≥380px / fold: 3 cols; sm+: más aire */
+        'grid-cols-1 min-[380px]:grid-cols-3',
+        'min-[380px]:gap-2 sm:mt-5 sm:gap-3 md:gap-4',
+      )}
+    >
       {cols.map((col) => (
         <div
           key={col.label}
-          className="rounded-2xl border border-border/55 bg-background/70 px-4 py-4 sm:px-5 sm:py-5"
+          className={cn(
+            'min-w-0 rounded-2xl border border-border/55 bg-background/70',
+            'px-3 py-3 min-[380px]:px-2.5 min-[380px]:py-3',
+            'sm:px-4 sm:py-4 md:px-5 md:py-5',
+          )}
         >
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          <p className="text-[10px] min-[380px]:text-[9px] sm:text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground truncate">
             {col.label}
           </p>
-          <p className={cn('mt-1.5 text-4xl font-semibold tracking-tight tabular-nums', col.tone)}>
+          <p
+            className={cn(
+              'mt-1 font-semibold tracking-tight tabular-nums',
+              'text-3xl min-[380px]:text-2xl sm:text-3xl md:text-4xl',
+              col.tone,
+            )}
+          >
             {col.bottles}
           </p>
-          <p className="text-xs text-muted-foreground">{unitLabel}</p>
+          <p className="text-[11px] sm:text-xs text-muted-foreground">{unitLabel}</p>
           {showPack && col.pack ? (
-            <div className="mt-3 border-t border-border/40 pt-3">
+            <div className="mt-2.5 border-t border-border/40 pt-2.5 sm:mt-3 sm:pt-3">
               <PackSummary pack={col.pack} compact />
             </div>
           ) : null}
@@ -220,10 +237,11 @@ export default function LicoresPage() {
     <AdminPageShell
       eyebrow="Ventas"
       title="Licores y tobos"
-      subtitle="Apertura automática · inicio / vendido / quedan. Cerveza en tobos y cajas (12 bot = 1 tobo · 3 tobos = 1 caja)."
+      subtitle="Inicio / vendido / quedan. Cerveza: 12 bot = 1 tobo · 3 tobos = 1 caja."
+      headerClassName="licores-page-header"
       actions={
-        <div className="flex flex-wrap items-end gap-2">
-          <div className="space-y-1">
+        <div className="flex w-full min-w-0 flex-col gap-2 min-[480px]:flex-row min-[480px]:flex-wrap min-[480px]:items-end sm:w-auto">
+          <div className="min-w-0 flex-1 space-y-1 min-[480px]:flex-none">
             <Label htmlFor="licores-day" className="text-xs text-muted-foreground">
               Día
             </Label>
@@ -232,36 +250,39 @@ export default function LicoresPage() {
               type="date"
               value={day}
               onChange={(e) => setDay(e.target.value)}
-              className="w-[11.5rem] h-10"
+              className="h-10 w-full min-[480px]:w-[11.5rem]"
             />
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-10 gap-2"
-            onClick={() => setDay(yesterdayCaracas())}
-          >
-            <Calendar className="h-4 w-4" />
-            Ayer
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            className="h-10"
-            disabled={isFetching}
-            onClick={() => void refetch()}
-          >
-            {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Actualizar'}
-          </Button>
+          <div className="grid grid-cols-2 gap-2 min-[480px]:flex min-[480px]:flex-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 gap-2"
+              onClick={() => setDay(yesterdayCaracas())}
+            >
+              <Calendar className="h-4 w-4 shrink-0" />
+              Ayer
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              className="h-10"
+              disabled={isFetching}
+              onClick={() => void refetch()}
+            >
+              {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Actualizar'}
+            </Button>
+          </div>
         </div>
       }
     >
-      <div className="space-y-6 sm:space-y-8">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm text-muted-foreground capitalize">{titleDay}</p>
-          <Badge variant="secondary" className="gap-1 font-normal">
+      <div className="space-y-5 min-[600px]:space-y-6 sm:space-y-8">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 pr-1">
+          <p className="text-sm text-muted-foreground capitalize min-w-0">{titleDay}</p>
+          <Badge variant="secondary" className="gap-1 font-normal shrink-0">
             <Sparkles className="h-3 w-3" />
-            Apertura automática
+            <span className="hidden min-[360px]:inline">Apertura automática</span>
+            <span className="min-[360px]:hidden">Auto</span>
           </Badge>
         </div>
 
@@ -294,14 +315,15 @@ export default function LicoresPage() {
               className={cn(
                 'relative overflow-hidden rounded-2xl border border-border/70',
                 'bg-gradient-to-br from-amber-500/[0.12] via-card/80 to-background',
-                'px-4 py-6 sm:px-8 sm:py-8',
+                'px-3 py-4 min-[380px]:px-4 min-[380px]:py-5',
+                'sm:px-6 sm:py-6 md:px-8 md:py-8',
               )}
             >
               <div
                 aria-hidden
                 className="pointer-events-none absolute -top-20 -right-16 h-48 w-48 rounded-full bg-amber-400/20 blur-3xl"
               />
-              <div className="relative">
+              <div className="relative min-w-0">
                 <p className="text-[11px] sm:text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
                   Cerveza total del día
                 </p>
@@ -323,7 +345,7 @@ export default function LicoresPage() {
               </div>
             </section>
 
-            <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 min-[600px]:gap-5 min-[900px]:grid-cols-2 xl:grid-cols-2">
               <AdminCard
                 title={
                   <span className="inline-flex items-center gap-2">

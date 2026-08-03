@@ -318,6 +318,7 @@ export default function DashboardLayout({
           className={cn(
             'dm-app-shell flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden md:flex-row md:gap-0',
             isPosOnlySeller && 'dm-app-shell--pos-only',
+            isModuleGalleryEnabled() && 'dm-app-shell--gallery',
           )}
         >
           <DmAmbientMotion palette="a" intensity="subtle" />
@@ -361,6 +362,7 @@ export default function DashboardLayout({
         className={cn(
           'dm-app-shell flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden md:flex-row md:gap-0',
           isPosOnlySeller && 'dm-app-shell--pos-only',
+          isModuleGalleryEnabled() && 'dm-app-shell--gallery',
         )}
       >
         {!isPosOnlySeller && !isModuleGalleryEnabled() && <DmAmbientMotion palette="a" intensity="subtle" />}

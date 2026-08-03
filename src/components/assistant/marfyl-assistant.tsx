@@ -30,7 +30,7 @@ export function MarfylAssistant({ hideOnMobile = false }: { hideOnMobile?: boole
       type="button"
       onClick={toggle}
       className={cn(
-        'app-fab-anchor flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full',
+        'app-fab-anchor flex items-center justify-center rounded-full',
         hideOnMobile && 'max-lg:hidden',
         'ai-fab shadow-lg touch-manipulation',
         fabPulse && 'ai-fab-pulse',

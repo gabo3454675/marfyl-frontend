@@ -28,9 +28,18 @@
     /* Chrome inferior móvil: barra + FAB (sidebar desde md / 768px) */
     --app-bottom-nav-h: 4rem;
     --app-safe-bottom: env(safe-area-inset-bottom, 0px);
+    --app-safe-top: env(safe-area-inset-top, 0px);
+    --app-safe-left: env(safe-area-inset-left, 0px);
+    --app-safe-right: env(safe-area-inset-right, 0px);
     --app-bottom-chrome: calc(var(--app-bottom-nav-h) + var(--app-safe-bottom));
-    --app-content-pad-bottom: calc(var(--app-bottom-chrome) + 0.75rem);
-    --app-fab-offset: calc(var(--app-bottom-chrome) + 0.5rem);
+    --app-fab-size: 3.25rem;
+    --app-fab-gap: 0.75rem;
+    --app-content-pad-bottom: calc(
+      var(--app-bottom-chrome) + var(--app-fab-size) + var(--app-fab-gap)
+    );
+    --app-fab-offset: calc(var(--app-bottom-chrome) + var(--app-fab-gap));
+    /* Gutter derecho para que el FAB no tape cards en móvil */
+    --app-fab-gutter: calc(var(--app-fab-size) + 1rem);
     --sidebar: 0 0% 98%;
     --sidebar-foreground: 222.2 47.4% 11.2%;
     --sidebar-primary: 221.2 83.2% 53.3%;
@@ -860,18 +869,40 @@
     @apply w-full max-w-[min(100%,1600px)] mx-auto px-3.5 sm:px-5 md:px-6 lg:px-8 py-3 sm:py-5 md:py-6 lg:py-7;
   }
 
-  @media (max-width: 767px) {
-    .admin-topbar {
-      padding-top: max(0.625rem, env(safe-area-inset-top, 0px));
-    }
+  /* Galería de módulos: sin bottom-nav; FAB más bajo + safe areas */
+  .dm-app-shell--gallery {
+    --app-bottom-nav-h: 0px;
+    --app-fab-offset: calc(var(--app-safe-bottom) + 1rem);
+    --app-content-pad-bottom: calc(
+      var(--app-safe-bottom) + var(--app-fab-size) + 1.75rem
+    );
+  }
 
+  .gallery-app-bar-inner {
+    padding-top: max(0.625rem, var(--app-safe-top));
+    padding-bottom: 0.625rem;
+    padding-left: max(0.75rem, var(--app-safe-left));
+    padding-right: max(0.75rem, var(--app-safe-right));
+  }
+
+  @media (min-width: 640px) {
+    .gallery-app-bar-inner {
+      padding-left: max(1.25rem, var(--app-safe-left));
+      padding-right: max(1.25rem, var(--app-safe-right));
+      padding-bottom: 0.75rem;
+    }
+  }
+
+  @media (max-width: 767px) {
     .app-page-shell {
-      padding-left: max(0.875rem, env(safe-area-inset-left, 0px));
-      padding-right: max(0.875rem, env(safe-area-inset-right, 0px));
+      padding-left: max(0.875rem, var(--app-safe-left));
+      /* Reserva esquina inferior derecha para el FAB del asistente */
+      padding-right: max(0.875rem, var(--app-safe-right), var(--app-fab-gutter));
+      padding-bottom: 0.75rem;
     }
 
     .admin-page-title {
-      @apply text-lg sm:text-xl;
+      @apply text-lg;
       text-wrap: balance;
       overflow-wrap: anywhere;
     }
@@ -879,10 +910,18 @@
     .admin-page-subtitle {
       @apply text-[13px] leading-snug;
       text-wrap: pretty;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
     .admin-page-header {
-      gap: 0.5rem;
+      gap: 0.75rem;
+    }
+
+    .admin-page-header > div:last-child {
+      width: 100%;
     }
 
     .admin-kpi-grid {
@@ -896,6 +935,33 @@
     .admin-grid-charts,
     .admin-grid-charts-2 {
       grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /* Foldables / phablets abiertos (~600–1023px): aprovechar ancho sin layout desktop */
+  @media (min-width: 600px) and (max-width: 1023px) {
+    .app-page-shell {
+      padding-left: max(1.25rem, var(--app-safe-left));
+      padding-right: max(1.25rem, var(--app-safe-right));
+      max-width: min(100%, 920px);
+    }
+
+    .admin-page-subtitle {
+      -webkit-line-clamp: unset;
+      display: block;
+      overflow: visible;
+    }
+  }
+
+  /* Fold cerrado / teléfono muy estrecho */
+  @media (max-width: 359px) {
+    .app-page-shell {
+      padding-left: max(0.625rem, var(--app-safe-left));
+      padding-right: max(0.625rem, var(--app-safe-right), 3.25rem);
+    }
+
+    .admin-page-title {
+      font-size: 1.05rem;
     }
   }
 
@@ -1842,30 +1908,41 @@
     top: auto !important;
     left: auto !important;
     z-index: 70;
-    right: max(1rem, env(safe-area-inset-right, 0px));
-    bottom: max(1rem, var(--app-fab-offset), env(safe-area-inset-bottom, 0px));
+    width: var(--app-fab-size);
+    height: var(--app-fab-size);
+    right: max(0.875rem, var(--app-safe-right));
+    bottom: max(0.875rem, var(--app-fab-offset));
     margin: 0;
     pointer-events: auto;
     transform: none;
   }
 
   @media (min-width: 640px) {
+    :root {
+      --app-fab-size: 3.5rem;
+    }
     .app-fab-anchor {
-      right: max(1.25rem, env(safe-area-inset-right, 0px));
+      right: max(1.25rem, var(--app-safe-right));
     }
   }
 
   @media (min-width: 768px) {
     .app-fab-anchor {
-      right: max(1.5rem, env(safe-area-inset-right, 0px));
-      bottom: max(1.5rem, var(--app-fab-offset), env(safe-area-inset-bottom, 0px));
+      right: max(1.5rem, var(--app-safe-right));
+      bottom: max(1.5rem, var(--app-fab-offset));
     }
-  }
 
-  /* Reserva espacio visual: el FAB no tapa el scroll ni queda bajo el chrome móvil */
-  @media (min-width: 768px) {
     .app-page-shell {
-      padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
+      padding-right: max(1.5rem, var(--app-safe-right));
+    }
+
+    :root {
+      --app-fab-gutter: 0px;
+    }
+
+    .dm-app-shell--gallery {
+      --app-fab-offset: 1.5rem;
+      --app-content-pad-bottom: 0px;
     }
   }
 
