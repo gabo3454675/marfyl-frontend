@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Calculator, Delete, Equal } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,8 @@ type PosCalculatorDrawerProps = {
   onApplyAmount?: (amount: number) => void;
 };
 
+type Op = '+' | '-' | '*' | '/';
+
 const KEYS = [
   ['C', '⌫', '%', '/'],
   ['7', '8', '9', '*'],
@@ -21,68 +23,183 @@ const KEYS = [
   ['0', '.', '='],
 ] as const;
 
+function roundMoney(n: number): number {
+  if (!Number.isFinite(n)) return 0;
+  return Math.round(n * 100) / 100;
+}
+
+function formatDisplay(n: number): string {
+  if (!Number.isFinite(n)) return 'Error';
+  const rounded = roundMoney(n);
+  // Evitar "12.00" cuando es entero; mantener decimales útiles
+  if (Number.isInteger(rounded)) return String(rounded);
+  return String(rounded);
+}
+
+function applyOp(a: number, op: Op, b: number): number {
+  switch (op) {
+    case '+':
+      return a + b;
+    case '-':
+      return a - b;
+    case '*':
+      return a * b;
+    case '/':
+      return b === 0 ? NaN : a / b;
+  }
+}
+
+type CalcState = {
+  /** Valor mostrado / operando actual (string para permitir "12.") */
+  current: string;
+  /** Resultado parcial pendiente de un operador */
+  acc: number | null;
+  pendingOp: Op | null;
+  /** Tras '=', el siguiente dígito empieza número nuevo */
+  fresh: boolean;
+  /** Expresión corta para la línea secundaria */
+  tape: string;
+};
+
+const INITIAL: CalcState = {
+  current: '0',
+  acc: null,
+  pendingOp: null,
+  fresh: true,
+  tape: '',
+};
+
 export function PosCalculatorDrawer({
   open,
   onOpenChange,
   onApplyAmount,
 }: PosCalculatorDrawerProps) {
-  const [expression, setExpression] = useState('');
-  const [display, setDisplay] = useState('0');
+  const [state, setState] = useState<CalcState>(INITIAL);
 
-  const result = useMemo(() => {
-    if (!expression.trim()) return parseFloat(display) || 0;
-    try {
-      const sanitized = expression
-        .replace(/%/g, '/100*')
-        .replace(/[^0-9+\-*/().]/g, '');
-      if (!sanitized) return parseFloat(display) || 0;
-      // eslint-disable-next-line no-new-func
-      const val = Function(`"use strict"; return (${sanitized})`)();
-      return Number.isFinite(val) ? val : parseFloat(display) || 0;
-    } catch {
-      return parseFloat(display) || 0;
-    }
-  }, [expression, display]);
+  useEffect(() => {
+    if (open) setState(INITIAL);
+  }, [open]);
 
-  const handleKey = useCallback(
-    (key: string) => {
-      if (key === 'C') {
-        setExpression('');
-        setDisplay('0');
-        return;
-      }
+  const currentValue = () => {
+    const n = parseFloat(state.current);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const handleKey = useCallback((key: string) => {
+    setState((prev) => {
+      if (key === 'C') return INITIAL;
+
       if (key === '⌫') {
-        setDisplay((d) => (d.length <= 1 ? '0' : d.slice(0, -1)));
-        setExpression((e) => e.slice(0, -1));
-        return;
+        if (prev.fresh || prev.current === 'Error') {
+          return { ...prev, current: '0', fresh: true };
+        }
+        const next = prev.current.length <= 1 ? '0' : prev.current.slice(0, -1);
+        return { ...prev, current: next === '-' ? '0' : next };
       }
+
+      if (key === '%') {
+        const n = parseFloat(prev.current);
+        if (!Number.isFinite(n)) return prev;
+        // Con operador pendiente: 200 + 10% → 200 + (200*10/100)
+        let pct: number;
+        if (prev.acc != null && prev.pendingOp && (prev.pendingOp === '+' || prev.pendingOp === '-')) {
+          pct = (prev.acc * n) / 100;
+        } else {
+          pct = n / 100;
+        }
+        return {
+          ...prev,
+          current: formatDisplay(pct),
+          fresh: true,
+        };
+      }
+
+      if (key === '+' || key === '-' || key === '*' || key === '/') {
+        const op = key as Op;
+        const cur = parseFloat(prev.current);
+        if (!Number.isFinite(cur)) return INITIAL;
+
+        let nextAcc = cur;
+        let tape = prev.tape;
+
+        if (prev.acc != null && prev.pendingOp && !prev.fresh) {
+          nextAcc = applyOp(prev.acc, prev.pendingOp, cur);
+          if (!Number.isFinite(nextAcc)) {
+            return { ...INITIAL, current: 'Error', tape: 'Error' };
+          }
+          tape = `${formatDisplay(prev.acc)} ${prev.pendingOp} ${formatDisplay(cur)}`;
+        } else if (prev.acc != null && prev.pendingOp && prev.fresh) {
+          // Cambiar operador sin nuevo número: 12 + → 12 -
+          return {
+            ...prev,
+            pendingOp: op,
+            tape: `${formatDisplay(prev.acc)} ${op}`,
+          };
+        } else {
+          tape = `${formatDisplay(cur)} ${op}`;
+        }
+
+        return {
+          current: formatDisplay(nextAcc),
+          acc: nextAcc,
+          pendingOp: op,
+          fresh: true,
+          tape,
+        };
+      }
+
       if (key === '=') {
-        const rounded = Math.round(result * 100) / 100;
-        setDisplay(String(rounded));
-        setExpression(String(rounded));
-        return;
+        const cur = parseFloat(prev.current);
+        if (!Number.isFinite(cur)) return INITIAL;
+        if (prev.acc == null || !prev.pendingOp) {
+          return {
+            ...prev,
+            current: formatDisplay(cur),
+            fresh: true,
+            tape: formatDisplay(cur),
+          };
+        }
+        const out = applyOp(prev.acc, prev.pendingOp, cur);
+        if (!Number.isFinite(out)) {
+          return { ...INITIAL, current: 'Error', tape: 'Error' };
+        }
+        return {
+          current: formatDisplay(out),
+          acc: null,
+          pendingOp: null,
+          fresh: true,
+          tape: `${formatDisplay(prev.acc)} ${prev.pendingOp} ${formatDisplay(cur)} =`,
+        };
       }
-      if (['+', '-', '*', '/', '%'].includes(key)) {
-        setExpression((e) => `${e || display}${key === '%' ? '%' : key}`);
-        return;
+
+      // Dígito o punto
+      if (key === '.') {
+        if (prev.fresh || prev.current === 'Error') {
+          return { ...prev, current: '0.', fresh: false };
+        }
+        if (prev.current.includes('.')) return prev;
+        return { ...prev, current: `${prev.current}.`, fresh: false };
       }
-      setDisplay((d) => {
-        if (d === '0' && key !== '.') return key;
-        if (key === '.' && d.includes('.')) return d;
-        return d + key;
-      });
-      if (['+', '-', '*', '/'].every((op) => !expression.endsWith(op))) {
-        setExpression((e) => `${e}${key}`);
-      } else {
-        setExpression((e) => e.slice(0, -1) + key);
+
+      if (/^\d$/.test(key)) {
+        if (prev.fresh || prev.current === 'Error' || prev.current === '0') {
+          return { ...prev, current: key, fresh: false };
+        }
+        // Limitar longitud razonable para POS
+        if (prev.current.replace('.', '').length >= 12) return prev;
+        return { ...prev, current: prev.current + key, fresh: false };
       }
-    },
-    [display, expression, result],
-  );
+
+      return prev;
+    });
+  }, []);
+
+  const result = roundMoney(currentValue());
+  const canApply = Number.isFinite(result) && result > 0 && state.current !== 'Error';
 
   const handleApply = () => {
-    const amount = Math.round(result * 100) / 100;
-    if (amount > 0) onApplyAmount?.(amount);
+    if (!canApply) return;
+    onApplyAmount?.(result);
     onOpenChange(false);
   };
 
@@ -100,9 +217,9 @@ export function PosCalculatorDrawer({
         </SheetHeader>
         <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-3 text-right">
           <p className="min-h-[1.25rem] truncate text-xs text-muted-foreground tabular-nums">
-            {expression || ' '}
+            {state.tape || ' '}
           </p>
-          <p className="text-3xl font-bold tabular-nums tracking-tight">{display}</p>
+          <p className="text-3xl font-bold tabular-nums tracking-tight">{state.current}</p>
         </div>
         <div className="mt-3 grid grid-cols-4 gap-2">
           {KEYS.flat().map((key, i) => (
@@ -126,9 +243,9 @@ export function PosCalculatorDrawer({
             type="button"
             className="mt-4 h-12 w-full touch-manipulation text-base font-semibold"
             onClick={handleApply}
-            disabled={!(result > 0)}
+            disabled={!canApply}
           >
-            Usar {result > 0 ? `$${result.toFixed(2)}` : 'monto'} en el cobro
+            Usar {canApply ? `$${result.toFixed(2)}` : 'monto'} en el cobro
           </Button>
         ) : null}
       </SheetContent>
