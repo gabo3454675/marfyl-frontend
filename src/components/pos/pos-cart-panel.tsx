@@ -118,7 +118,7 @@ export function PosCartPanel({
     <Button
       className={cn(
         'admin-pos-checkout-btn h-14 w-full touch-manipulation text-base font-bold tracking-wide sm:text-lg rounded-xl',
-        compact ? 'flex' : 'mt-3 hidden lg:flex',
+        compact ? 'flex' : 'mt-3 hidden md:flex',
         cart.length === 0 || processing ? '' : 'shadow-lg shadow-primary/20',
       )}
       onClick={onCheckout}
@@ -163,7 +163,7 @@ export function PosCartPanel({
       >
         <div>
           <Label className="mb-2 block text-sm font-medium">Moneda de pago</Label>
-          <div className="flex gap-2">
+          <div className="admin-pos-currency-toggle flex gap-2">
             <button
               type="button"
               className={cn(
