@@ -1618,10 +1618,9 @@
   }
 
   /*
-   * POS: un solo modelo de scroll — el viewport queda fijo
-   * (`app-main-scroll--pos`) y solo catálogo / líneas del carrito scrollean.
-   * Cadena flex con min-height:0 en todos los eslabones (sin min-height forzados
-   * que rompan el overflow).
+   * POS: viewport fijo + catálogo/carrito con scroll interno.
+   * Importante: DmSurface debe propagar flex (ver dm-surface.tsx) o el
+   * catálogo colapsa a altura 0. min-height de respaldo en el scroll.
    */
   .app-main-scroll--pos {
     padding-bottom: 0;
@@ -1642,7 +1641,7 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
-    align-content: stretch;
+    align-items: stretch;
     gap: 0.75rem;
     flex: 1 1 0%;
     min-height: 0;
@@ -1666,23 +1665,35 @@
     }
   }
   .admin-pos-catalog {
-    @apply flex min-h-0 flex-col overflow-hidden;
+    display: flex;
+    flex-direction: column;
     min-height: 0;
     height: 100%;
+    overflow: hidden;
   }
-  .admin-pos-catalog-card {
-    @apply flex min-h-0 flex-1 flex-col overflow-hidden;
-  }
-  .admin-pos-catalog-card.admin-card {
-    @apply flex min-h-0 flex-1 flex-col;
-  }
-  .admin-pos-catalog-scroll {
+  .admin-pos-catalog-card,
+  .admin-pos-catalog-card.admin-card,
+  .admin-pos-catalog-card.dm-surface {
+    display: flex !important;
+    flex-direction: column;
     flex: 1 1 0%;
     min-height: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+  .admin-pos-catalog-scroll {
+    flex: 1 1 auto;
+    min-height: min(50vh, 28rem);
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
+  }
+  @media (min-width: 768px) {
+    .admin-pos-catalog-scroll {
+      min-height: 0;
+      flex: 1 1 0%;
+    }
   }
 
   @media (max-width: 767px) {

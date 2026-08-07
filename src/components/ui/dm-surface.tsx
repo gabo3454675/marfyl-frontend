@@ -36,7 +36,8 @@ export function DmSurface({
     >
       <span className="dm-surface-noise pointer-events-none" aria-hidden />
       <span className="dm-surface-highlight pointer-events-none" aria-hidden />
-      <div className="relative z-[1]">{children}</div>
+      {/* flex + min-h-0: permite scroll interno en cards (POS, etc.) */}
+      <div className="relative z-[1] flex h-full min-h-0 flex-1 flex-col">{children}</div>
     </Tag>
   );
 }

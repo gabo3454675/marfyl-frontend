@@ -130,11 +130,18 @@ export default function POSPage() {
   /** Por defecto "todos": evita POS vacío cuando stock está en 0 / desfasado. */
   const [catalogFilter, setCatalogFilter] = useState<'all' | 'special' | 'instock'>('all');
 
-  const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
+  const {
+    data: products = [],
+    isLoading: productsLoading,
+    isError: productsError,
+    refetch: refetchProducts,
+  } = useQuery<Product[]>({
     queryKey: ['products', 'pos-catalog', selectedId, debouncedSearchQuery],
     queryFn: async () => {
       // Nunca traer 1200+ de golpe: página acotada + búsqueda server-side
-      const r = await apiClient.get<Product[] | { data: Product[] }>('/products', {
+      const r = await apiClient.get<
+        Product[] | { data: Product[] } | { data: { data: Product[] } }
+      >('/products', {
         params: {
           page: 1,
           limit: 100,
@@ -143,11 +150,21 @@ export default function POSPage() {
             : {}),
         },
       });
-      const body = r.data as Product[] | { data: Product[] };
-      return Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : [];
+      const body = r.data as unknown;
+      if (Array.isArray(body)) return body as Product[];
+      if (body && typeof body === 'object') {
+        const level1 = (body as { data?: unknown }).data;
+        if (Array.isArray(level1)) return level1 as Product[];
+        if (level1 && typeof level1 === 'object') {
+          const level2 = (level1 as { data?: unknown }).data;
+          if (Array.isArray(level2)) return level2 as Product[];
+        }
+      }
+      return [];
     },
     staleTime: 60 * 1000,
     enabled: !!selectedId,
+    retry: 1,
   });
 
   const { data: customers = [] } = useQuery<Customer[]>({
@@ -986,8 +1003,15 @@ export default function POSPage() {
 
               {/* Lista de productos */}
               {productsLoading ? (
-                <div className="flex min-h-0 flex-1 items-center justify-center py-12">
+                <div className="admin-pos-catalog-scroll flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : productsError ? (
+                <div className="admin-pos-catalog-scroll flex flex-col items-center justify-center gap-3 py-12 text-center">
+                  <p className="text-sm font-medium text-destructive">No se pudo cargar el inventario</p>
+                  <Button type="button" size="sm" variant="outline" onClick={() => refetchProducts()}>
+                    Reintentar
+                  </Button>
                 </div>
               ) : (
                 <div className="admin-pos-catalog-scroll">
