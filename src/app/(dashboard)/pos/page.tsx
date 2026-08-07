@@ -799,17 +799,17 @@ export default function POSPage() {
         ) : (
           <>
             {canManageFiscal && (
-              <FiscalIntegrationStrip variant="pos" className="mb-2 hidden sm:block md:mb-3" />
+              <FiscalIntegrationStrip variant="pos" className="mb-1 hidden lg:block" />
             )}
-            <span className="hidden text-sm md:text-base sm:block">
+            <span className="hidden text-sm lg:block">
               Catálogo = inventario disponible. Toca para vender.
             </span>
           </>
         )
       }
-      className="admin-pos-shell admin-pos-mobile-pad flex min-h-0 flex-1 flex-col"
-      contentClassName="admin-pos-page-body flex min-h-0 flex-1 flex-col gap-0 !space-y-0"
-      headerClassName="admin-pos-page-header mb-2 sm:mb-5 md:mb-6 shrink-0"
+      className="admin-pos-shell admin-pos-mobile-pad"
+      contentClassName="admin-pos-page-body"
+      headerClassName="admin-pos-page-header shrink-0"
     >
 
       <PosComandaQueue className="mb-3 shrink-0 sm:mb-4" />

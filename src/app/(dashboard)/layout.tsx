@@ -337,7 +337,7 @@ export default function DashboardLayout({
               className={cn(
                 'app-main-scroll',
                 (isPosRoute || isComandaRoute) && 'app-main-scroll--pos',
-                isPosRoute && 'flex flex-col',
+                isPosRoute && 'flex flex-col min-h-0',
               )}
             >
               <div className={cn('app-page-shell', isPosRoute && 'app-page-shell--pos')}>
@@ -382,7 +382,7 @@ export default function DashboardLayout({
                 ? 'flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden'
                 : cn(
                   'app-main-scroll',
-                  isPosRoute && 'app-main-scroll--pos flex flex-col',
+                  isPosRoute && 'app-main-scroll--pos flex flex-col min-h-0',
                 )
             }
           >
