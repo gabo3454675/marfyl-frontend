@@ -117,6 +117,11 @@ export function useGeminiChat(options: UseGeminiChatOptions = {}): UseGeminiChat
 
   useEffect(() => {
     if (!useWebSocket) return;
+    // No conectar sin org: evita room undefined y chat cross-tenant
+    if (!selectedOrganizationId || selectedOrganizationId <= 0) {
+      setIsConnected(false);
+      return;
+    }
 
     const socket = io(`${socketUrl}/chat`, {
       auth: {
@@ -135,6 +140,7 @@ export function useGeminiChat(options: UseGeminiChatOptions = {}): UseGeminiChat
     socket.on('connect', () => {
       setIsConnected(true);
       setError(null);
+      socket.emit('join_org', { organizationId: selectedOrganizationId });
     });
 
     socket.on('disconnect', () => {

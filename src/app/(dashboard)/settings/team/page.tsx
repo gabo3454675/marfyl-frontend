@@ -252,7 +252,19 @@ export default function TeamPage() {
       }
     } catch (error: any) {
       console.error('Error adding member:', error);
-      const errorMessage = error.response?.data?.message || 'Error al agregar el miembro';
+      const raw = error.response?.data?.message;
+      const errorMessage = Array.isArray(raw)
+        ? raw.join(', ')
+        : raw || 'Error al agregar el miembro';
+      const status = error.response?.status;
+      if (status === 409) {
+        toast.success('Usuario ya en el equipo', {
+          description: errorMessage,
+        });
+        handleCloseInviteDialog();
+        await fetchMembers();
+        return;
+      }
       toast.error('Error al agregar miembro', { description: errorMessage });
     } finally {
       setSubmitting(false);

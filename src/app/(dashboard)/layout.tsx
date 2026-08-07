@@ -3,7 +3,11 @@
 import { useEffect, useLayoutEffect, useState, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter, usePathname } from 'next/navigation';
-import { isFiscalPreviewMode, seedFiscalPreviewAuth } from '@/lib/fiscal-preview';
+import {
+  clearStaleFiscalPreviewAuth,
+  isFiscalPreviewMode,
+  seedFiscalPreviewAuth,
+} from '@/lib/fiscal-preview';
 import { readSessionCookieFromDocument, setSessionCookie } from '@/lib/auth-session-cookie';
 import { useAuthStore } from '@/store/useAuthStore';
 import { apiClient } from '@/lib/api';
@@ -117,11 +121,16 @@ export default function DashboardLayout({
   // Cliente montado + auth lista (useLayoutEffect evita pantalla congelada en SSR)
   useLayoutEffect(() => {
     setMounted(true);
+    // Preview OFF + sesión "Vista previa (dev)" → limpiar y pedir login real
+    if (clearStaleFiscalPreviewAuth()) {
+      router.replace('/login');
+      return;
+    }
     if (devPreview) seedFiscalPreviewAuth();
     if (!useAuthStore.getState()._hasHydrated) {
       useAuthStore.getState().setHasHydrated(true);
     }
-  }, [devPreview]);
+  }, [devPreview, router]);
 
   /** Campanita: abrir modal informativo de tasa */
   useEffect(() => {

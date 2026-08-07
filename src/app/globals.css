@@ -1496,35 +1496,29 @@
     @apply flex flex-1 flex-col min-h-0;
   }
   .admin-pos-panel .admin-card-body {
-    @apply flex flex-1 flex-col min-h-0;
+    @apply flex min-h-0 flex-1 flex-col overflow-hidden;
   }
 
   /* Carrito POS: scroll interno + totales/cobrar siempre visibles */
   .admin-pos-cart {
-    @apply flex w-full flex-col min-h-0;
-    max-height: min(72dvh, 40rem);
+    @apply flex w-full min-h-0 flex-col overflow-hidden;
   }
-  @media (max-width: 1023px) {
+  @media (min-width: 768px) {
     .admin-pos-cart {
-      max-height: none;
-    }
-  }
-  @media (min-width: 1024px) {
-    .admin-pos-cart {
-      position: sticky;
-      top: 0.75rem;
-      align-self: start;
-      max-height: calc(100dvh - 5.75rem);
+      align-self: stretch;
+      height: 100%;
+      max-height: 100%;
+      min-height: 0;
     }
   }
   .admin-pos-cart-body {
-    @apply flex flex-1 flex-col min-h-0 overflow-hidden;
+    @apply flex min-h-0 flex-1 flex-col overflow-hidden;
   }
   .admin-pos-cart-controls {
     @apply shrink-0 space-y-4;
   }
   .admin-pos-cart-scroll {
-    @apply flex-1 min-h-[8rem] overflow-y-auto overscroll-y-contain border-y border-border/60 my-3 py-2;
+    @apply my-3 min-h-0 flex-1 overflow-y-auto overscroll-y-contain border-y border-border/60 py-2;
     -webkit-overflow-scrolling: touch;
   }
   .admin-pos-cart-item {
@@ -1569,15 +1563,6 @@
     min-height: 3.75rem;
     box-shadow: 0 -4px 20px hsl(0 0% 0% / 0.06);
   }
-  /* Tablet: sin bottom nav, barra pegada al borde inferior */
-  @media (min-width: 768px) and (max-width: 1023px) {
-    .admin-pos-checkout-bar {
-      bottom: env(safe-area-inset-bottom, 0px);
-    }
-    .admin-pos-mobile-pad {
-      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--app-pos-checkout-h));
-    }
-  }
   .admin-pos-checkout-summary {
     @apply min-w-0 flex-1 rounded-lg px-1 py-0.5 text-left transition-colors active:bg-muted/60;
   }
@@ -1585,11 +1570,12 @@
     background: hsl(var(--dm-a-base) / 0.94);
     border-color: hsl(0 0% 100% / 0.18);
   }
+  /* Solo móvil: reserva alto de la barra fija (en md+ el carrito va en columna) */
   .admin-pos-mobile-pad {
     --app-pos-checkout-h: 3.75rem;
     padding-bottom: calc(var(--app-bottom-chrome) + var(--app-pos-checkout-h));
   }
-  @media (min-width: 1024px) {
+  @media (min-width: 768px) {
     .admin-pos-mobile-pad {
       padding-bottom: 0;
     }
@@ -1601,6 +1587,11 @@
   .dm-app-shell--pos-only .admin-pos-mobile-pad {
     --app-bottom-chrome: 0px;
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--app-pos-checkout-h));
+  }
+  @media (min-width: 768px) {
+    .dm-app-shell--pos-only .admin-pos-mobile-pad {
+      padding-bottom: 0;
+    }
   }
   .dm-app-shell--pos-only .app-page-shell--pos {
     @apply p-2 pt-[max(0.5rem,env(safe-area-inset-top))] sm:p-3;
@@ -1620,16 +1611,17 @@
     bottom: calc(env(safe-area-inset-bottom, 0px) + var(--app-pos-checkout-h) + 0.75rem);
     left: max(0.75rem, env(safe-area-inset-left, 0px));
   }
-  @media (min-width: 1024px) {
+  @media (min-width: 768px) {
     .admin-pos-fab-calc {
       bottom: max(1rem, env(safe-area-inset-bottom, 0px));
     }
   }
 
   /*
-   * POS: la página no debe competir por el scroll con catálogo y carrito.
-   * El catálogo y el carrito gestionan su propio scroll, manteniendo visibles
-   * sus acciones de cobro tanto en escritorio como en móvil.
+   * POS: un solo modelo de scroll — el viewport queda fijo
+   * (`app-main-scroll--pos`) y solo catálogo / líneas del carrito scrollean.
+   * Cadena flex con min-height:0 en todos los eslabones (sin min-height forzados
+   * que rompan el overflow).
    */
   .app-main-scroll--pos {
     padding-bottom: 0;
@@ -1640,16 +1632,43 @@
     padding-bottom: 0;
   }
   .admin-pos-shell {
-    @apply flex min-h-0 flex-1 flex-col;
-  }
-  .admin-pos-page-body {
-    @apply flex min-h-0 flex-1 flex-col;
-  }
-  .admin-pos-grid {
     @apply flex min-h-0 flex-1 flex-col overflow-hidden;
   }
+  .admin-pos-page-body {
+    @apply flex min-h-0 flex-1 flex-col overflow-hidden;
+    gap: 0;
+  }
+  .admin-pos-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    align-content: stretch;
+    gap: 0.75rem;
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  @media (min-width: 640px) {
+    .admin-pos-grid {
+      gap: 1rem;
+    }
+  }
+  @media (min-width: 768px) {
+    .admin-pos-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(17rem, 22rem);
+      grid-template-rows: minmax(0, 1fr);
+      gap: 1.25rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .admin-pos-grid {
+      gap: 1.5rem;
+    }
+  }
   .admin-pos-catalog {
-    @apply min-h-0 flex-1 overflow-hidden;
+    @apply flex min-h-0 flex-col overflow-hidden;
+    min-height: 0;
+    height: 100%;
   }
   .admin-pos-catalog-card {
     @apply flex min-h-0 flex-1 flex-col overflow-hidden;
@@ -1659,11 +1678,14 @@
   }
   .admin-pos-catalog-scroll {
     flex: 1 1 0%;
-    min-height: 4rem;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
   }
 
-  @media (max-width: 1023px) {
+  @media (max-width: 767px) {
     .admin-pos-shell {
       min-height: 0;
     }
@@ -1672,6 +1694,54 @@
     }
     .admin-pos-page-header .admin-page-eyebrow {
       @apply hidden;
+    }
+    .admin-pos-toolbar {
+      @apply gap-1.5;
+    }
+    .admin-pos-toolbar > button {
+      @apply flex-1 min-w-[4.5rem] px-2 text-[11px];
+    }
+    .admin-pos-product-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .admin-pos-pay-methods {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+    .admin-pos-pay-method-btn {
+      @apply min-h-[44px] px-2 text-xs whitespace-normal leading-tight;
+    }
+    .admin-pos-currency-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+    .admin-pos-currency-toggle button {
+      @apply min-h-[48px] text-sm;
+    }
+    .admin-pos-cart-controls {
+      @apply gap-2;
+    }
+    .admin-pos-cart-sheet {
+      max-height: min(90dvh, 680px);
+    }
+  }
+
+  @media (max-width: 420px) {
+    .admin-pos-pay-methods {
+      grid-template-columns: 1fr 1fr;
+    }
+    .admin-pos-pay-method-btn {
+      @apply px-2 text-xs;
+    }
+    .admin-pos-product-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4rem;
     }
   }
 
@@ -1716,13 +1786,19 @@
   }
 
   .admin-pos-pay-methods {
-    @apply flex flex-wrap gap-2;
+    @apply grid grid-cols-2 gap-2 sm:flex sm:flex-wrap;
   }
   .admin-pos-pay-methods > * {
-    @apply shrink-0 min-h-[44px] min-w-[5.5rem] touch-manipulation text-sm font-medium;
+    @apply min-h-[44px] touch-manipulation text-sm font-medium;
+    min-width: 0;
+  }
+  @media (min-width: 640px) {
+    .admin-pos-pay-methods > * {
+      @apply shrink-0 min-w-[5.5rem];
+    }
   }
   .admin-pos-pay-method-btn {
-    @apply rounded-xl border border-border bg-card/60 px-3.5 py-2.5 text-sm font-medium text-muted-foreground transition-all duration-150 ease-out touch-manipulation;
+    @apply rounded-xl border border-border bg-card/60 px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all duration-150 ease-out touch-manipulation sm:px-3.5;
     box-shadow: 0 1px 2px hsl(0 0% 0% / 0.04);
   }
   .admin-pos-pay-method-btn:active {

@@ -123,26 +123,45 @@ export default function POSPage() {
   const tasaBcv = Number.isFinite(rawRate) && rawRate > 0 ? rawRate : 1;
   const queryClient = useQueryClient();
 
-  const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
-    queryKey: ['products', 'pos-catalog'],
-    queryFn: () => apiClient.get<Product[]>('/products').then((r) => r.data),
-    staleTime: 5 * 60 * 1000,
-    enabled: !!selectedId,
-  });
-
-  const { data: customers = [] } = useQuery<Customer[]>({
-    queryKey: ['customers', 'pos-catalog'],
-    queryFn: () => apiClient.get<Customer[]>('/customers').then((r) => r.data),
-    staleTime: 60 * 1000,
-    enabled: !!selectedId,
-  });
-
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
-  /** Filtro de inventario: con stock primero (menos errores al cobrar). */
-  const [catalogFilter, setCatalogFilter] = useState<'all' | 'special' | 'instock'>('instock');
+  /** Por defecto "todos": evita POS vacío cuando stock está en 0 / desfasado. */
+  const [catalogFilter, setCatalogFilter] = useState<'all' | 'special' | 'instock'>('all');
+
+  const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
+    queryKey: ['products', 'pos-catalog', selectedId, debouncedSearchQuery],
+    queryFn: async () => {
+      // Nunca traer 1200+ de golpe: página acotada + búsqueda server-side
+      const r = await apiClient.get<Product[] | { data: Product[] }>('/products', {
+        params: {
+          page: 1,
+          limit: 100,
+          ...(debouncedSearchQuery.trim()
+            ? { search: debouncedSearchQuery.trim() }
+            : {}),
+        },
+      });
+      const body = r.data as Product[] | { data: Product[] };
+      return Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : [];
+    },
+    staleTime: 60 * 1000,
+    enabled: !!selectedId,
+  });
+
+  const { data: customers = [] } = useQuery<Customer[]>({
+    queryKey: ['customers', 'pos-catalog', selectedId],
+    queryFn: async () => {
+      const r = await apiClient.get<Customer[] | { data: Customer[] }>('/customers', {
+        params: { page: 1, limit: 200 },
+      });
+      const body = r.data as Customer[] | { data: Customer[] };
+      return Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : [];
+    },
+    staleTime: 60 * 1000,
+    enabled: !!selectedId,
+  });
   const [processing, setProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
   const [lastInvoiceId, setLastInvoiceId] = useState<number | null>(null);
@@ -247,7 +266,7 @@ export default function POSPage() {
     if (catalogFilter === 'special') {
       list = list.filter((p) => p.isBundle || p.isService);
     } else if (catalogFilter === 'instock') {
-      list = list.filter((p) => {
+      const inStock = list.filter((p) => {
         if (p.isService && !p.bundleComponents?.length) return true;
         const avail =
           typeof p.availableStock === 'number'
@@ -255,15 +274,13 @@ export default function POSPage() {
             : Math.max(0, p.stock - (p.reservedStock ?? 0));
         return avail > 0 || !!p.isBundle;
       });
+      // Si "Con stock" deja el catálogo vacío pero hay productos, mostrar todos
+      // (evita POS "sin productos" cuando el stock está en 0 / no sincronizado).
+      list = inStock.length > 0 ? inStock : list;
     }
     if (debouncedSearchQuery) {
-      const query = debouncedSearchQuery.toLowerCase();
-      list = list.filter(
-        (product) =>
-          product.name.toLowerCase().includes(query) ||
-          product.sku?.toLowerCase().includes(query) ||
-          product.barcode?.toLowerCase().includes(query),
-      );
+      // Búsqueda ya viene del servidor; no refiltrar agresivo (mantiene matches por SKU/barcode)
+      // Solo refinamiento local leve por nombre si el API devolvió más de lo pedido
     }
     // Con stock primero, luego alfabético
     list.sort((a, b) => {
@@ -783,7 +800,7 @@ export default function POSPage() {
 
       {/* Barra fija móvil/tablet: carrito + COBRAR rápido */}
       <div
-        className={cn('admin-pos-checkout-bar lg:hidden', mobileCartOpen && 'pointer-events-none opacity-0')}
+        className={cn('admin-pos-checkout-bar md:hidden', mobileCartOpen && 'pointer-events-none opacity-0')}
         role="region"
         aria-label="Resumen de cobro"
         aria-hidden={mobileCartOpen}
@@ -887,12 +904,12 @@ export default function POSPage() {
         </div>
       )}
 
-      <div className="admin-pos-grid grid min-h-0 flex-1 grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-3 lg:gap-6">
+      <div className="admin-pos-grid">
         {/* Catálogo — pantalla completa en móvil */}
-        <div className="admin-pos-catalog order-1 flex min-h-0 flex-1 flex-col lg:col-span-2">
+        <div className="admin-pos-catalog order-1 md:col-span-2">
           <AdminCard
             title="Inventario para vender"
-            className="admin-pos-panel admin-pos-catalog-card min-h-0 flex-1"
+            className="admin-pos-panel admin-pos-catalog-card"
             bodyClassName="flex min-h-0 flex-1 flex-col overflow-hidden"
             headerClassName="shrink-0 py-3 sm:py-4"
             elevation="sm"
@@ -944,7 +961,7 @@ export default function POSPage() {
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="min-h-[44px] gap-1.5 touch-manipulation text-xs font-semibold rounded-xl lg:hidden"
+                    className="min-h-[44px] gap-1.5 touch-manipulation text-xs font-semibold rounded-xl md:hidden"
                     onClick={() => setCalculatorOpen(true)}
                   >
                     <Calculator className="h-3.5 w-3.5" />
@@ -969,11 +986,11 @@ export default function POSPage() {
 
               {/* Lista de productos */}
               {productsLoading ? (
-                <div className="flex items-center justify-center py-12">
+                <div className="flex min-h-0 flex-1 items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : (
-                <div className="admin-pos-catalog-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
+                <div className="admin-pos-catalog-scroll">
                   <div className="admin-pos-product-grid">
                     {filteredProducts.map((product) => {
                       const available = sellableUnits(product);
@@ -1131,8 +1148,8 @@ export default function POSPage() {
         </div>
 
         {/* Carrito desktop — en móvil va en sheet inferior */}
-        <div className="admin-pos-cart hidden lg:flex">
-          <PosCartPanel {...cartPanelProps} />
+        <div className="admin-pos-cart order-2 hidden md:flex">
+          <PosCartPanel {...cartPanelProps} className="min-h-0 h-full flex-1" />
         </div>
       </div>
 

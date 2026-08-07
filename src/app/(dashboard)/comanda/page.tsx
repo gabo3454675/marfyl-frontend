@@ -132,10 +132,17 @@ export default function ComandaMenuPage() {
   useComandaSocket({ enabled: canTakeFloorOrder && !!orgId });
 
   const { data: products = [], isLoading } = useQuery({
-    queryKey: ['products', 'comanda', orgId],
+    queryKey: ['products', 'comanda', orgId, debounced],
     queryFn: async () => {
-      const { data } = await apiClient.get<Product[]>('/products');
-      return (data ?? []).filter(
+      const { data } = await apiClient.get<Product[] | { data: Product[] }>('/products', {
+        params: {
+          page: 1,
+          limit: 100,
+          ...(debounced.trim() ? { search: debounced.trim() } : {}),
+        },
+      });
+      const list = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+      return list.filter(
         (p) =>
           p.isActive !== false &&
           !p.isBundle &&
