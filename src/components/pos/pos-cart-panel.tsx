@@ -70,6 +70,8 @@ export interface PosCartPanelProps {
   total: number;
   subtotal: number;
   ivaAmount: number;
+  /** Si true (ej. El Rancho), no se muestra ni aplica IVA. */
+  ivaDisabled?: boolean;
   tasaBcv: number;
   splitEquivalentUsd: number;
   processing: boolean;
@@ -100,6 +102,7 @@ export function PosCartPanel({
   total,
   subtotal,
   ivaAmount,
+  ivaDisabled = false,
   tasaBcv,
   splitEquivalentUsd,
   processing,
@@ -424,10 +427,12 @@ export function PosCartPanel({
           <span className="admin-pos-cart-total-label">Subtotal</span>
           <span className="admin-pos-cart-total-value">{formatCurrency(subtotal)}</span>
         </div>
-        <div className="admin-pos-cart-total-row">
-          <span className="admin-pos-cart-total-label">IVA (16%)</span>
-          <span className="admin-pos-cart-total-value">{formatCurrency(ivaAmount)}</span>
-        </div>
+        {!ivaDisabled && (
+          <div className="admin-pos-cart-total-row">
+            <span className="admin-pos-cart-total-label">IVA (16%)</span>
+            <span className="admin-pos-cart-total-value">{formatCurrency(ivaAmount)}</span>
+          </div>
+        )}
         <div className="admin-pos-cart-total-row admin-pos-cart-total-row--final">
           <span className="admin-pos-cart-total-label--final">Total a cobrar</span>
           <span className="admin-pos-cart-total-value--final">{formatCurrency(total)}</span>

@@ -32,6 +32,7 @@ import { toast } from 'sonner';
 import { BOTTLES_PER_TOBO, isBeerProduct } from '@/lib/liquor-units';
 import { round2 } from '@/lib/currencyConversion';
 import { computeCartIva } from '@/lib/tax-calculator';
+import { isIvaDisabledOrgSlug } from '@/lib/founding-orgs';
 import { PosCartPanel } from '@/components/pos/pos-cart-panel';
 import { QuickProductSheet, type QuickProductResult } from '@/components/pos/quick-product-sheet';
 import { PosCalculatorDrawer, PosCalculatorFab } from '@/components/pos/pos-calculator-drawer';
@@ -477,13 +478,18 @@ export default function POSPage() {
     );
   };
 
+  const currentOrg = getCurrentOrganization();
+  const ivaDisabled = isIvaDisabledOrgSlug(
+    currentOrg && 'slug' in currentOrg ? currentOrg.slug : undefined,
+  );
+
   const { subtotal, ivaAmount, total } = useMemo(() => {
     const lines = cart.map((item) => ({
       amount: Number(item.unitPrice) * item.quantity,
       isExempt: item.product.isExempt,
     }));
-    return computeCartIva(lines);
-  }, [cart]);
+    return computeCartIva(lines, { ivaDisabled });
+  }, [cart, ivaDisabled]);
 
   /** Suma de líneas de pago combinado en equivalente USD (validación vs total). */
   const splitEquivalentUsd = useMemo(() => {
@@ -758,6 +764,7 @@ export default function POSPage() {
     total,
     subtotal,
     ivaAmount,
+    ivaDisabled,
     tasaBcv,
     splitEquivalentUsd,
     processing,

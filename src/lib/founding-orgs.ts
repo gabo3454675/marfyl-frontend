@@ -5,8 +5,15 @@ export const FOUNDING_ORG_SLUGS = [
   'davean',
 ] as const;
 
+/** Org sin cálculo ni cobro de IVA en ventas (precio = total). */
+export const IVA_DISABLED_ORG_SLUG = 'el-rancho-de-german';
+
 export function isFoundingOrgSlug(slug: string): boolean {
   return (FOUNDING_ORG_SLUGS as readonly string[]).includes(slug);
+}
+
+export function isIvaDisabledOrgSlug(slug: string | null | undefined): boolean {
+  return slug === IVA_DISABLED_ORG_SLUG;
 }
 
 export function filterOrganizationsForLogin<T extends { slug: string }>(
