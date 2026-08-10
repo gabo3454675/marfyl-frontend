@@ -194,7 +194,7 @@ export default function Sidebar() {
     <aside
       data-collapsed={isCollapsed ? 'true' : 'false'}
       className={cn(
-        'admin-sidebar hidden md:flex flex-col transition-[width] duration-300 ease-out h-full min-h-0 shrink-0 overflow-hidden',
+        'admin-sidebar sticky top-0 hidden md:flex h-[100dvh] min-h-0 shrink-0 flex-col overflow-hidden transition-[width] duration-300 ease-out',
         isCollapsed ? 'w-[var(--admin-sidebar-width-collapsed)]' : 'w-[var(--admin-sidebar-width-expanded)]',
       )}
     >

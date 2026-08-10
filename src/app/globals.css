@@ -412,22 +412,6 @@
     @apply relative isolate bg-background text-foreground gap-0;
   }
 
-  /*
-   * Un solo scroll en el dashboard: el de .app-main-scroll.
-   * Sin esto, html/body también scrollean (barra del navegador) al lado
-   * de la barra interna del shell h-[100dvh].
-   */
-  html:has(.dm-app-shell) {
-    height: 100dvh;
-    max-height: 100dvh;
-    overflow: hidden;
-  }
-  html:has(.dm-app-shell) body {
-    height: 100dvh;
-    max-height: 100dvh;
-    overflow: hidden;
-  }
-
   .admin-main-pane {
     @apply flex-1 min-w-0 w-full;
     background-color: hsl(var(--background));
@@ -1636,16 +1620,13 @@
   }
 
   /*
-   * POS operable: la página scrollea (no overflow:hidden en la cadena).
-   * Catálogo crece con los productos; carrito sticky con scroll interno.
-   * Evita el bug de altura 0 / productos cortados sin barra de scroll.
+   * POS operable: scroll del documento (no contenedor interno).
+   * Catálogo crece con los productos; carrito sticky con scroll propio.
    */
   .app-main-scroll--pos {
     padding-bottom: 0;
     overflow-x: hidden;
-    overflow-y: auto !important;
-    overscroll-behavior-y: contain;
-    -webkit-overflow-scrolling: touch;
+    overflow-y: visible;
   }
   .app-page-shell--pos {
     display: block;
@@ -2035,8 +2016,12 @@
     }
   }
 
+  /*
+   * Scroll del documento (barra del navegador), no contenedor interno.
+   * Evita la doble barra junto al scrollbar del viewport.
+   */
   .app-main-scroll {
-    @apply flex-1 min-h-0 min-w-0 overflow-x-hidden overflow-y-auto overscroll-y-contain;
+    @apply flex-1 min-w-0 overflow-x-hidden overflow-y-visible;
     padding-bottom: var(--app-content-pad-bottom);
   }
 

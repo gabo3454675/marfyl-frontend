@@ -316,14 +316,14 @@ export default function DashboardLayout({
       <NotificationFeedProvider>
         <div
           className={cn(
-            'dm-app-shell flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden md:flex-row md:gap-0',
+            'dm-app-shell flex min-h-[100dvh] flex-col md:flex-row md:gap-0',
             isPosOnlySeller && 'dm-app-shell--pos-only',
             isModuleGalleryEnabled() && 'dm-app-shell--gallery',
           )}
         >
           <DmAmbientMotion palette="a" intensity="subtle" />
           {!isModuleGalleryEnabled() && <Sidebar />}
-          <main className="admin-main-pane flex flex-1 flex-col min-h-0 min-w-0 w-full bg-background">
+          <main className="admin-main-pane flex flex-1 flex-col min-w-0 w-full bg-background">
             {isModuleGalleryEnabled() ? (
               <GalleryAppBar
                 homeHref={stationHomeHref}
@@ -337,7 +337,7 @@ export default function DashboardLayout({
               className={cn(
                 'app-main-scroll',
                 (isPosRoute || isComandaRoute) && 'app-main-scroll--pos',
-                isPosRoute && 'flex flex-col min-h-0',
+                isPosRoute && 'flex flex-col',
               )}
             >
               <div className={cn('app-page-shell', isPosRoute && 'app-page-shell--pos')}>
@@ -360,14 +360,20 @@ export default function DashboardLayout({
       <>
       <div
         className={cn(
-          'dm-app-shell flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden md:flex-row md:gap-0',
+          'dm-app-shell flex min-h-[100dvh] flex-col md:flex-row md:gap-0',
+          isAssistantRoute && 'h-[100dvh] max-h-[100dvh] overflow-hidden',
           isPosOnlySeller && 'dm-app-shell--pos-only',
           isModuleGalleryEnabled() && 'dm-app-shell--gallery',
         )}
       >
         {!isPosOnlySeller && !isModuleGalleryEnabled() && <DmAmbientMotion palette="a" intensity="subtle" />}
         {!isPosOnlySeller && !isModuleGalleryEnabled() && <Sidebar />}
-        <main className="admin-main-pane flex flex-1 flex-col min-h-0 min-w-0 w-full bg-background">
+        <main
+          className={cn(
+            'admin-main-pane flex flex-1 flex-col min-w-0 w-full bg-background',
+            isAssistantRoute && 'min-h-0 overflow-hidden',
+          )}
+        >
           {isModuleGalleryEnabled() ? (
             <GalleryAppBar />
           ) : (
@@ -382,7 +388,7 @@ export default function DashboardLayout({
                 ? 'flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden'
                 : cn(
                   'app-main-scroll',
-                  isPosRoute && 'app-main-scroll--pos flex flex-col min-h-0',
+                  isPosRoute && 'app-main-scroll--pos flex flex-col',
                 )
             }
           >
