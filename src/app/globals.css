@@ -412,6 +412,22 @@
     @apply relative isolate bg-background text-foreground gap-0;
   }
 
+  /*
+   * Un solo scroll en el dashboard: el de .app-main-scroll.
+   * Sin esto, html/body también scrollean (barra del navegador) al lado
+   * de la barra interna del shell h-[100dvh].
+   */
+  html:has(.dm-app-shell) {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+  html:has(.dm-app-shell) body {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
   .admin-main-pane {
     @apply flex-1 min-w-0 w-full;
     background-color: hsl(var(--background));
