@@ -37,7 +37,6 @@ import { QuickProductSheet, type QuickProductResult } from '@/components/pos/qui
 import { PosCalculatorDrawer, PosCalculatorFab } from '@/components/pos/pos-calculator-drawer';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { PosToolbar } from '@/components/pos/pos-toolbar';
-import { PosComandaQueue } from '@/components/pos/pos-comanda-queue';
 import { VariantSelector } from '@/components/pos/variant-selector';
 import { variantService } from '@/lib/api/product-variants';
 import type { ProductVariant } from '@/lib/api/product-variants';
@@ -791,21 +790,19 @@ export default function POSPage() {
 
   return (
     <>
-      {/* La barra global de galería ya contiene empresa, acceso a módulos y sesión. */}
-      {isPosOnlySeller && !isModuleGalleryEnabled() && <PosToolbar />}
       <AdminPageShell
       animate={false}
       hideHeader
-      className="admin-pos-shell admin-pos-mobile-pad"
+      className="admin-pos-shell admin-pos-mobile-pad flex min-h-0 flex-1 flex-col"
       contentClassName="admin-pos-page-body"
     >
+      {/* Dentro del shell (shrink-0): evita pelear con height:100% del panel POS en caja. */}
+      {isPosOnlySeller && !isModuleGalleryEnabled() && (
+        <div className="admin-pos-station-toolbar shrink-0">
+          <PosToolbar />
+        </div>
+      )}
 
-      <div className="admin-pos-chrome mb-2 flex shrink-0 items-center justify-between gap-2">
-        <h1 className="truncate text-sm font-semibold tracking-tight text-foreground sm:text-[0.95rem]">
-          {isPosOnlySeller ? 'Caja · inventario' : 'Punto de Venta'}
-        </h1>
-        <PosComandaQueue variant="chip" />
-      </div>
       <PosOpenTabs className="mb-2 shrink-0" />
 
       {/* Barra fija móvil/tablet: carrito + COBRAR rápido */}
@@ -914,9 +911,9 @@ export default function POSPage() {
         </div>
       )}
 
-      <div className="admin-pos-grid">
+      <div className="admin-pos-grid min-h-0 flex-1">
         {/* Catálogo — pantalla completa en móvil */}
-        <div className="admin-pos-catalog order-1 md:col-span-2">
+        <div className="admin-pos-catalog order-1 min-h-0 md:col-span-2">
           <AdminCard
             title="Inventario para vender"
             className="admin-pos-panel admin-pos-catalog-card"
@@ -1041,19 +1038,15 @@ export default function POSPage() {
                             'border-amber-400/35 bg-gradient-to-br from-amber-400/[0.06] to-transparent',
                           available === 0 && 'opacity-60',
                         )}
-                        onClick={() => available > 0 && handleProductClick(product)}
-                        onKeyDown={(e) => {
-                          if (available > 0 && (e.key === 'Enter' || e.key === ' ')) {
-                            e.preventDefault();
-                            handleProductClick(product);
-                          }
-                        }}
                       >
                         <button
                           type="button"
                           disabled={available < 1}
                           className="flex w-full flex-1 flex-col text-left disabled:cursor-not-allowed"
-                          onClick={() => available > 0 && addToCart(product, 1)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (available > 0) handleProductClick(product);
+                          }}
                         >
                           <div className="mb-2 flex min-h-[20px] items-center justify-between gap-1">
                             {product.isBundle ? (
@@ -1165,7 +1158,7 @@ export default function POSPage() {
         </div>
 
         {/* Carrito desktop — en móvil va en sheet inferior */}
-        <div className="admin-pos-cart order-2 hidden md:flex">
+        <div className="admin-pos-cart order-2 hidden min-h-0 md:flex">
           <PosCartPanel {...cartPanelProps} className="min-h-0 h-full flex-1" />
         </div>
       </div>

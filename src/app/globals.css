@@ -1499,29 +1499,75 @@
     @apply flex min-h-0 flex-1 flex-col overflow-hidden;
   }
 
-  /* Carrito POS: sticky en desktop, casi a altura de viewport (sin header de página) */
+  /* Carrito POS: altura del grid; scroll SOLO en .admin-pos-cart-scroll */
   .admin-pos-cart {
-    @apply flex w-full min-h-0 flex-col overflow-hidden;
+    @apply flex h-full min-h-0 w-full flex-col overflow-hidden;
   }
-  @media (min-width: 768px) {
-    .admin-pos-cart {
-      position: sticky;
-      top: 4.75rem;
-      align-self: start;
-      height: calc(100dvh - 5.5rem);
-      max-height: calc(100dvh - 5.5rem);
-      min-height: 0;
+  .admin-pos-cart .admin-pos-cart-header.admin-card-header {
+    @apply gap-2 px-3 py-2.5 sm:px-4 sm:py-3;
+  }
+  .admin-pos-cart .admin-pos-cart-header .text-base {
+    font-size: 0.875rem; /* text-sm */
+    line-height: 1.25rem;
+  }
+  @media (min-width: 640px) {
+    .admin-pos-cart .admin-pos-cart-header .text-base {
+      font-size: 1rem; /* text-base */
+      line-height: 1.5rem;
     }
   }
   .admin-pos-cart-body {
     @apply flex min-h-0 flex-1 flex-col overflow-hidden;
   }
+  /*
+   * Stack flex: controles shrink-0 -> lista flex-1 (scroll) -> footer shrink-0.
+   * flex-basis 0% + min-height en scroll evita el colapso a ~22px.
+   * Controles: tope suave; scroll local fuerte solo con pago combinado (--split).
+   */
+  .admin-pos-cart-stack {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    gap: 0.5rem;
+    height: 100%;
+  }
   .admin-pos-cart-controls {
-    @apply shrink-0 space-y-2.5;
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    min-height: 0;
+    /* Tope tras quitar bloque Cliente: más altura para la lista */
+    max-height: min(32%, 11rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+  .admin-pos-cart-controls--split {
+    max-height: min(34dvh, 12rem);
+  }
+  .admin-pos-cart-field-label {
+    @apply mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground;
+  }
+  .admin-pos-cart-select {
+    @apply h-9 min-h-9 w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm shadow-sm transition-all duration-150 ease-out focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/15;
+  }
+  .admin-pos-cart-amount-input {
+    @apply h-9 min-h-9 rounded-lg text-sm shadow-sm;
   }
   .admin-pos-cart-scroll {
-    @apply my-2 min-h-[8rem] flex-1 overflow-y-auto overscroll-y-contain border-y border-border/60 py-2;
+    flex: 1 1 0%;
+    min-height: 8rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    @apply border-y border-border/50 py-2 pr-0.5;
     -webkit-overflow-scrolling: touch;
+  }
+  .admin-pos-cart-scroll--compact {
+    min-height: 4.5rem;
   }
   .admin-pos-cart-item {
     transition: transform 150ms ease-out, box-shadow 150ms ease-out;
@@ -1529,26 +1575,41 @@
   .admin-pos-cart-item:active {
     transform: scale(0.99);
   }
+  /* Pie fijo: totales + COBRAR (no scrollea con los ítems) */
+  .admin-pos-cart-bottom {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 0;
+    padding-top: 0.25rem;
+  }
   .admin-pos-cart-footer {
-    @apply shrink-0 border-t border-border bg-card pt-3;
+    @apply shrink-0 rounded-xl border border-border/70 bg-muted/25 px-3 py-2;
   }
   .admin-pos-cart-footer .admin-pos-cart-total-row {
-    @apply flex items-center justify-between py-1;
+    @apply flex items-center justify-between gap-3 py-0.5;
   }
   .admin-pos-cart-footer .admin-pos-cart-total-row--final {
-    @apply mt-2 pt-3 border-t-2 border-border text-lg font-bold;
+    @apply mt-1.5 items-baseline border-t border-border/70 pt-2;
   }
   .admin-pos-cart-footer .admin-pos-cart-total-label {
-    @apply text-sm text-muted-foreground;
+    @apply text-xs font-medium uppercase tracking-wide text-muted-foreground/80;
   }
   .admin-pos-cart-footer .admin-pos-cart-total-label--final {
-    @apply text-base text-foreground;
+    @apply text-sm font-semibold normal-case tracking-normal text-foreground;
   }
   .admin-pos-cart-footer .admin-pos-cart-total-value {
-    @apply text-sm font-semibold tabular-nums;
+    @apply text-sm font-medium tabular-nums text-muted-foreground;
   }
   .admin-pos-cart-footer .admin-pos-cart-total-value--final {
-    @apply text-xl font-bold tabular-nums text-primary;
+    @apply text-2xl font-bold tabular-nums leading-none text-primary;
+  }
+  .admin-pos-cart-footer .admin-pos-cart-equiv {
+    @apply mt-1.5 text-xs text-muted-foreground/70;
+  }
+  .admin-pos-checkout-desktop {
+    @apply shrink-0;
   }
 
   /* Barra fija de cobro en móvil/tablet (sobre bottom nav) */
@@ -1601,13 +1662,12 @@
   .dm-app-shell--pos-only .admin-pos-page-header {
     @apply mb-1;
   }
-  @media (max-width: 390px) {
-    .admin-pos-product-grid {
-      grid-template-columns: 1fr;
-    }
-  }
+  /*
+   * Densidad catálogo POS: 2 -> md:3 -> lg:4 -> xl:5 -> 2xl:6.
+   * Media <=767/420 solo compactan gap en móvil; no pisan columnas md+.
+   */
   .admin-pos-product-grid {
-    @apply grid grid-cols-2 gap-3.5 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 md:gap-5 xl:grid-cols-3 2xl:grid-cols-4 xl:gap-5;
+    @apply grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-3.5 lg:grid-cols-4 lg:gap-3.5 xl:grid-cols-5 xl:gap-3 2xl:grid-cols-6 2xl:gap-3;
   }
   .admin-pos-fab-calc {
     bottom: calc(env(safe-area-inset-bottom, 0px) + var(--app-pos-checkout-h) + 0.75rem);
@@ -1620,43 +1680,71 @@
   }
 
   /*
-   * POS operable: scroll del documento (no contenedor interno).
-   * Catálogo crece con los productos; carrito sticky con scroll propio.
+   * POS: viewport fijo (cadena h-[100dvh] en layout).
+   * Scroll SOLO en .admin-pos-catalog-scroll y .admin-pos-cart-scroll.
+   * Comanda puede reutilizar app-main-scroll--pos (padding); el lock de altura
+   * vive en app-page-shell--pos / admin-pos-* (solo /pos).
    */
   .app-main-scroll--pos {
     padding-bottom: 0;
-    overflow-x: hidden;
-    overflow-y: visible;
+  }
+  /* Desktop: sin scrollbar de página en /pos (inequívoco) */
+  @media (min-width: 768px) {
+    .app-main-scroll.app-main-scroll--pos {
+      overflow: hidden !important;
+      overscroll-behavior: none;
+    }
+    .dm-app-shell:has(.app-page-shell--pos) {
+      height: 100dvh;
+      max-height: 100dvh;
+      overflow: hidden;
+    }
   }
   .app-page-shell--pos {
-    display: block;
-    height: auto;
-    min-height: 100%;
-    padding: 0.5rem 0.75rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+    padding: 0.5rem 0.75rem;
   }
   @media (min-width: 640px) {
     .app-page-shell--pos {
-      padding: 0.75rem 1rem 1.5rem;
+      padding: 0.75rem 1rem;
     }
   }
+  /*
+   * Shell POS: flex-1 min-h-0 (sin height/max-height 100%).
+   * Permite toolbar de estación u otros shrink-0 dentro del page-shell.
+   */
   .admin-pos-shell {
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
     width: 100%;
     min-width: 0;
+    min-height: 0;
     height: auto;
-    overflow: visible;
+    max-height: none;
+    overflow: hidden;
+  }
+  .admin-pos-station-toolbar {
+    flex-shrink: 0;
+    margin: -0.25rem -0.25rem 0.25rem;
   }
   .admin-pos-page-body {
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
     gap: 0.5rem;
     width: 100%;
     min-width: 0;
-    overflow: visible;
-  }
-  .admin-pos-chrome {
-    min-height: 2rem;
+    min-height: 0;
+    overflow: hidden;
   }
   .admin-pos-page-header {
     margin-bottom: 0.5rem !important;
@@ -1667,7 +1755,9 @@
     gap: 0.75rem;
     width: 100%;
     min-width: 0;
-    overflow: visible;
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
   }
   @media (min-width: 640px) {
     .admin-pos-grid {
@@ -1678,7 +1768,7 @@
     .admin-pos-grid {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(17rem, 22rem);
       gap: 1.25rem;
-      align-items: start;
+      align-items: stretch;
     }
   }
   @media (min-width: 1024px) {
@@ -1690,37 +1780,43 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
-    overflow: visible;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
   }
   .admin-pos-catalog-card,
   .admin-pos-catalog-card.admin-card,
   .admin-pos-catalog-card.dm-surface {
     display: flex !important;
     flex-direction: column;
-    height: auto !important;
-    overflow: visible !important;
-    flex: none !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
   }
   .admin-pos-catalog-card .dm-surface-content {
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
     min-height: 0;
-    height: auto;
-    overflow: visible;
+    height: 100%;
+    overflow: hidden;
   }
   .admin-pos-catalog-card .admin-card-body {
-    overflow: visible !important;
-    flex: none !important;
+    overflow: hidden !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
   }
   /*
-   * Scroll del inventario: altura acotada al viewport + overflow-y scroll.
-   * Independiente de flex parents (DmSurface / card) que antes lo dejaban en 0.
+   * Lista de productos: scroll del catálogo.
+   * Primario: flex-1 min-h-0 (cadena viewport fijo en md+).
+   * Techo dvh SOLO en <md; md+ fuerza max-height: none (sin calc dvh desktop).
    */
   .admin-pos-catalog-scroll {
-    flex: none !important;
+    flex: 1 1 auto !important;
     width: 100%;
-    min-height: 18rem;
-    max-height: min(78dvh, 42rem);
+    min-height: 0 !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
     overscroll-behavior-y: contain;
@@ -1730,19 +1826,18 @@
   }
   @media (min-width: 768px) {
     .admin-pos-catalog-scroll {
-      max-height: calc(100dvh - 8.5rem);
-      min-height: 28rem;
-    }
-  }
-  @media (min-width: 1024px) {
-    .admin-pos-catalog-scroll {
-      max-height: calc(100dvh - 7.5rem);
+      max-height: none;
     }
   }
 
   @media (max-width: 767px) {
     .admin-pos-shell {
       min-height: 0;
+    }
+    /* Móvil: piso + techo dvh; no aplica en md+ */
+    .admin-pos-catalog-scroll {
+      min-height: 18rem !important;
+      max-height: min(70dvh, 36rem);
     }
     .admin-pos-page-header .admin-page-title {
       @apply text-lg;
@@ -1779,11 +1874,25 @@
     .admin-pos-currency-toggle button {
       @apply min-h-[48px] text-sm;
     }
-    .admin-pos-cart-controls {
-      @apply gap-2;
-    }
     .admin-pos-cart-sheet {
       max-height: min(90dvh, 680px);
+    }
+  }
+
+  /* Desktop carrito: controles/pago más densos para dejar altura a ítems */
+  @media (min-width: 768px) {
+    .admin-pos-cart .admin-pos-currency-toggle button,
+    .admin-pos-cart .admin-pos-pay-method-btn {
+      @apply min-h-9 px-2 py-1.5 text-xs leading-tight;
+    }
+    .admin-pos-cart .admin-pos-pay-methods {
+      @apply gap-1;
+    }
+    .admin-pos-cart .admin-pos-pay-methods > * {
+      @apply min-h-9 min-w-[4.75rem];
+    }
+    .admin-pos-cart-controls:not(.admin-pos-cart-controls--split) {
+      max-height: min(30%, 10rem);
     }
   }
 
@@ -1825,19 +1934,27 @@
   .admin-pos-cart-sheet .admin-pos-cart-body {
     @apply flex min-h-0 flex-1 flex-col overflow-hidden;
   }
+  .admin-pos-cart-sheet .admin-pos-cart-stack {
+    height: 100%;
+    min-height: 0;
+  }
   .admin-pos-cart-sheet .admin-pos-cart-controls {
-    max-height: min(32dvh, 14rem);
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    max-height: min(28dvh, 12rem);
+  }
+  .admin-pos-cart-sheet .admin-pos-cart-controls--split {
+    max-height: min(28dvh, 11rem);
+  }
+  .admin-pos-cart-sheet .admin-pos-cart-bottom {
+    @apply shrink-0 border-t border-border/60 bg-card pt-2 shadow-[0_-4px_12px_hsl(var(--background)/0.85)];
   }
   .admin-pos-cart-sheet .admin-pos-cart-scroll {
-    @apply min-h-[4rem] flex-1;
+    min-height: 4.5rem;
   }
   .admin-pos-cart-sheet .admin-pos-cart-footer {
-    @apply sticky bottom-0 z-10 border-t bg-card pt-3 shadow-[0_-4px_12px_hsl(var(--background)/0.85)];
+    @apply rounded-none border-0 bg-transparent px-3 py-0 shadow-none;
   }
   .admin-pos-cart-sheet .admin-pos-checkout-sticky {
-    @apply shrink-0 border-t bg-card p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))];
+    @apply shrink-0 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))];
   }
 
   .admin-pos-pay-methods {
@@ -1890,6 +2007,19 @@
     /* Prevent text selection on fast taps */
     -webkit-user-select: none;
     user-select: none;
+  }
+  /* Densidad alta (xl:5 / 2xl:6): compactar padding, no columnas */
+  @media (min-width: 1280px) {
+    .admin-pos-product-tile {
+      @apply p-3;
+      min-height: 10rem;
+    }
+  }
+  @media (min-width: 1536px) {
+    .admin-pos-product-tile {
+      @apply p-2.5;
+      min-height: 9.5rem;
+    }
   }
   .admin-pos-product-tile:active {
     transform: scale(0.97);
