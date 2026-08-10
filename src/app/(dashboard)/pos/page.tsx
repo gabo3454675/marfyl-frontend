@@ -800,8 +800,13 @@ export default function POSPage() {
       contentClassName="admin-pos-page-body"
     >
 
-      <PosComandaQueue className="mb-3 shrink-0 sm:mb-4" />
-      <PosOpenTabs className="mb-3 shrink-0 sm:mb-4" />
+      <div className="admin-pos-chrome mb-2 flex shrink-0 items-center justify-between gap-2">
+        <h1 className="truncate text-sm font-semibold tracking-tight text-foreground sm:text-[0.95rem]">
+          {isPosOnlySeller ? 'Caja · inventario' : 'Punto de Venta'}
+        </h1>
+        <PosComandaQueue variant="chip" />
+      </div>
+      <PosOpenTabs className="mb-2 shrink-0" />
 
       {/* Barra fija móvil/tablet: carrito + COBRAR rápido */}
       <div

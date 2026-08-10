@@ -1655,6 +1655,9 @@
     min-width: 0;
     overflow: visible;
   }
+  .admin-pos-chrome {
+    min-height: 2rem;
+  }
   .admin-pos-page-header {
     margin-bottom: 0.5rem !important;
   }
