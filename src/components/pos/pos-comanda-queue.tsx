@@ -28,7 +28,7 @@ export function PosComandaQueue({ className }: { className?: string }) {
   const { formatUsdAmount } = useDisplayCurrency();
   const queryClient = useQueryClient();
   const [busyId, setBusyId] = useState<number | null>(null);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   const enabled = !!orgId && canAccessPOS;
 
@@ -75,6 +75,8 @@ export function PosComandaQueue({ className }: { className?: string }) {
   if (!enabled) return null;
 
   const pendingCount = ready.length + inFlight.length;
+  // Sin pedidos: no ocupar altura del POS (el panel vacío quitaba espacio útil).
+  if (pendingCount === 0) return null;
 
   return (
     <div

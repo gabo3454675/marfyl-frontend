@@ -24,7 +24,6 @@ import { cn } from '@/lib/utils';
 import apiClient, { invoiceService } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePermission } from '@/hooks/usePermission';
-import { FiscalIntegrationStrip } from '@/components/fiscal/v2/fiscal-integration-strip';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { db } from '@/lib/db';
@@ -119,7 +118,7 @@ interface TicketSummary {
 export default function POSPage() {
   const { selectedOrganizationId, selectedCompanyId, getCurrentOrganization } = useAuthStore();
   const selectedId = selectedOrganizationId || selectedCompanyId;
-  const { canManageInvoices, canManageFiscal, canAccessPOS, canManageCustomers, canManageProducts, isPosOnlySeller } = usePermission();
+  const { canManageInvoices, canAccessPOS, canManageCustomers, canManageProducts, isPosOnlySeller } = usePermission();
   const rawRate = useExchangeRate();
   const tasaBcv = Number.isFinite(rawRate) && rawRate > 0 ? rawRate : 1;
   const queryClient = useQueryClient();
@@ -796,27 +795,9 @@ export default function POSPage() {
       {isPosOnlySeller && !isModuleGalleryEnabled() && <PosToolbar />}
       <AdminPageShell
       animate={false}
-      eyebrow={isPosOnlySeller ? undefined : 'Ventas'}
-      title={isPosOnlySeller ? 'Caja · inventario' : 'Punto de Venta'}
-      subtitle={
-        isPosOnlySeller ? (
-          <span className="text-xs text-muted-foreground sm:text-sm">
-            Vende del inventario · solo lectura · sin editar productos
-          </span>
-        ) : (
-          <>
-            {canManageFiscal && (
-              <FiscalIntegrationStrip variant="pos" className="mb-1 hidden lg:block" />
-            )}
-            <span className="hidden text-sm lg:block">
-              Catálogo = inventario disponible. Toca para vender.
-            </span>
-          </>
-        )
-      }
+      hideHeader
       className="admin-pos-shell admin-pos-mobile-pad"
       contentClassName="admin-pos-page-body"
-      headerClassName="admin-pos-page-header shrink-0"
     >
 
       <PosComandaQueue className="mb-3 shrink-0 sm:mb-4" />

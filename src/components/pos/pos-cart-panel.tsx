@@ -165,7 +165,7 @@ export function PosCartPanel({
         )}
       >
         <div>
-          <Label className="mb-2 block text-sm font-medium">Moneda de pago</Label>
+          <Label className="mb-1.5 block text-xs font-medium text-muted-foreground">Moneda de pago</Label>
           <div className="admin-pos-currency-toggle flex gap-2">
             <button
               type="button"
@@ -191,7 +191,7 @@ export function PosCartPanel({
         </div>
 
         <div>
-          <Label htmlFor={compact ? 'customer-mobile' : 'customer'} className="block text-sm font-medium mb-1.5">Cliente</Label>
+          <Label htmlFor={compact ? 'customer-mobile' : 'customer'} className="mb-1.5 block text-xs font-medium text-muted-foreground">Cliente</Label>
           <select
             id={compact ? 'customer-mobile' : 'customer'}
             value={selectedCustomerId || ''}
@@ -221,9 +221,9 @@ export function PosCartPanel({
           )}
         </div>
 
-        <div className="space-y-3">
-          <Label className="block text-sm font-medium">Modalidades de pago</Label>
-          <div className="flex min-h-[44px] items-center justify-between gap-3 rounded-xl border border-border/60 bg-card/50 px-4 py-2.5">
+        <div className="space-y-2">
+          <Label className="block text-xs font-medium text-muted-foreground">Modalidades de pago</Label>
+          <div className="flex min-h-[40px] items-center justify-between gap-3 rounded-xl border border-border/60 bg-card/50 px-3 py-2">
             <Label htmlFor={compact ? 'split-pay-mobile' : 'split-pay'} className="cursor-pointer text-sm font-normal leading-tight">
               Pago combinado
             </Label>
@@ -343,9 +343,9 @@ export function PosCartPanel({
 
       <div className={cn('admin-pos-cart-scroll', compact && 'min-h-[4rem]')}>
         {cart.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/50">
-              <ShoppingCart className="h-7 w-7 text-muted-foreground/50" />
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-muted/50">
+              <ShoppingCart className="h-5 w-5 text-muted-foreground/50" />
             </div>
             <p className="text-sm font-medium text-muted-foreground">El carrito está vacío</p>
             <p className="mt-1 text-xs text-muted-foreground/60">Selecciona productos del catálogo</p>

@@ -28,9 +28,10 @@ export function AdminPageShell({
   animate = true,
   loading,
   loadingLabel = 'Cargando…',
+  hideHeader = false,
 }: {
   eyebrow?: string;
-  title: React.ReactNode;
+  title?: React.ReactNode;
   subtitle?: React.ReactNode;
   actions?: React.ReactNode;
   children?: React.ReactNode;
@@ -41,6 +42,8 @@ export function AdminPageShell({
   animate?: boolean;
   loading?: boolean;
   loadingLabel?: string;
+  /** Omite el bloque de título/subtítulo para ganar altura útil (p. ej. POS). */
+  hideHeader?: boolean;
 }) {
   if (loading) {
     return (
@@ -59,13 +62,15 @@ export function AdminPageShell({
 
   const body = (
     <>
-      <AdminPageHeader
-        eyebrow={eyebrow}
-        title={title}
-        subtitle={subtitle}
-        actions={actions}
-        className={cn('mb-5 sm:mb-6 md:mb-7', headerClassName)}
-      />
+      {!hideHeader && title != null && (
+        <AdminPageHeader
+          eyebrow={eyebrow}
+          title={title}
+          subtitle={subtitle}
+          actions={actions}
+          className={cn('mb-5 sm:mb-6 md:mb-7', headerClassName)}
+        />
+      )}
       <div className={cn('admin-page-body', contentClassName)}>
         {children}
       </div>
