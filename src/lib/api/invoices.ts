@@ -121,9 +121,4 @@ export const invoiceService = {
   delete(invoiceId: number): Promise<void> {
     return apiClient.delete(`/invoices/${invoiceId}`).then(() => undefined);
   },
-
-  /** Limpiar datos de prueba (solo desarrollo). */
-  clearTestData(): Promise<{ message: string; deleted?: number }> {
-    return apiClient.post<{ message: string; deleted?: number }>('/invoices/clear-test-data').then((res) => res.data);
-  },
 };
