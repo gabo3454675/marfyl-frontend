@@ -95,4 +95,10 @@ export const salesImportService = {
       .post<SalesImportConfirmResult>('/sales-import/confirm', payload)
       .then((res) => res.data);
   },
+
+  getTemplate() {
+    return apiClient.get('/sales-import/template', {
+      responseType: 'blob',
+    });
+  },
 };

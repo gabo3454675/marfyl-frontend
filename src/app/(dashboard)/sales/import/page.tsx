@@ -27,6 +27,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
+  Download,
   FileSpreadsheet,
   Loader2,
   PackagePlus,
@@ -199,6 +200,31 @@ export default function SalesImportPage() {
     });
   };
 
+  const handleDownloadSalesTemplate = async () => {
+    try {
+      const response = await salesImportService.getTemplate();
+      const disposition = response.headers?.['content-disposition'] as string | undefined;
+      const match = disposition?.match(/filename="?([^"]+)"?/i);
+      const filename = match?.[1] || 'ventas-plantilla.xlsx';
+      const blob = new Blob([response.data], {
+        type:
+          String(response.headers?.['content-type'] ?? '') ||
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error: unknown) {
+      console.error('Error downloading template:', error);
+      toast.error('No se pudo descargar la plantilla.');
+    }
+  };
+
   const resetAll = () => {
     setFiles([]);
     setPreview(null);
@@ -227,6 +253,18 @@ export default function SalesImportPage() {
       subtitle="Sube reportes FastReport (.xls) y registra ventas históricas con inventario"
     >
       <div className="space-y-6">
+        {/* Botón descargar plantilla */}
+        <AdminCard>
+          <Button
+            variant="outline"
+            onClick={handleDownloadSalesTemplate}
+            className="cursor-pointer"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Descargar plantilla Excel
+          </Button>
+        </AdminCard>
+
         {/* Ayuda */}
         <AdminCard>
           <p className="text-sm text-muted-foreground leading-relaxed">

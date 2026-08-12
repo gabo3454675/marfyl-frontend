@@ -98,4 +98,10 @@ export const inventoryService = {
       })
       .then((res) => res.data);
   },
+
+  getConsumptionTemplate() {
+    return apiClient.get('/inventory/movements/template', {
+      responseType: 'blob',
+    });
+  },
 };

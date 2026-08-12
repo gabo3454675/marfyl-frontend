@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,9 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import apiClient from '@/lib/api';
 import { usePermission } from '@/hooks/usePermission';
-import { Loader2, Package, AlertCircle } from 'lucide-react';
+import { Loader2, Package, AlertCircle, Download, Upload, FileSpreadsheet } from 'lucide-react';
 
 const MOVEMENT_TYPES = [
   { value: 'AUTOCONSUMO', label: 'Autoconsumo' },
@@ -55,6 +57,12 @@ export default function InventoryMovementsPage() {
     quantity: '1',
     reason: '',
   });
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<any>(null);
+  const [importResult, setImportResult] = useState<any>(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importConfirming, setImportConfirming] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     apiClient.get<Product[]>('/products').then((res) => {
@@ -67,6 +75,36 @@ export default function InventoryMovementsPage() {
       setMovements(res.data ?? []);
     }).catch(() => setMovements([])).finally(() => setLoadingMovements(false));
   }, []);
+
+  const handleDownloadConsumptionTemplate = async () => {
+    try {
+      const response = await apiClient.get('/inventory/movements/template', {
+        responseType: 'blob',
+      });
+      const disposition = response.headers?.['content-disposition'] as string | undefined;
+      const match = disposition?.match(/filename="?([^"]+)"?/i);
+      const filename = match?.[1] || 'consumo-plantilla.xlsx';
+      const blob = new Blob([response.data], {
+        type:
+          String(response.headers?.['content-type'] ?? '') ||
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error: unknown) {
+      console.error('Error downloading template:', error);
+      alert(
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          'No se pudo descargar la plantilla.',
+      );
+    }
+  };
 
   const refreshMovements = () => {
     apiClient.get<Movement[]>('/inventory/movements').then((res) => setMovements(res.data ?? [])).catch(() => {});
@@ -97,6 +135,49 @@ export default function InventoryMovementsPage() {
       setMessage({ type: 'error', text: msg ?? 'Error al registrar la salida.' });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleImportPreview = async () => {
+    if (!importFile) return;
+    setImportLoading(true);
+    setImportResult(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+      formData.append('confirm', 'false');
+      const response = await apiClient.post('/inventory/movements/import', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setImportPreview(response.data);
+    } catch (e: any) {
+      const msg = e.response?.data?.message || e.message || 'Error al analizar archivo';
+      alert(msg);
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const handleImportConfirm = async () => {
+    if (!importFile) return;
+    setImportConfirming(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+      formData.append('confirm', 'true');
+      const response = await apiClient.post('/inventory/movements/import', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setImportResult(response.data);
+      setImportPreview(null);
+      setImportFile(null);
+      if (importInputRef.current) importInputRef.current.value = '';
+      refreshMovements();
+    } catch (e: any) {
+      const msg = e.response?.data?.message || e.message || 'Error al importar';
+      alert(msg);
+    } finally {
+      setImportConfirming(false);
     }
   };
 
@@ -132,6 +213,17 @@ export default function InventoryMovementsPage() {
           {message.text}
         </div>
       )}
+
+      <AdminCard>
+        <Button
+          variant="outline"
+          onClick={handleDownloadConsumptionTemplate}
+          className="cursor-pointer"
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Descargar plantilla
+        </Button>
+      </AdminCard>
 
       <AdminCard
         title={
@@ -201,6 +293,122 @@ export default function InventoryMovementsPage() {
               Registrar salida
             </Button>
           </form>
+      </AdminCard>
+
+      <AdminCard
+        title={
+          <span className="flex items-center gap-2">
+            <Upload className="h-5 w-5" />
+            Importar consumos desde Excel
+          </span>
+        }
+        description="Sube un Excel con la plantilla de consumo para registrar múltiples salidas de inventario."
+      >
+        <input
+          ref={importInputRef}
+          type="file"
+          accept=".xlsx,.xls"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            setImportFile(f ?? null);
+            setImportPreview(null);
+            setImportResult(null);
+          }}
+        />
+        <div className="flex flex-wrap gap-3 items-center">
+          <Button type="button" variant="outline" onClick={() => importInputRef.current?.click()}>
+            <Upload className="h-4 w-4 mr-2" />
+            Elegir Excel
+          </Button>
+          {importFile && (
+            <span className="text-sm flex items-center gap-2">
+              <FileSpreadsheet className="h-4 w-4" />
+              {importFile.name}
+            </span>
+          )}
+          <Button type="button" disabled={!importFile || importLoading} onClick={handleImportPreview}>
+            {importLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Analizar
+          </Button>
+          {importPreview?.canConfirm && (
+            <Button type="button" disabled={importConfirming} onClick={handleImportConfirm}>
+              {importConfirming && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Confirmar importación ({importPreview.matchedLines} líneas)
+            </Button>
+          )}
+        </div>
+
+        {importPreview && (
+          <div className="mt-4 space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+              <div>
+                <p className="text-muted-foreground">Total líneas</p>
+                <p className="text-lg font-semibold">{importPreview.totalLines}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Coincidencias</p>
+                <p className="text-lg font-semibold text-emerald-600">{importPreview.matchedLines}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Errores</p>
+                <p className="text-lg font-semibold text-destructive">{importPreview.errorLines}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Costo total</p>
+                <p className="text-lg font-semibold">${importPreview.totalCost?.toFixed(2)}</p>
+              </div>
+            </div>
+
+            {importPreview.lines?.length > 0 && (
+              <div className="rounded-md border overflow-x-auto max-h-[300px] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Código</TableHead>
+                      <TableHead>Producto</TableHead>
+                      <TableHead className="text-right">Cant.</TableHead>
+                      <TableHead>Responsable</TableHead>
+                      <TableHead>Estado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {importPreview.lines.map((line: any, idx: number) => (
+                      <TableRow key={idx}>
+                        <TableCell className="font-mono text-xs">{line.originalCode}</TableCell>
+                        <TableCell>{line.productName ?? '—'}</TableCell>
+                        <TableCell className="text-right">{line.quantity}</TableCell>
+                        <TableCell>{line.responsible ?? '—'}</TableCell>
+                        <TableCell>
+                          {line.status === 'matched' && <Badge className="bg-emerald-600">OK</Badge>}
+                          {line.status === 'unmatched' && <Badge variant="destructive">No encontrado</Badge>}
+                          {line.status === 'error' && <Badge variant="destructive">{line.error}</Badge>}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {importPreview.errors?.length > 0 && (
+              <div className="text-sm text-destructive">
+                <p className="font-medium">Errores de parseo:</p>
+                <ul className="list-disc pl-5">
+                  {importPreview.errors.map((e: any, i: number) => (
+                    <li key={i}>Fila {e.row}: {e.message}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        {importResult && !importResult.dryRun && (
+          <div className="mt-4 p-3 rounded-lg border border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-sm">
+            ✅ {importResult.movementsCreated} movimientos registrados. Costo total: ${importResult.totalCost?.toFixed(2)}
+          </div>
+        )}
       </AdminCard>
 
       <AdminCard title="Últimos movimientos">
