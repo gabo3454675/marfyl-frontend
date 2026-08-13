@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +15,8 @@ import {
 } from '@/components/ui/select';
 import apiClient from '@/lib/api';
 import { usePermission } from '@/hooks/usePermission';
-import { Loader2, Package, AlertCircle } from 'lucide-react';
+import { Download, FileSpreadsheet, Loader2, Package, AlertCircle, Upload } from 'lucide-react';
+import { toast } from 'sonner';
 
 const MOVEMENT_TYPES = [
   { value: 'AUTOCONSUMO', label: 'Autoconsumo' },
@@ -41,6 +42,22 @@ interface Movement {
   user?: { id: number; email: string; fullName: string | null };
 }
 
+interface AutoconsumoImportPreview {
+  confirm: boolean;
+  total: number;
+  ready: number;
+  errors: number;
+  lines: {
+    rowNum: number;
+    sku: string;
+    productName: string;
+    quantity: number;
+    type: string;
+    ok: boolean;
+    issues: string[];
+  }[];
+}
+
 export default function InventoryMovementsPage() {
   const { canManageInventory } = usePermission();
   const [products, setProducts] = useState<Product[]>([]);
@@ -55,6 +72,12 @@ export default function InventoryMovementsPage() {
     quantity: '1',
     reason: '',
   });
+  const importRef = useRef<HTMLInputElement>(null);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<AutoconsumoImportPreview | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importConfirming, setImportConfirming] = useState(false);
+  const [downloadingTpl, setDownloadingTpl] = useState(false);
 
   useEffect(() => {
     apiClient.get<Product[]>('/products').then((res) => {
@@ -70,6 +93,72 @@ export default function InventoryMovementsPage() {
 
   const refreshMovements = () => {
     apiClient.get<Movement[]>('/inventory/movements').then((res) => setMovements(res.data ?? [])).catch(() => {});
+  };
+
+  const downloadTemplate = async () => {
+    setDownloadingTpl(true);
+    try {
+      const res = await apiClient.get('/inventory/movements/template-autoconsumo', {
+        responseType: 'blob',
+      });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'MARFYL-plantilla-AUTOCONSUMO.xlsx';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('No se pudo descargar la plantilla');
+    } finally {
+      setDownloadingTpl(false);
+    }
+  };
+
+  const runImportPreview = async () => {
+    if (!importFile) return;
+    setImportLoading(true);
+    setImportPreview(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+      formData.append('confirm', 'false');
+      const res = await apiClient.post<AutoconsumoImportPreview>(
+        '/inventory/movements/import-autoconsumo',
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      );
+      setImportPreview(res.data);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'Error al analizar el Excel');
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const runImportConfirm = async () => {
+    if (!importFile) return;
+    setImportConfirming(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+      formData.append('confirm', 'true');
+      const res = await apiClient.post<{ applied: number }>(
+        '/inventory/movements/import-autoconsumo',
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      );
+      toast.success(`${res.data.applied} salidas registradas`);
+      setImportFile(null);
+      setImportPreview(null);
+      if (importRef.current) importRef.current.value = '';
+      refreshMovements();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'Error al importar');
+    } finally {
+      setImportConfirming(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -132,6 +221,62 @@ export default function InventoryMovementsPage() {
           {message.text}
         </div>
       )}
+
+      <AdminCard title="Importar Excel (autoconsumo / merma)">
+        <p className="text-sm text-muted-foreground mb-4">
+          Descargue la plantilla, llénela y súbala. Cada fila descuenta stock.
+        </p>
+        <input
+          ref={importRef}
+          type="file"
+          accept=".xlsx,.xls"
+          className="hidden"
+          onChange={(e) => {
+            setImportFile(e.target.files?.[0] ?? null);
+            setImportPreview(null);
+          }}
+        />
+        <div className="flex flex-wrap gap-2 items-center">
+          <Button type="button" variant="secondary" onClick={downloadTemplate} disabled={downloadingTpl}>
+            {downloadingTpl ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+            Descargar plantilla
+          </Button>
+          <Button type="button" variant="outline" onClick={() => importRef.current?.click()}>
+            <Upload className="h-4 w-4 mr-2" />
+            Elegir Excel
+          </Button>
+          {importFile && (
+            <span className="text-sm flex items-center gap-2">
+              <FileSpreadsheet className="h-4 w-4" />
+              {importFile.name}
+            </span>
+          )}
+          <Button type="button" disabled={!importFile || importLoading} onClick={runImportPreview}>
+            {importLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Analizar
+          </Button>
+          <Button
+            type="button"
+            disabled={!importFile || !importPreview || importPreview.errors > 0 || importPreview.ready === 0 || importConfirming}
+            onClick={runImportConfirm}
+          >
+            {importConfirming && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Confirmar importación
+          </Button>
+        </div>
+        {importPreview && (
+          <div className="mt-4 text-sm space-y-2">
+            <p>
+              {importPreview.ready} listas · {importPreview.errors} con error · {importPreview.total} total
+            </p>
+            {importPreview.lines.filter((l) => !l.ok).slice(0, 8).map((l) => (
+              <p key={l.rowNum} className="text-red-600 dark:text-red-400">
+                Fila {l.rowNum} ({l.sku}): {l.issues.join(', ')}
+              </p>
+            ))}
+          </div>
+        )}
+      </AdminCard>
 
       <AdminCard
         title={

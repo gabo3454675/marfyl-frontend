@@ -27,6 +27,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
+  Download,
   FileSpreadsheet,
   Loader2,
   PackagePlus,
@@ -83,7 +84,19 @@ export default function SalesImportPage() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const downloadTemplate = async () => {
+    setDownloading(true);
+    try {
+      await salesImportService.downloadTemplate();
+    } catch {
+      toast.error('No se pudo descargar la plantilla');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const importableCount = useMemo(() => {
     if (!preview) return 0;
@@ -224,17 +237,30 @@ export default function SalesImportPage() {
     <AdminPageShell
       eyebrow="Ventas"
       title="Importar ventas POS"
-      subtitle="Sube reportes FastReport (.xls) y registra ventas históricas con inventario"
+      subtitle="Plantilla MARFYL del día o reportes FastReport. Descuenta stock al confirmar."
     >
       <div className="space-y-6">
         {/* Ayuda */}
         <AdminCard>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Formatos aceptados: <strong>Reporte General de Ventas</strong> (por día) o{' '}
-            <strong>Reporte de Productos Vendidos</strong> (rango de fechas), exportados desde
-            FastReport. Los códigos del Excel deben coincidir con el <strong>SKU</strong> en MARFYL.
+          <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+            Use la <strong>plantilla MARFYL</strong> para ventas del día (hoja DATOS), o suba
+            reportes FastReport (.xls). Los códigos deben coincidir con el <strong>SKU</strong>.
             Las facturas ya importadas no se duplican.
           </p>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={downloadTemplate}
+            disabled={downloading}
+            className="cursor-pointer"
+          >
+            {downloading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            Descargar plantilla ventas
+          </Button>
         </AdminCard>
 
         {/* Dropzone */}
