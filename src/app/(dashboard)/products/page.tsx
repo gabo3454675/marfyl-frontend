@@ -56,6 +56,8 @@ interface Product {
   /** Moneda en que está registrado el precio (USD o VES). Por defecto USD. */
   salePriceCurrency?: string | null;
   stock: number;
+  reservedStock?: number;
+  availableStock?: number;
   minStock: number;
   imageUrl?: string | null;
   isExempt?: boolean;
@@ -75,6 +77,31 @@ function getVariantCount(product: Product): number {
   if (product._count?.variants != null) return product._count.variants;
   if (product.variants) return product.variants.length;
   return 0;
+}
+
+function availableStockOf(product: Product): number {
+  if (typeof product.availableStock === "number") {
+    return Math.max(0, product.availableStock);
+  }
+  return Math.max(0, product.stock - (product.reservedStock ?? 0));
+}
+
+function StockReadout({ product }: { product: Product }) {
+  if (product.isService) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  const available = availableStockOf(product);
+  const reserved = product.reservedStock ?? 0;
+  return (
+    <span>
+      {available}
+      {reserved > 0 ? (
+        <span className="block text-[11px] font-normal text-muted-foreground">
+          {reserved} en piso
+        </span>
+      ) : null}
+    </span>
+  );
 }
 
 /** Precio de la variante default (o primera variante activa) */
@@ -118,6 +145,7 @@ export default function ProductsPage() {
     queryKey: ['products'],
     url: '/products',
     limit: 20,
+    staleTime: 0,
   });
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -605,7 +633,10 @@ export default function ProductsPage() {
                             {formatCurrency(
                               getDefaultVariantPrice(product) ?? Number(product.salePrice),
                             )}{' '}
-                            · Stock: {product.stock}
+                            · Stock: {availableStockOf(product)}
+                            {(product.reservedStock ?? 0) > 0
+                              ? ` · ${product.reservedStock} en piso`
+                              : ''}
                             {product.barcode ? ` · ${product.barcode}` : ''}
                           </p>
                         </div>
@@ -702,7 +733,9 @@ export default function ProductsPage() {
                             )}
                           </TableCell>
                           <TableCell>{formatCurrency(Number(product.salePrice))}</TableCell>
-                          <TableCell>{product.stock}</TableCell>
+                          <TableCell>
+                            <StockReadout product={product} />
+                          </TableCell>
                           <TableCell>{product.barcode || '-'}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">

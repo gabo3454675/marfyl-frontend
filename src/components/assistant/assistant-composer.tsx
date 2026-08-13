@@ -11,6 +11,7 @@ export function AssistantComposer({
   onNewConversation,
   disabled,
   sending,
+  engineLabel = 'Nemotron',
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -19,6 +20,8 @@ export function AssistantComposer({
   onNewConversation?: () => void;
   disabled?: boolean;
   sending?: boolean;
+  /** Motor mostrado en el pie (Agente → Nemotron; Asesor → SENIAT). */
+  engineLabel?: string;
 }) {
   return (
     <div className="ai-composer shrink-0">
@@ -71,7 +74,7 @@ export function AssistantComposer({
       </div>
       <p className="mt-2 text-center text-[10px] text-white/35 flex items-center justify-center gap-1">
         <span className="inline-block w-1 h-1 rounded-full bg-emerald-400/80" />
-        Información procesada de forma segura · Groq
+        Información procesada de forma segura · {engineLabel}
       </p>
     </div>
   );

@@ -70,6 +70,18 @@ function appendFiles(formData: FormData, files: File[]) {
 }
 
 export const salesImportService = {
+  async downloadTemplate(): Promise<void> {
+    const res = await apiClient.get('/sales-import/template', {
+      responseType: 'blob',
+    });
+    const url = URL.createObjectURL(res.data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'MARFYL-plantilla-VENTAS.xlsx';
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
   preview(files: File[]): Promise<SalesImportPreviewResult> {
     const formData = new FormData();
     appendFiles(formData, files);

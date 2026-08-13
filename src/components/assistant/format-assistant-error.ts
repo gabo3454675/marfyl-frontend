@@ -12,6 +12,9 @@ export function formatAssistantError(e: unknown): string {
     return 'Sesión no válida. Recargue la página (F5). En vista previa el backend debe tener DEV_PREVIEW_AUTH=true en :3001.';
   }
 
+  if (/userId debe ser un entero positivo/i.test(raw)) {
+    return 'Sesión sin usuario válido para el agente. Cierra sesión, inicia con un usuario real (no Preview) y elige una organización.';
+  }
   if (raw.includes('404') && /model|groq|gemini/i.test(raw)) {
     return 'El modelo de IA no está disponible. En Render use GROQ_MODEL=llama-3.1-8b-instant y redeploy.';
   }

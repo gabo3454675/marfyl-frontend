@@ -1,11 +1,22 @@
-import { setSessionCookie } from '@/lib/auth-session-cookie';
+import { clearSessionCookie, setSessionCookie } from '@/lib/auth-session-cookie';
+
+const PREVIEW_FLAG_KEY = 'marfyl_preview';
 
 /** Desarrollo: app completa sin login (POS, facturas, fiscal, etc.). */
 export function isFiscalPreviewMode(): boolean {
   if (process.env.NEXT_PUBLIC_FISCAL_PREVIEW === 'true') return true;
+  if (process.env.NEXT_PUBLIC_FISCAL_PREVIEW === 'false') return false;
   if (typeof window !== 'undefined') {
     const w = window as Window & { __MARFYL_FISCAL_PREVIEW__?: boolean };
     if (w.__MARFYL_FISCAL_PREVIEW__ === true) return true;
+    try {
+      if (localStorage.getItem(PREVIEW_FLAG_KEY) === 'true') {
+        w.__MARFYL_FISCAL_PREVIEW__ = true;
+        return true;
+      }
+    } catch {
+      /* ignore */
+    }
   }
   return false;
 }
@@ -80,4 +91,64 @@ export function seedFiscalPreviewAuth(): void {
   }
   setSessionCookie();
   store.setHasHydrated(true);
+}
+
+/**
+ * Si Preview está OFF pero quedó la sesión sintética "Vista previa (dev)",
+ * la limpia para forzar login real y listar orgs de staging.
+ */
+export function clearStaleFiscalPreviewAuth(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (isFiscalPreviewMode()) return false;
+
+  try {
+    localStorage.setItem(PREVIEW_FLAG_KEY, 'false');
+  } catch {
+    /* ignore */
+  }
+  const w = window as Window & { __MARFYL_FISCAL_PREVIEW__?: boolean };
+  w.__MARFYL_FISCAL_PREVIEW__ = false;
+
+  const { useAuthStore } = require('@/store/useAuthStore') as typeof import('@/store/useAuthStore');
+  const store = useAuthStore.getState();
+  const token =
+    store.token ||
+    (typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null);
+  const isPreviewSession =
+    token === FISCAL_PREVIEW_TOKEN ||
+    store.user?.email === 'preview@marfyl.local' ||
+    store.user?.organizations?.some((o) => o.name === 'Vista previa (dev)');
+
+  // También detectar sesión preview aún no hidratada en zustand
+  let persistedPreview = false;
+  try {
+    const raw = localStorage.getItem('auth-storage');
+    if (raw) {
+      const parsed = JSON.parse(raw) as {
+        state?: { token?: string; user?: { email?: string; organizations?: { name?: string }[] } };
+      };
+      const t = parsed?.state?.token;
+      const email = parsed?.state?.user?.email;
+      const orgName = parsed?.state?.user?.organizations?.[0]?.name;
+      persistedPreview =
+        t === FISCAL_PREVIEW_TOKEN ||
+        email === 'preview@marfyl.local' ||
+        orgName === 'Vista previa (dev)';
+    }
+  } catch {
+    /* ignore */
+  }
+
+  if (!isPreviewSession && !persistedPreview) return false;
+
+  store.clearAuth();
+  try {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_refresh_token');
+    localStorage.removeItem('auth-storage');
+  } catch {
+    /* ignore */
+  }
+  clearSessionCookie();
+  return true;
 }

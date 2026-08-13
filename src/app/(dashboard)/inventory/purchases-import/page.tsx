@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { FileSpreadsheet, Loader2, Upload } from 'lucide-react';
+import { FileSpreadsheet, Loader2, Upload, Download } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import {
   purchasesImportService,
@@ -21,6 +21,7 @@ import {
   type PurchasesImportPreviewResult,
 } from '@/lib/api/purchases-import';
 import { toast } from 'sonner';
+import apiClient from '@/lib/api';
 
 function formatUsd(n: number) {
   return new Intl.NumberFormat('es-VE', {
@@ -38,6 +39,24 @@ export default function PurchasesImportPage() {
   const [result, setResult] = useState<PurchasesImportConfirmResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  const downloadTemplate = async () => {
+    setDownloading(true);
+    try {
+      const res = await apiClient.get('/purchases-import/template', { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'MARFYL-plantilla-COMPRAS.xlsx';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('No se pudo descargar la plantilla');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const runPreview = async () => {
     if (!file) return;
@@ -84,14 +103,14 @@ export default function PurchasesImportPage() {
   return (
     <AdminPageShell
       eyebrow="Inventario"
-      title="Importar compras Monddy"
-      subtitle="Excel formato COMPRAS (MES, FECHA, FACTURA, PROVEEDOR, SKU, COSTO...)"
+      title="Importar compras"
+      subtitle="Excel formato MARFYL (MES, FECHA, FACTURA, PROVEEDOR, SKU, COSTO...)"
     >
       <div className="space-y-6">
         <AdminCard>
           <p className="text-sm text-muted-foreground mb-4">
-            Montos en <strong>USD</strong>. Se crean gastos de inventario, movimientos de stock y
-            actualiza costo/precio de catálogo. Compras ya importadas se omiten automáticamente.
+            Descargue la plantilla, llénela en USD y súbala aquí. Se crean gastos de inventario,
+            movimientos de stock y se actualiza costo/precio. Compras ya importadas se omiten.
           </p>
           <input
             ref={inputRef}
@@ -106,6 +125,10 @@ export default function PurchasesImportPage() {
             }}
           />
           <div className="flex flex-wrap gap-3 items-center">
+            <Button type="button" variant="secondary" onClick={downloadTemplate} disabled={downloading}>
+              {downloading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+              Descargar plantilla
+            </Button>
             <Button type="button" variant="outline" onClick={() => inputRef.current?.click()}>
               <Upload className="h-4 w-4 mr-2" />
               Elegir Excel
