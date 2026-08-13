@@ -18,7 +18,6 @@ import {
   TrendingUp,
   Settings,
   UsersRound,
-  FileUp,
   Upload,
   CircleDollarSign,
   UtensilsCrossed,
@@ -187,20 +186,6 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     permission: 'canManageInventory',
   },
   {
-    id: 'invoice-upload',
-    label: 'Subir factura compra',
-    icon: FileUp,
-    href: '/inventory/invoice-upload',
-    permission: 'canManageInventory',
-  },
-  {
-    id: 'purchases-import',
-    label: 'Importar compras',
-    icon: Upload,
-    href: '/inventory/purchases-import',
-    permission: 'canManageInventory',
-  },
-  {
     id: 'autoconsumo',
     label: 'Autoconsumo',
     icon: BarChart3,
@@ -293,8 +278,6 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     itemIds: [
       'products',
       'movements',
-      'invoice-upload',
-      'purchases-import',
       'autoconsumo',
       'alertas-stock',
     ],
@@ -330,8 +313,6 @@ export function resolveAppNavId(pathname: string): string {
   if (pathname.startsWith('/inventory/movements')) return 'movements';
   if (pathname.startsWith('/autoconsumo')) return 'autoconsumo';
   if (pathname.startsWith('/alertas-stock')) return 'alertas-stock';
-  if (pathname.startsWith('/inventory/invoice-upload')) return 'invoice-upload';
-  if (pathname.startsWith('/inventory/purchases-import')) return 'purchases-import';
   if (pathname.startsWith('/inventory')) return 'products';
   if (pathname.startsWith('/customers')) return 'customers';
   if (pathname.startsWith('/sales/import')) return 'sales-import';
