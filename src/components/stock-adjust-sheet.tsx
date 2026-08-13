@@ -18,6 +18,8 @@ interface Product {
   id: number;
   name: string;
   stock: number;
+  reservedStock?: number;
+  availableStock?: number;
 }
 
 interface StockAdjustSheetProps {
@@ -95,7 +97,16 @@ export function StockAdjustSheet({
           </SheetHeader>
           {product && (
             <div className="grid gap-4 py-6">
-              <p className="text-sm text-muted-foreground">Stock actual: {product.stock}</p>
+              <p className="text-sm text-muted-foreground">
+                Stock fisico: {product.stock}
+                {typeof product.availableStock === "number" &&
+                product.availableStock !== product.stock
+                  ? ` · Disponible: ${product.availableStock}`
+                  : ""}
+                {(product.reservedStock ?? 0) > 0
+                  ? ` · En piso: ${product.reservedStock}`
+                  : ""}
+              </p>
               <div className="grid gap-2">
                 <Label htmlFor="stock-adjust">Nuevo stock</Label>
                 <Input

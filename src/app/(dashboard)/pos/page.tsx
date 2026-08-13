@@ -161,7 +161,7 @@ export default function POSPage() {
       }
       return [];
     },
-    staleTime: 60 * 1000,
+    staleTime: 10 * 1000,
     enabled: !!selectedId,
     retry: 1,
   });
