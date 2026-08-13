@@ -10,9 +10,10 @@ export function PreviewToggle() {
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
-    // Leer estado actual
     const w = window as Window & { __MARFYL_FISCAL_PREVIEW__?: boolean };
-    setEnabled(w.__MARFYL_FISCAL_PREVIEW__ === true);
+    const stored = localStorage.getItem('marfyl_preview') === 'true';
+    w.__MARFYL_FISCAL_PREVIEW__ = stored;
+    setEnabled(stored);
   }, []);
 
   const toggle = () => {
@@ -21,7 +22,18 @@ export function PreviewToggle() {
     w.__MARFYL_FISCAL_PREVIEW__ = next;
     localStorage.setItem('marfyl_preview', next ? 'true' : 'false');
     setEnabled(next);
-    // Recargar para que el middleware y el auth store se actualicen
+    if (!next) {
+      // Al salir de Preview, borrar sesión sintética para poder ver orgs reales
+      try {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_refresh_token');
+        localStorage.removeItem('auth-storage');
+      } catch {
+        /* ignore */
+      }
+      window.location.href = '/login';
+      return;
+    }
     window.location.reload();
   };
 

@@ -44,6 +44,21 @@ function buildContext(pathname: string) {
 }
 
 const SCROLL_BOTTOM_THRESHOLD = 72;
+const ASSISTANT_MODE_KEY = 'marfyl-assistant-mode';
+type AssistantMode = 'advisor' | 'agent';
+
+function readAssistantMode(): AssistantMode {
+  // Default: Agente MARFYL (Nest → agent-marfyl → Nemotron).
+  // El usuario puede volver a Asesor Fiscal con el toggle del panel.
+  if (typeof window === 'undefined') return 'agent';
+  try {
+    const stored = localStorage.getItem(ASSISTANT_MODE_KEY);
+    if (stored === 'advisor') return 'advisor';
+    return 'agent';
+  } catch {
+    return 'agent';
+  }
+}
 
 export function AssistantPanel({
   className,
@@ -68,7 +83,24 @@ export function AssistantPanel({
   const [error, setError] = useState<string | null>(null);
   const [auroraActivity, setAuroraActivity] = useState<AuroraActivity>('idle');
   const [showScrollDown, setShowScrollDown] = useState(false);
+  const [mode, setMode] = useState<AssistantMode>('agent');
   const { loadingLabel, setStatusPhase } = useAssistantLoadingLabel(loading, Boolean(streamingText));
+
+  useEffect(() => {
+    setMode(readAssistantMode());
+  }, []);
+
+  const toggleMode = () => {
+    setMode((prev) => {
+      const next: AssistantMode = prev === 'advisor' ? 'agent' : 'advisor';
+      try {
+        localStorage.setItem(ASSISTANT_MODE_KEY, next);
+      } catch {
+        // no-op
+      }
+      return next;
+    });
+  };
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
@@ -154,19 +186,27 @@ export function AssistantPanel({
         switchOrganization?: { access_token: string; organizationId: number };
       };
       let auditWarnings: ChatMessage['auditWarnings'];
-      try {
-        const advisor = await sendFiscalAdvisorStream(trimmed, {
-          onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
-          onStatus: setStatusPhase,
-        });
-        res = { reply: advisor.reply, model: advisor.model };
-        auditWarnings = advisor.warnings.length > 0 ? advisor.warnings : undefined;
-      } catch {
+      if (mode === 'agent') {
         res = await sendAssistantMessageStream(trimmed, history, buildContext(pathname), {
           onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
           onToolRound: () => setStreamingText(''),
         });
         auditWarnings = undefined;
+      } else {
+        try {
+          const advisor = await sendFiscalAdvisorStream(trimmed, {
+            onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
+            onStatus: setStatusPhase,
+          });
+          res = { reply: advisor.reply, model: advisor.model };
+          auditWarnings = advisor.warnings.length > 0 ? advisor.warnings : undefined;
+        } catch {
+          res = await sendAssistantMessageStream(trimmed, history, buildContext(pathname), {
+            onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
+            onToolRound: () => setStreamingText(''),
+          });
+          auditWarnings = undefined;
+        }
       }
       if (res.switchOrganization?.access_token) {
         setToken(res.switchOrganization.access_token);
@@ -256,19 +296,27 @@ export function AssistantPanel({
         switchOrganization?: { access_token: string; organizationId: number };
       };
       let auditWarnings: ChatMessage['auditWarnings'];
-      try {
-        const advisor = await sendFiscalAdvisorStream(lastUser.content, {
-          onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
-          onStatus: setStatusPhase,
-        });
-        res = { reply: advisor.reply, model: advisor.model };
-        auditWarnings = advisor.warnings.length > 0 ? advisor.warnings : undefined;
-      } catch {
+      if (mode === 'agent') {
         res = await sendAssistantMessageStream(lastUser.content, history, buildContext(pathname), {
           onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
           onToolRound: () => setStreamingText(''),
         });
         auditWarnings = undefined;
+      } else {
+        try {
+          const advisor = await sendFiscalAdvisorStream(lastUser.content, {
+            onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
+            onStatus: setStatusPhase,
+          });
+          res = { reply: advisor.reply, model: advisor.model };
+          auditWarnings = advisor.warnings.length > 0 ? advisor.warnings : undefined;
+        } catch {
+          res = await sendAssistantMessageStream(lastUser.content, history, buildContext(pathname), {
+            onDelta: (chunk) => setStreamingText((prev) => prev + chunk),
+            onToolRound: () => setStreamingText(''),
+          });
+          auditWarnings = undefined;
+        }
       }
       if (res.switchOrganization?.access_token) {
         setToken(res.switchOrganization.access_token);
@@ -312,11 +360,17 @@ export function AssistantPanel({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="truncate text-base font-bold text-white sm:text-lg">Asistente Fiscal</h2>
-              <span className="ai-badge-seniat shrink-0">SENIAT</span>
+              <h2 className="truncate text-base font-bold text-white sm:text-lg">
+                {mode === 'agent' ? 'Agente MARFYL' : 'Asistente Fiscal'}
+              </h2>
+              <span className="ai-badge-seniat shrink-0">
+                {mode === 'agent' ? 'AGENT' : 'SENIAT'}
+              </span>
             </div>
             <p className="mt-0.5 truncate text-[11px] text-white/60 sm:text-xs">
-              Facturación y control tributario · MARFYL
+              {mode === 'agent'
+                ? 'Copiloto con tools · datos en vivo'
+                : 'Facturación y control tributario · MARFYL'}
             </p>
           </div>
           <button
@@ -329,10 +383,28 @@ export function AssistantPanel({
           </button>
           <button
             type="button"
-            className="ai-icon-btn hidden h-10 w-10 sm:flex"
-            aria-label="IA activa"
+            className={cn(
+              'ai-icon-btn h-10 w-10',
+              mode === 'agent' && 'ring-1 ring-[hsl(var(--dm-b-accent))]',
+            )}
+            onClick={toggleMode}
+            aria-label={
+              mode === 'agent'
+                ? 'Modo agente activo. Clic para Asesor Fiscal'
+                : 'Modo asesor activo. Clic para Agente Python'
+            }
+            title={
+              mode === 'agent'
+                ? 'Modo: Agente (Python). Clic → Asesor Fiscal'
+                : 'Modo: Asesor Fiscal. Clic → Agente Python'
+            }
           >
-            <Sparkles className="h-4 w-4 text-white" />
+            <Sparkles
+              className={cn(
+                'h-4 w-4',
+                mode === 'agent' ? 'text-[hsl(var(--dm-b-accent))]' : 'text-white',
+              )}
+            />
           </button>
           <button
             type="button"
@@ -457,6 +529,7 @@ export function AssistantPanel({
               onNewConversation={handleNewConversation}
               disabled={loading}
               sending={loading}
+              engineLabel={mode === 'agent' ? 'Nemotron' : 'Asesor fiscal'}
             />
           </div>
         </div>
