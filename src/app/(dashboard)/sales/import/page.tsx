@@ -84,19 +84,7 @@ export default function SalesImportPage() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const [downloading, setDownloading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const downloadTemplate = async () => {
-    setDownloading(true);
-    try {
-      await salesImportService.downloadTemplate();
-    } catch {
-      toast.error('No se pudo descargar la plantilla');
-    } finally {
-      setDownloading(false);
-    }
-  };
 
   const importableCount = useMemo(() => {
     if (!preview) return 0;
@@ -274,29 +262,6 @@ export default function SalesImportPage() {
           >
             <Download className="mr-2 h-4 w-4" />
             Descargar plantilla Excel
-          </Button>
-        </AdminCard>
-
-        {/* Ayuda */}
-        <AdminCard>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-            Use la <strong>plantilla MARFYL</strong> para ventas del día (hoja DATOS), o suba
-            reportes FastReport (.xls). Los códigos deben coincidir con el <strong>SKU</strong>.
-            Las facturas ya importadas no se duplican.
-          </p>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={downloadTemplate}
-            disabled={downloading}
-            className="cursor-pointer"
-          >
-            {downloading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="mr-2 h-4 w-4" />
-            )}
-            Descargar plantilla ventas
           </Button>
         </AdminCard>
 
