@@ -32,7 +32,7 @@ const KINDS: {
   {
     id: 'compras',
     short: 'Compras',
-    blurb: 'Entra mercadería, actualiza costo y registra el gasto. Plantilla de compras.',
+    blurb: 'Entra mercadería, actualiza costo y registra el gasto. Plantilla Excel, o foto/PDF en Compras.',
     href: '/inventory/invoice-upload',
     hrefLabel: 'Ir a compras',
     icon: Truck,

@@ -21,6 +21,7 @@ import {
 } from '@/lib/api/purchases-import';
 import { toast } from 'sonner';
 import apiClient from '@/lib/api';
+import Link from 'next/link';
 
 function formatUsd(n: number) {
   return new Intl.NumberFormat('es-VE', {
@@ -134,6 +135,16 @@ export function ExcelPurchasesPanel() {
           files={file ? [file] : []}
           onFiles={pickFile}
         />
+        <p className="mt-3 text-sm text-muted-foreground">
+          Si tienes la factura en foto,{' '}
+          <Link
+            href="/inventory/invoice-upload?tab=import"
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
+            ábrela en Compras
+          </Link>
+          .
+        </p>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           <Button type="button" disabled={!file || loading} onClick={runPreview} className="h-11 w-full sm:w-auto">
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

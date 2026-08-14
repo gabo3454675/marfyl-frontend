@@ -22,7 +22,7 @@ export interface InvoicePreviewLine {
 export interface InvoicePreviewResult {
   dryRun: true;
   fileName: string;
-  fileType: 'excel' | 'pdf';
+  fileType: 'excel' | 'pdf' | 'photo';
   totalLines: number;
   matchedLines: number;
   unmatchedLines: number;
@@ -31,6 +31,12 @@ export interface InvoicePreviewResult {
   errors: Array<{ row?: number; line?: number; message: string }>;
   unmatched: Array<{ row?: number; line?: number; code: string; reason: string }>;
   canConfirm: boolean;
+  vendorName?: string | null;
+  vendorTaxId?: string | null;
+  documentNumber?: string | null;
+  issueDate?: string | null;
+  suggestedSupplierId?: number | null;
+  warnings?: string[];
 }
 
 export interface InvoiceConfirmLine {

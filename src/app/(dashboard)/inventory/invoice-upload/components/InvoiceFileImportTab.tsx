@@ -75,6 +75,24 @@ export default function InvoiceFileImportTab({
       const supplier = supplierId ? parseInt(supplierId, 10) : undefined;
       const data = await invoiceUploadService.preview(file, supplier);
       setPreview(data);
+      if (data.issueDate && /^\d{4}-\d{2}-\d{2}/.test(data.issueDate)) {
+        setDate(data.issueDate.slice(0, 10));
+      }
+      if (data.documentNumber) {
+        setReferenceNumber((prev) => prev || data.documentNumber || '');
+      }
+      if (data.suggestedSupplierId) {
+        setSupplierId(String(data.suggestedSupplierId));
+      }
+      if (data.vendorName) {
+        toast.message('Factura leída', {
+          description: data.vendorName + (data.warnings?.[0] ? ` · ${data.warnings[0]}` : ''),
+        });
+      } else if (data.warnings?.length) {
+        toast.message('Revisa lo que se leyó', {
+          description: data.warnings.slice(0, 2).join(' · '),
+        });
+      }
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       setError(e.response?.data?.message || 'Error al leer el archivo');
@@ -95,22 +113,14 @@ export default function InvoiceFileImportTab({
       setImportFile(null);
       setFileHint('excel');
       toast.message('El Excel de compras va en Importar Excel', {
-        description: 'Ahí está la plantilla MARFYL. Esta pestaña es solo para el PDF del proveedor.',
+        description: 'Ahí está la plantilla MARFYL. Esta pestaña es foto, PDF o a mano.',
       });
       return;
     }
-    if (kind === 'image') {
-      setImportFile(null);
-      setFileHint('image');
-      toast.message('Las fotos no se leen solas', {
-        description: 'Usa el PDF de la factura o registra la compra a mano.',
-      });
-      return;
-    }
-    if (kind !== 'pdf') {
+    if (kind !== 'pdf' && kind !== 'image') {
       setImportFile(null);
       setFileHint('other');
-      toast.error('Sube un PDF de la factura');
+      toast.error('Sube una foto JPEG/PNG o un PDF de la factura');
       return;
     }
 
@@ -181,7 +191,7 @@ export default function InvoiceFileImportTab({
               <span className="text-lg font-bold tabular-nums">{formatCurrency(result.totalAmount)}</span>
             </div>
             <Button variant="outline" className="h-11 w-full cursor-pointer sm:w-auto" onClick={handleReset}>
-              Subir otro PDF
+              Subir otra factura
             </Button>
           </div>
         </AdminCard>
@@ -190,15 +200,16 @@ export default function InvoiceFileImportTab({
           title={
             <span className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Factura PDF
+              Factura (foto o PDF)
             </span>
           }
-          description="PDF del proveedor con código/SKU, cantidad y costo. El Excel de compras va en su propia pantalla."
+          description="Foto nítida, PDF del proveedor o PDF escaneado. El Excel de compras va en su propia pantalla. Revisa cantidades antes de registrar."
         >
           <div className="space-y-5">
             <ImportDropzone
-              accept="application/pdf,.pdf,image/*"
-              hint="PDF de la factura. Las fotos no se leen; registra a mano o pide el PDF."
+              accept="application/pdf,.pdf,image/jpeg,image/png,image/webp,image/*"
+              allowCamera
+              hint="Foto, PDF o archivo. En el celular puedes tomar la foto aquí."
               files={importFile ? [importFile] : []}
               onFiles={handleFiles}
             />
@@ -213,8 +224,7 @@ export default function InvoiceFileImportTab({
             )}
             {fileHint === 'image' && (
               <p className="text-sm leading-relaxed text-muted-foreground">
-                La foto no se convierte sola. Usa el PDF o la pestaña{' '}
-                <strong>A mano</strong>.
+                Usa JPEG o PNG. Si el iPhone guarda HEIC, cambia a «Más compatible».
               </p>
             )}
 

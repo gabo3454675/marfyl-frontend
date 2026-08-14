@@ -371,7 +371,7 @@ export default function InvoiceUploadPage() {
     <AdminPageShell
       eyebrow="Inventario"
       title="Entrada de Compra"
-      subtitle="Registra a mano, sube un PDF o importa Excel"
+      subtitle="Registra a mano, con foto, PDF o Excel"
       maxWidth="wide"
       actions={
         <Button variant="outline" asChild className="h-11 w-full cursor-pointer sm:w-auto">
@@ -385,7 +385,7 @@ export default function InvoiceUploadPage() {
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="flex h-auto w-full flex-wrap gap-1">
           <TabsTrigger value="entry" className="min-h-10 flex-1">A mano</TabsTrigger>
-          <TabsTrigger value="import" className="min-h-10 flex-1">PDF</TabsTrigger>
+          <TabsTrigger value="import" className="min-h-10 flex-1">Foto / PDF</TabsTrigger>
           <TabsTrigger value="history" className="min-h-10 flex-1">Historial</TabsTrigger>
         </TabsList>
 

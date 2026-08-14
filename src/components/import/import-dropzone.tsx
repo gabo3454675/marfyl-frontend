@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { FileSpreadsheet, Upload } from 'lucide-react';
+import { Camera, FileSpreadsheet, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type ImportDropzoneProps = {
@@ -11,6 +11,8 @@ type ImportDropzoneProps = {
   files?: File[];
   onFiles: (files: File[]) => void;
   className?: string;
+  /** Abre la cámara del celular (foto de factura). */
+  allowCamera?: boolean;
 };
 
 export function ImportDropzone({
@@ -20,8 +22,10 @@ export function ImportDropzone({
   files,
   onFiles,
   className,
+  allowCamera = false,
 }: ImportDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
   const pick = useCallback(
@@ -41,6 +45,7 @@ export function ImportDropzone({
       : 'Toca para elegir o suelta aquí';
 
   return (
+    <div className="space-y-2">
     <button
       type="button"
       onClick={() => inputRef.current?.click()}
@@ -84,6 +89,38 @@ export function ImportDropzone({
           e.target.value = '';
         }}
       />
+    </button>
+    {allowCamera && (
+      <>
+        <ButtonCamera
+          onClick={() => cameraRef.current?.click()}
+        />
+        <input
+          ref={cameraRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="sr-only"
+          onChange={(e) => {
+            pick(e.target.files);
+            e.target.value = '';
+          }}
+        />
+      </>
+    )}
+    </div>
+  );
+}
+
+function ButtonCamera({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-border/80 bg-muted/30 text-sm font-medium hover:bg-muted/50"
+    >
+      <Camera className="h-4 w-4" aria-hidden />
+      Tomar foto de la factura
     </button>
   );
 }
