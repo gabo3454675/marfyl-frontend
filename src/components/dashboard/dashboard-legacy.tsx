@@ -17,6 +17,7 @@ import { isFiscalPreviewMode, seedFiscalPreviewAuth } from '@/lib/fiscal-preview
 import { getApiErrorMessage, isNetworkFailure, PREVIEW_OFFLINE_HINT } from '@/lib/api/get-error-message';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 import { usePermission } from '@/hooks/usePermission';
+import { isProductFeatureEnabled } from '@/lib/features';
 import { useNotificationFeed } from '@/hooks/useNotificationFeed';
 import apiClient from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -102,6 +103,7 @@ export function DashboardLegacy() {
   const [taskCategoryFilter, setTaskCategoryFilter] = useState('');
 
   const canSeeCreatedByMe = isSuperAdmin || isAdmin || isManager;
+  const showTasks = isProductFeatureEnabled('tasks');
   const { formatForDisplay } = useDisplayCurrency();
   const canLoadDashboard = isAuthenticated || isFiscalPreviewMode();
 
@@ -148,7 +150,7 @@ export function DashboardLegacy() {
       apiClient.get<CreatedByMeTask[]>('/tasks/created-by-me').then((r) =>
         Array.isArray(r.data) ? r.data : [],
       ),
-    enabled: canLoadDashboard && !!selectedId && canSeeCreatedByMe && tasksCreatedVisible,
+    enabled: canLoadDashboard && !!selectedId && canSeeCreatedByMe && tasksCreatedVisible && showTasks,
   });
 
   const filteredTasksQuery = useQuery({
@@ -157,7 +159,7 @@ export function DashboardLegacy() {
       apiClient
         .get<PendingTask[]>(`/tasks/my-pending?category=${encodeURIComponent(taskCategoryFilter)}`)
         .then((r) => (Array.isArray(r.data) ? r.data : [])),
-    enabled: canLoadDashboard && !!selectedId && !!taskCategoryFilter,
+    enabled: canLoadDashboard && !!selectedId && !!taskCategoryFilter && showTasks,
   });
 
   // ── Loading flags (derivados de queries) ──
@@ -351,7 +353,7 @@ export function DashboardLegacy() {
               health={health}
               diagnosis={diagnosis}
               strategy={strategy}
-              pendingTasksCount={displayedTasks.length}
+              pendingTasksCount={showTasks ? displayedTasks.length : 0}
               canViewFinancialCharts={canViewFinancialCharts}
             />
           </AdminMotionItem>
@@ -371,6 +373,7 @@ export function DashboardLegacy() {
             />
           </AdminMotionItem>
 
+          {showTasks && (
           <AdminMotionItem>
             <div id="tareas-pendientes">
               <PendingTasksPanel
@@ -381,8 +384,9 @@ export function DashboardLegacy() {
               />
             </div>
           </AdminMotionItem>
+          )}
 
-          {canSeeCreatedByMe && (
+          {showTasks && canSeeCreatedByMe && (
             <AdminMotionItem>
               <div ref={tasksCreatedRef}>
               <AdminPanel className="mb-2 md:mb-4">

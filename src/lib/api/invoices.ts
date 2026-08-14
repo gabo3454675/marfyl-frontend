@@ -117,6 +117,19 @@ export const invoiceService = {
     return apiClient.post<CreateInvoiceResponse>('/invoices', payload).then((res) => res.data);
   },
 
+  /** Corregir notas y/o método de pago (sin cambiar ítems ni total). */
+  update(
+    invoiceId: number,
+    payload: { notes?: string; payments?: { method: string }[] },
+  ): Promise<Invoice> {
+    return apiClient.patch<Invoice>(`/invoices/${invoiceId}`, payload).then((res) => res.data);
+  },
+
+  /** Anular factura (estado CANCELLED). Requiere motivo. */
+  void(invoiceId: number, reason: string): Promise<Invoice> {
+    return apiClient.post<Invoice>(`/invoices/${invoiceId}/void`, { reason }).then((res) => res.data);
+  },
+
   /** Eliminar una factura */
   delete(invoiceId: number): Promise<void> {
     return apiClient.delete(`/invoices/${invoiceId}`).then(() => undefined);

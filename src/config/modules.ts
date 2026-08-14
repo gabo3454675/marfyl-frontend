@@ -13,13 +13,12 @@ import {
   Settings,
   Scale,
   Ticket,
-  Layers,
 } from 'lucide-react';
 import { APP_NAV_ITEMS } from '@/config/app-nav';
 import { FISCAL_NAV_ITEMS } from '@/config/fiscal-nav';
 import { CONCERT_NAV_ITEMS } from '@/config/concert-nav';
 import { isConcertFeatureEnabled } from '@/lib/concert/feature';
-import { isModuleGalleryEnabled } from '@/lib/gallery/feature';
+import { isProductFeatureEnabled } from '@/lib/features';
 
 /**
  * Referencia a un item de navegación existente.
@@ -69,18 +68,19 @@ export function getGalleryNavItem(navId: string): AppNavItem | undefined {
  * Resuelve los items de un módulo, aplicando overrides.
  */
 export function resolveModuleItems(module: GalleryModuleConfig): (AppNavItem & { hint?: string; itemAccentGradient?: string })[] {
-  return module.itemRefs
-    .map((ref) => {
-      const base = getGalleryNavItem(ref.navId);
-      if (!base) return null;
-      return {
-        ...base,
-        label: ref.labelOverride ?? base.label,
-        hint: ref.hintOverride ?? base.hint,
-        itemAccentGradient: ref.itemAccentGradient,
-      };
-    })
-    .filter(Boolean) as (AppNavItem & { hint?: string; itemAccentGradient?: string })[];
+  const items: (AppNavItem & { hint?: string; itemAccentGradient?: string })[] = [];
+  for (const ref of module.itemRefs) {
+    const base = getGalleryNavItem(ref.navId);
+    if (!base) continue;
+    if (base.feature && !isProductFeatureEnabled(base.feature)) continue;
+    items.push({
+      ...base,
+      label: ref.labelOverride ?? base.label,
+      hint: ref.hintOverride ?? base.hint,
+      itemAccentGradient: ref.itemAccentGradient,
+    });
+  }
+  return items;
 }
 
 /** Módulos de la galería — el orden determina la visualización. */
@@ -111,49 +111,43 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
     itemRefs: [
       { navId: 'comanda', hintOverride: 'Tomar y enviar pedidos', itemAccentGradient: 'from-orange-400 to-orange-500' },
       { navId: 'comanda-cocina', hintOverride: 'Preparar y marcar listo', itemAccentGradient: 'from-red-400 to-red-500' },
-      { navId: 'comanda-historial', hintOverride: 'Pedidos cobrados por anfitrión', itemAccentGradient: 'from-amber-400 to-amber-500' },
     ],
     requiredPermissions: ['canTakeFloorOrder', 'canViewKitchenQueue', 'canViewFloorHistory'],
     order: 1,
   },
   {
     id: 'caja-clientes',
-    label: 'Caja y Clientes',
-    description: 'Cierre de caja, clientes y créditos',
+    label: 'Caja extra',
+    description: 'Créditos y caja de oficina',
     icon: Wallet,
     accentColor: 'text-emerald-500',
     accentGradient: 'from-emerald-500 to-emerald-600',
     bgGradient: 'from-emerald-500/10 to-emerald-600/5',
     itemRefs: [
-      { navId: 'cierre-caja', itemAccentGradient: 'from-emerald-400 to-emerald-500' },
       { navId: 'caja-oficina', itemAccentGradient: 'from-teal-400 to-teal-500' },
-      { navId: 'customers', itemAccentGradient: 'from-cyan-400 to-cyan-500' },
       { navId: 'credits', hintOverride: 'Cuentas por cobrar', itemAccentGradient: 'from-sky-400 to-sky-500' },
     ],
-    requiredPermissions: ['canManageCierreCaja', 'canManageCustomers', 'canViewCredits'],
+    requiredPermissions: ['canManageCierreCaja', 'canViewCredits'],
     order: 2,
   },
   {
     id: 'ventas',
     label: 'Ventas',
-    description: 'Facturas, historial e importación',
+    description: 'Facturas del período. Importar Excel desde el botón de la página',
     icon: TrendingUp,
     accentColor: 'text-violet-500',
     accentGradient: 'from-violet-500 to-violet-600',
     bgGradient: 'from-violet-500/10 to-violet-600/5',
     itemRefs: [
       { navId: 'invoices', itemAccentGradient: 'from-violet-400 to-violet-500' },
-      { navId: 'history', hintOverride: 'Facturas POS / período', itemAccentGradient: 'from-purple-400 to-purple-500' },
-      { navId: 'licores', hintOverride: 'Apertura · vendido · quedan', itemAccentGradient: 'from-indigo-400 to-indigo-500' },
-      { navId: 'sales-import', itemAccentGradient: 'from-fuchsia-400 to-fuchsia-500' },
     ],
     requiredPermissions: ['canManageInvoices'],
     order: 3,
   },
   {
     id: 'licores',
-    label: 'Licores y tobos',
-    description: 'Apertura, vendido y quedan del día',
+    label: 'Licores y combos',
+    description: 'Control del día, tobos, combos y servicios',
     icon: Beer,
     accentColor: 'text-amber-600',
     accentGradient: 'from-amber-500 to-amber-700',
@@ -161,7 +155,7 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
     itemRefs: [
       {
         navId: 'licores',
-        hintOverride: 'Apertura · vendido · quedan',
+        hintOverride: 'Inicio · vendido · quedan',
         itemAccentGradient: 'from-amber-400 to-amber-600',
       },
     ],
@@ -180,11 +174,7 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
     itemRefs: [
       { navId: 'products', itemAccentGradient: 'from-cyan-400 to-cyan-500' },
       { navId: 'movements', itemAccentGradient: 'from-teal-400 to-teal-500' },
-      { navId: 'servicios-combos', itemAccentGradient: 'from-sky-400 to-sky-500' },
       { navId: 'invoice-upload', itemAccentGradient: 'from-blue-400 to-blue-500' },
-      { navId: 'purchases-import', itemAccentGradient: 'from-indigo-400 to-indigo-500' },
-      { navId: 'autoconsumo', itemAccentGradient: 'from-slate-400 to-slate-500' },
-      { navId: 'alertas-stock', itemAccentGradient: 'from-red-400 to-red-500' },
     ],
     requiredPermissions: ['canManageProducts', 'canManageInventory'],
     order: 5,
@@ -219,6 +209,7 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
     ],
     requiredPermissions: ['canManageTeam'],
     directHref: '/nomina',
+    featureFlag: () => isProductFeatureEnabled('payroll'),
     order: 7,
   },
   {
@@ -255,6 +246,7 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
       { navId: 'fiscal-predecl', itemAccentGradient: 'from-rose-400 to-rose-500' },
     ],
     requiredPermissions: ['canManageFiscal'],
+    featureFlag: () => isProductFeatureEnabled('fiscal'),
     order: 9,
   },
   {

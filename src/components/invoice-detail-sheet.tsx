@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -18,10 +19,28 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { AssignTaskModal } from '@/components/assign-task-modal';
 import { TaskResolutionBar } from '@/components/task-resolution-bar';
 import apiClient, { invoiceService } from '@/lib/api';
-import { Loader2, UserPlus, Download, MessageCircle, CheckCircle } from 'lucide-react';
+import { Loader2, UserPlus, Download, Pencil, Ban } from 'lucide-react';
+import { isProductFeatureEnabled } from '@/lib/features';
+import { usePermission } from '@/hooks/usePermission';
+import { toast } from 'sonner';
 
 interface InvoiceItem {
   id: number;
@@ -54,6 +73,7 @@ interface Invoice {
   totalAmount: number;
   status: string;
   paymentMethod: string;
+  paymentStatus?: string;
   montoUsd?: number | null;
   montoBs?: number | null;
   paymentLines?: PaymentLine[];
@@ -98,6 +118,51 @@ const PAYMENT_LABELS: Record<string, string> = {
   MIXED: 'Mixto',
 };
 
+const USD_METHODS = ['CASH_USD', 'ZELLE', 'CARD'] as const;
+const VES_METHODS = ['CASH_BS', 'PAGO_MOVIL'] as const;
+
+function isVesMethod(method: string) {
+  return method === 'CASH_BS' || method === 'PAGO_MOVIL';
+}
+
+function normalizeMethod(method: string) {
+  const u = (method || 'CASH').toUpperCase();
+  if (u === 'CASH' || u === 'MIXED') return 'CASH_USD';
+  return u;
+}
+
+function isCreditInvoice(inv: Invoice) {
+  const method = (inv.paymentMethod || '').toUpperCase();
+  return (
+    method === 'CREDIT' ||
+    inv.paymentStatus === 'pending_credit' ||
+    (inv.paymentLines ?? []).some((p) => p.method === 'CREDIT')
+  );
+}
+
+function getEditableLines(inv: Invoice): PaymentLine[] {
+  if (inv.paymentLines && inv.paymentLines.length > 0) {
+    return inv.paymentLines.map((p) => ({
+      method: p.method,
+      amount: Number(p.amount),
+      currency: p.currency,
+    }));
+  }
+  const method = normalizeMethod(inv.paymentMethod);
+  const ves = isVesMethod(method);
+  return [
+    {
+      method,
+      amount: ves ? Number(inv.montoBs ?? 0) : Number(inv.montoUsd ?? inv.totalAmount),
+      currency: ves ? 'VES' : 'USD',
+    },
+  ];
+}
+
+function methodsForLine(method: string) {
+  return isVesMethod(method) ? VES_METHODS : USD_METHODS;
+}
+
 function getPaymentDisplay(inv: Invoice): string {
   if (inv.paymentLines && inv.paymentLines.length > 0) {
     return inv.paymentLines
@@ -119,17 +184,30 @@ export function InvoiceDetailSheet({
   taskId = null,
   onRefresh,
 }: InvoiceDetailSheetProps) {
+  const { canManageInvoices, canAnulateInvoices } = usePermission();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(false);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editNotes, setEditNotes] = useState('');
+  const [editMethods, setEditMethods] = useState<string[]>([]);
+  const [voidOpen, setVoidOpen] = useState(false);
+  const [voidReason, setVoidReason] = useState('');
+  const [voiding, setVoiding] = useState(false);
+  const tasksEnabled = isProductFeatureEnabled('tasks');
 
   useEffect(() => {
     if (!open || !invoiceId) {
       setInvoice(null);
+      setEditing(false);
+      setVoidOpen(false);
+      setVoidReason('');
       return;
     }
     let cancelled = false;
     setLoading(true);
+    setEditing(false);
     apiClient
       .get<Invoice>(`/invoices/${invoiceId}`)
       .then((res) => {
@@ -170,6 +248,63 @@ export function InvoiceDetailSheet({
       window.URL.revokeObjectURL(url);
     } catch (error: any) {
       alert(error.response?.data?.message ?? 'Error al descargar la factura');
+    }
+  };
+
+  const isCancelled = invoice?.status === 'CANCELLED';
+  const canEdit = canManageInvoices && !!invoice && !isCancelled;
+  const canVoid = canAnulateInvoices && !!invoice && !isCancelled;
+  const creditSale = invoice ? isCreditInvoice(invoice) : false;
+
+  const startEditing = () => {
+    if (!invoice) return;
+    setEditNotes(invoice.notes ?? '');
+    setEditMethods(getEditableLines(invoice).map((line) => line.method));
+    setEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!invoiceId || !invoice) return;
+    setSaving(true);
+    try {
+      const payload: { notes?: string; payments?: { method: string }[] } = {
+        notes: editNotes,
+      };
+      if (!creditSale) {
+        payload.payments = editMethods.map((method) => ({ method }));
+      }
+      await invoiceService.update(invoiceId, payload);
+      const res = await apiClient.get<Invoice>(`/invoices/${invoiceId}`);
+      setInvoice(res.data);
+      setEditing(false);
+      onRefresh?.();
+      toast.success('Factura actualizada');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message ?? 'No se pudo guardar la factura');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleVoid = async () => {
+    if (!invoiceId) return;
+    const reason = voidReason.trim();
+    if (!reason) {
+      toast.error('Indica el motivo de la anulación');
+      return;
+    }
+    setVoiding(true);
+    try {
+      await invoiceService.void(invoiceId, reason);
+      toast.success('Factura anulada');
+      setVoidOpen(false);
+      setVoidReason('');
+      onRefresh?.();
+      onOpenChange(false);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message ?? 'No se pudo anular la factura');
+    } finally {
+      setVoiding(false);
     }
   };
 
@@ -231,7 +366,65 @@ export function InvoiceDetailSheet({
 
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Método de pago</p>
-                <p className="font-medium">{getPaymentDisplay(invoice)}</p>
+                {editing && !creditSale ? (
+                  <div className="mt-2 space-y-2">
+                    {getEditableLines(invoice).map((line, index) => (
+                      <div key={`${line.method}-${index}`} className="flex items-center gap-2">
+                        <Select
+                          value={editMethods[index] ?? line.method}
+                          onValueChange={(value) => {
+                            setEditMethods((prev) => {
+                              const next = [...prev];
+                              next[index] = value;
+                              return next;
+                            });
+                          }}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {methodsForLine(line.method).map((method) => (
+                              <SelectItem key={method} value={method}>
+                                {PAYMENT_LABELS[method] ?? method}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <span className="shrink-0 text-sm text-muted-foreground">
+                          {line.currency === 'VES' ? 'Bs' : '$'} {Number(line.amount).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                    <p className="text-xs text-muted-foreground">
+                      Solo se corrige el método. El monto y la moneda no cambian.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="font-medium">{getPaymentDisplay(invoice)}</p>
+                )}
+                {editing && creditSale && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Una venta a crédito no cambia de método. Anúlala si hay que corregirla.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Notas</p>
+                {editing ? (
+                  <textarea
+                    className="mt-2 flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    value={editNotes}
+                    onChange={(e) => setEditNotes(e.target.value)}
+                    maxLength={2000}
+                    placeholder="Notas internas de la factura"
+                  />
+                ) : (
+                  <p className="font-medium whitespace-pre-wrap">
+                    {invoice.notes?.trim() ? invoice.notes : '—'}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -303,14 +496,58 @@ export function InvoiceDetailSheet({
                       <Download className="mr-2 h-4 w-4" />
                       Descargar PDF
                     </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full sm:w-auto"
-                      onClick={() => setAssignModalOpen(true)}
-                    >
-                      <UserPlus className="mr-2 h-4 w-4" />
-                      Asignar revisión
-                    </Button>
+                    {canEdit && !editing && (
+                      <Button
+                        variant="outline"
+                        className="w-full sm:w-auto"
+                        onClick={startEditing}
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Editar
+                      </Button>
+                    )}
+                    {editing && (
+                      <>
+                        <Button
+                          className="w-full sm:w-auto"
+                          onClick={handleSaveEdit}
+                          disabled={saving}
+                        >
+                          {saving ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : null}
+                          Guardar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="w-full sm:w-auto"
+                          onClick={() => setEditing(false)}
+                          disabled={saving}
+                        >
+                          Cancelar
+                        </Button>
+                      </>
+                    )}
+                    {canVoid && !editing && (
+                      <Button
+                        variant="outline"
+                        className="w-full sm:w-auto text-destructive hover:text-destructive"
+                        onClick={() => setVoidOpen(true)}
+                      >
+                        <Ban className="mr-2 h-4 w-4" />
+                        Anular
+                      </Button>
+                    )}
+                    {tasksEnabled && (
+                      <Button
+                        variant="outline"
+                        className="w-full sm:w-auto"
+                        onClick={() => setAssignModalOpen(true)}
+                      >
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        Asignar revisión
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}
@@ -323,15 +560,52 @@ export function InvoiceDetailSheet({
         </SheetContent>
       </Sheet>
 
-      <AssignTaskModal
-        open={assignModalOpen}
-        onOpenChange={setAssignModalOpen}
-        invoiceId={invoiceId ?? 0}
-        onSuccess={() => {
-          onRefresh?.();
-          onOpenChange(false);
-        }}
-      />
+      {tasksEnabled && (
+        <AssignTaskModal
+          open={assignModalOpen}
+          onOpenChange={setAssignModalOpen}
+          invoiceId={invoiceId ?? 0}
+          onSuccess={() => {
+            onRefresh?.();
+            onOpenChange(false);
+          }}
+        />
+      )}
+
+      <Dialog open={voidOpen} onOpenChange={setVoidOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Anular factura</DialogTitle>
+            <DialogDescription>
+              La factura queda cancelada y se restaura el stock. No se borra. Indica el motivo
+              para la auditoría.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="void-reason">Motivo</Label>
+            <textarea
+              id="void-reason"
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              value={voidReason}
+              onChange={(e) => setVoidReason(e.target.value)}
+              placeholder="Ej. cobro duplicado, método equivocado, mesa equivocada"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVoidOpen(false)} disabled={voiding}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleVoid}
+              disabled={voiding || !voidReason.trim()}
+            >
+              {voiding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Anular factura
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

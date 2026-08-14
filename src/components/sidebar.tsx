@@ -36,6 +36,7 @@ import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { markExplicitLogout } from '@/lib/fiscal-preview';
+import { isProductFeatureEnabled } from '@/lib/features';
 
 const SIDEBAR_COLLAPSED_KEY = 'marfyl-sidebar-collapsed';
 
@@ -393,7 +394,7 @@ export default function Sidebar() {
               );
             })}
 
-            {permissions.canManageFiscal && (
+            {permissions.canManageFiscal && isProductFeatureEnabled('fiscal') && (
               <FiscalNavCollapsible
                 pathname={pathname ?? ''}
                 fiscalOpen={fiscalOpen}
@@ -473,7 +474,7 @@ export default function Sidebar() {
               );
             })}
 
-            {permissions.canManageFiscal && (
+            {permissions.canManageFiscal && isProductFeatureEnabled('fiscal') && (
               <Button
                 asChild
                 variant="ghost"

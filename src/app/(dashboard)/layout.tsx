@@ -358,7 +358,7 @@ export default function DashboardLayout({
               </div>
             </div>
           </main>
-          {!isModuleGalleryEnabled() && <BottomNav />}
+          {!isModuleGalleryEnabled() && !isPosOnlySeller && <BottomNav />}
         </div>
       </NotificationFeedProvider>
     );

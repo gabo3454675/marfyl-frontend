@@ -32,7 +32,7 @@ export const PRODUCT_FEATURES = [
     id: 'inventory',
     title: 'Inventario con alertas',
     description: 'Stock mínimo, movimientos y productos críticos antes de quedarte sin unidades.',
-    href: '/alertas-stock',
+    href: '/products?stock=bajo',
   },
   {
     id: 'fiscal',

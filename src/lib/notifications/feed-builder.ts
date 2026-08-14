@@ -236,7 +236,7 @@ export function buildNotificationFeedItems(input: {
       timeLabel: 'Inventario',
       icon: 'alert',
       productId: p.id,
-      href: '/alertas-stock',
+      href: '/products?stock=bajo',
     });
   }
 

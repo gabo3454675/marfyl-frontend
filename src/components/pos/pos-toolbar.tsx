@@ -37,7 +37,7 @@ export function PosToolbar() {
             asChild
             className="h-8 gap-1.5 text-xs text-muted-foreground cursor-pointer"
           >
-            <Link href="/sales/import">
+            <Link href="/importar?tipo=ventas">
               <Upload className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Importar ventas</span>
             </Link>

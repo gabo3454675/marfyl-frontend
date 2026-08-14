@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Loader2,
@@ -37,6 +38,7 @@ import {
   isBeerProduct,
 } from '@/lib/liquor-units';
 import { FloorServiceNav } from '@/components/floor/floor-service-nav';
+import { FloorAuditPanel } from '@/components/floor/floor-audit-panel';
 import { FLOOR_COPY, FLOOR_STATUS_TONE, floorStatusLabel } from '@/lib/floor-ui';
 import { cn } from '@/lib/utils';
 
@@ -73,11 +75,14 @@ function sendButtonLabel(cart: CartLine[]): string {
 }
 
 export default function ComandaMenuPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { selectedOrganizationId, selectedCompanyId, user } = useAuthStore();
   const orgId = selectedOrganizationId || selectedCompanyId;
   const userId = user?.id;
-  const { canTakeFloorOrder, canAccessPOS } = usePermission();
+  const { canTakeFloorOrder, canAccessPOS, canViewFloorHistory } = usePermission();
   const { formatUsdAmount } = useDisplayCurrency();
+  const wantAudit = searchParams.get('tab') === 'auditoria';
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState('');
@@ -365,7 +370,7 @@ export default function ComandaMenuPage() {
     onError: () => toast.error('No se pudo cerrar la mesa'),
   });
 
-  if (!canTakeFloorOrder) {
+  if (!canTakeFloorOrder && !canViewFloorHistory) {
     return (
       <AdminPageShell title="Tomar pedido" subtitle="Sin permiso">
         <p className="text-sm text-muted-foreground">
@@ -375,13 +380,55 @@ export default function ComandaMenuPage() {
     );
   }
 
+  if (!canTakeFloorOrder && canViewFloorHistory) {
+    return (
+      <AdminPageShell
+        eyebrow={FLOOR_COPY.module}
+        title={FLOOR_COPY.audit.title}
+        subtitle={FLOOR_COPY.audit.blurb}
+      >
+        <FloorServiceNav />
+        <FloorAuditPanel />
+      </AdminPageShell>
+    );
+  }
+
+  const setHostTab = (tab: 'pedido' | 'auditoria') => {
+    router.replace(tab === 'auditoria' ? '/comanda?tab=auditoria' : '/comanda', { scroll: false });
+  };
+  const showAudit = wantAudit && canViewFloorHistory;
+
   return (
     <AdminPageShell
       eyebrow={FLOOR_COPY.module}
-      title={FLOOR_COPY.host.title}
-      subtitle={FLOOR_COPY.host.blurb}
-      actions={undefined}
+      title={showAudit ? FLOOR_COPY.audit.title : FLOOR_COPY.host.title}
+      subtitle={showAudit ? FLOOR_COPY.audit.blurb : FLOOR_COPY.host.blurb}
     >
+      <FloorServiceNav />
+      {canViewFloorHistory && (
+        <div className="flex gap-1 rounded-xl border border-border/60 bg-muted/50 p-1">
+          <Button
+            type="button"
+            variant={!showAudit ? 'default' : 'ghost'}
+            className="flex-1"
+            onClick={() => setHostTab('pedido')}
+          >
+            Tomar pedido
+          </Button>
+          <Button
+            type="button"
+            variant={showAudit ? 'default' : 'ghost'}
+            className="flex-1"
+            onClick={() => setHostTab('auditoria')}
+          >
+            Auditoría
+          </Button>
+        </div>
+      )}
+      {showAudit ? (
+        <FloorAuditPanel />
+      ) : (
+      <>
       {/* Floating Pedido button */}
       <div className="sticky top-0 z-30 -mx-4 px-4 py-2 sm:-mx-6 sm:px-6">
         <div className="flex justify-end">
@@ -400,7 +447,6 @@ export default function ComandaMenuPage() {
           </Button>
         </div>
       </div>
-      <FloorServiceNav />
       {!tableId ? (
         <section className="space-y-4">
           <div>
@@ -882,6 +928,8 @@ export default function ComandaMenuPage() {
           )}
         </div>
       </aside>
+      </>
+      )}
     </AdminPageShell>
   );
 }

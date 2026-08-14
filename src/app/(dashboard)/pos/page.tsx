@@ -32,6 +32,7 @@ import { BOTTLES_PER_TOBO, isBeerProduct } from '@/lib/liquor-units';
 import { round2 } from '@/lib/currencyConversion';
 import { computeCartIva } from '@/lib/tax-calculator';
 import { isIvaDisabledOrgSlug } from '@/lib/founding-orgs';
+import { isProductFeatureEnabled } from '@/lib/features';
 import { PosCartPanel } from '@/components/pos/pos-cart-panel';
 import { QuickProductSheet, type QuickProductResult } from '@/components/pos/quick-product-sheet';
 import { PosCalculatorDrawer, PosCalculatorFab } from '@/components/pos/pos-calculator-drawer';
@@ -117,7 +118,7 @@ interface TicketSummary {
 export default function POSPage() {
   const { selectedOrganizationId, selectedCompanyId, getCurrentOrganization } = useAuthStore();
   const selectedId = selectedOrganizationId || selectedCompanyId;
-  const { canManageInvoices, canAccessPOS, canManageCustomers, canManageProducts, isPosOnlySeller } = usePermission();
+  const { canManageInvoices, canAccessPOS, canManageProducts, isPosOnlySeller } = usePermission();
   const rawRate = useExchangeRate();
   const tasaBcv = Number.isFinite(rawRate) && rawRate > 0 ? rawRate : 1;
   const queryClient = useQueryClient();
@@ -176,7 +177,7 @@ export default function POSPage() {
       return Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : [];
     },
     staleTime: 60 * 1000,
-    enabled: !!selectedId,
+    enabled: !!selectedId && isProductFeatureEnabled('customers'),
   });
   const [processing, setProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -738,7 +739,7 @@ export default function POSPage() {
     if (needsPaymentSetup) {
       setMobileCartOpen(true);
       toast.message('Configura el pago en el carrito', {
-        description: splitPayment ? 'Pago combinado requiere montos por línea.' : 'Selecciona cliente y verifica crédito.',
+        description: splitPayment ? 'Pago combinado requiere montos por línea.' : 'Revisa el medio de pago en el carrito.',
       });
       return;
     }

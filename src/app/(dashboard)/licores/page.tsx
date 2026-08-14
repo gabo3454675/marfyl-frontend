@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Beer,
   Calendar,
@@ -26,6 +28,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { liquorSalesApi, type LiquorPack } from '@/lib/api/liquor-sales';
+import { CombosServiciosPanel } from './combos-servicios-panel';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 import { useAuthStore } from '@/store/useAuthStore';
 import { cn } from '@/lib/utils';
@@ -210,10 +213,17 @@ function TripleStock({
 }
 
 export default function LicoresPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tab = searchParams.get('tab') === 'combos' ? 'combos' : 'hoy';
   const { selectedOrganizationId, selectedCompanyId } = useAuthStore();
   const orgId = selectedOrganizationId || selectedCompanyId;
   const { formatUsdAmount } = useDisplayCurrency();
   const [day, setDay] = useState(yesterdayCaracas);
+
+  const setTab = (value: string) => {
+    router.replace(value === 'combos' ? '/licores?tab=combos' : '/licores', { scroll: false });
+  };
 
   const { data, isLoading, isFetching, refetch, error } = useQuery({
     queryKey: ['liquor-sales', orgId, day],
@@ -236,10 +246,15 @@ export default function LicoresPage() {
   return (
     <AdminPageShell
       eyebrow="Ventas"
-      title="Licores y tobos"
-      subtitle="Inicio / vendido / quedan. Cerveza: 12 bot = 1 tobo · 3 tobos = 1 caja."
+      title="Licores y combos"
+      subtitle={
+        tab === 'combos'
+          ? 'Arma tobos, paquetes y servicios. Luego se venden igual en el POS.'
+          : 'Inicio, vendido y quedan del día. Cerveza: 12 bot = 1 tobo · 3 tobos = 1 caja.'
+      }
       headerClassName="licores-page-header"
       actions={
+        tab === 'combos' ? undefined : (
         <div className="flex w-full min-w-0 flex-col gap-2 min-[480px]:flex-row min-[480px]:flex-wrap min-[480px]:items-end sm:w-auto">
           <div className="min-w-0 flex-1 space-y-1 min-[480px]:flex-none">
             <Label htmlFor="licores-day" className="text-xs text-muted-foreground">
@@ -274,8 +289,19 @@ export default function LicoresPage() {
             </Button>
           </div>
         </div>
+        )
       }
     >
+      <Tabs value={tab} onValueChange={setTab} className="space-y-5">
+        <TabsList className="flex flex-wrap h-auto w-full min-[420px]:w-auto gap-1">
+          <TabsTrigger value="hoy" className="flex-1 min-[420px]:flex-none">
+            Control del día
+          </TabsTrigger>
+          <TabsTrigger value="combos" className="flex-1 min-[420px]:flex-none">
+            Combos y servicios
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="hoy" className="mt-0">
       <div className="space-y-5 min-[600px]:space-y-6 sm:space-y-8">
         <div className="flex min-w-0 flex-wrap items-center gap-2 pr-1">
           <p className="text-sm text-muted-foreground capitalize min-w-0">{titleDay}</p>
@@ -586,6 +612,11 @@ export default function LicoresPage() {
           </>
         )}
       </div>
+        </TabsContent>
+        <TabsContent value="combos" className="mt-0">
+          <CombosServiciosPanel />
+        </TabsContent>
+      </Tabs>
     </AdminPageShell>
   );
 }

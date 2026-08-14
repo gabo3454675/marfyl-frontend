@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,7 +26,7 @@ import { Card } from '@/components/ui/card';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Edit, Trash2, Search, Loader2, Upload, FileSpreadsheet, CheckCircle2, XCircle, Package } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Loader2, Upload, FileSpreadsheet, CheckCircle2, XCircle, Package, AlertTriangle } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { usePermission } from '@/hooks/usePermission';
 import { usePaginatedQuery } from '@/hooks/usePaginatedQuery';
@@ -43,6 +44,7 @@ import {
   inventoryService,
   type InventoryImportPreviewResult,
 } from '@/lib/api/inventory';
+import { productService } from '@/lib/api/products';
 
 type SalePriceCurrency = 'USD' | 'VES';
 
@@ -131,6 +133,10 @@ function getVariantPriceRange(
 
 export default function ProductsPage() {
   const { canManageProducts, canDelete } = usePermission();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const lowStockOnly = searchParams.get('stock') === 'bajo';
 
   const {
     data: products,
@@ -145,6 +151,14 @@ export default function ProductsPage() {
     queryKey: ['products'],
     url: '/products',
     limit: 20,
+    staleTime: 0,
+    enabled: !lowStockOnly,
+  });
+
+  const { data: lowStockAlerts = [], isLoading: loadingAlerts } = useQuery({
+    queryKey: ['alertas-stock'],
+    queryFn: () => productService.getAlertasStock(),
+    enabled: lowStockOnly,
     staleTime: 0,
   });
 
@@ -462,7 +476,11 @@ export default function ProductsPage() {
     <AdminPageShell
       eyebrow="Inventario"
       title="Productos"
-      subtitle="Gestiona tu catálogo de productos"
+      subtitle={
+        lowStockOnly
+          ? 'Productos con stock por debajo del mínimo'
+          : 'Gestiona tu catálogo de productos'
+      }
       actions={
         <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:justify-end w-full sm:w-auto">
             <Button
@@ -520,14 +538,30 @@ export default function ProductsPage() {
         <AdminCard
           title="Lista de Productos"
           headerActions={
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar productos..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:items-center">
+              <Button
+                type="button"
+                variant={lowStockOnly ? 'default' : 'outline'}
+                size="sm"
+                className="cursor-pointer shrink-0"
+                onClick={() => {
+                  router.replace(lowStockOnly ? '/products' : '/products?stock=bajo', { scroll: false });
+                }}
+              >
+                <AlertTriangle className="mr-2 h-4 w-4" />
+                Stock bajo
+              </Button>
+              {!lowStockOnly && (
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar productos..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+              )}
             </div>
           }
         >
@@ -592,7 +626,105 @@ export default function ProductsPage() {
               </div>
             )}
 
-            {loading ? (
+            {lowStockOnly ? (
+              loadingAlerts ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span className="ml-2 text-muted-foreground">Cargando alertas...</span>
+                </div>
+              ) : lowStockAlerts.length === 0 ? (
+                <p className="text-center py-12 text-muted-foreground">
+                  No hay productos con stock bajo.
+                </p>
+              ) : (
+                <>
+                  <div className="md:hidden space-y-3">
+                    {lowStockAlerts.map((item) => (
+                      <Card key={item.id} className="p-4">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{item.name}</p>
+                            {item.sku && (
+                              <p className="text-xs text-muted-foreground font-mono">{item.sku}</p>
+                            )}
+                          </div>
+                          <Badge variant="destructive" className="shrink-0">
+                            {item.stock} / mín. {item.minStock}
+                          </Badge>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3 cursor-pointer"
+                          onClick={() => {
+                            setStockSheetProduct({
+                              id: item.id,
+                              name: item.name,
+                              sku: item.sku,
+                              costPrice: 0,
+                              salePrice: 0,
+                              stock: item.stock,
+                              minStock: item.minStock,
+                            });
+                            setStockSheetOpen(true);
+                          }}
+                        >
+                          Ajustar stock
+                        </Button>
+                      </Card>
+                    ))}
+                  </div>
+                  <div className="hidden md:block">
+                    <AdminTableWrap>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Producto</TableHead>
+                            <TableHead>SKU</TableHead>
+                            <TableHead className="text-right">Stock</TableHead>
+                            <TableHead className="text-right">Mínimo</TableHead>
+                            <TableHead className="text-right">Acciones</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {lowStockAlerts.map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell className="font-medium">{item.name}</TableCell>
+                              <TableCell className="font-mono text-xs">{item.sku ?? '—'}</TableCell>
+                              <TableCell className="text-right text-destructive font-semibold">
+                                {item.stock}
+                              </TableCell>
+                              <TableCell className="text-right">{item.minStock}</TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="cursor-pointer"
+                                  onClick={() => {
+                                    setStockSheetProduct({
+                                      id: item.id,
+                                      name: item.name,
+                                      sku: item.sku,
+                                      costPrice: 0,
+                                      salePrice: 0,
+                                      stock: item.stock,
+                                      minStock: item.minStock,
+                                    });
+                                    setStockSheetOpen(true);
+                                  }}
+                                >
+                                  Ajustar stock
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </AdminTableWrap>
+                  </div>
+                </>
+              )
+            ) : loading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <span className="ml-2 text-muted-foreground">Cargando...</span>
@@ -786,7 +918,7 @@ export default function ProductsPage() {
             )}
 
         {/* Paginación */}
-        {pagination && pagination.totalPages > 1 && (
+        {!lowStockOnly && pagination && pagination.totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t">
             <div className="text-sm text-muted-foreground">
               Mostrando {products.length} de {pagination.total} productos
@@ -1046,7 +1178,10 @@ export default function ProductsPage() {
           product={stockSheetProduct}
           open={stockSheetOpen}
           onOpenChange={setStockSheetOpen}
-          onSaved={refetch}
+          onSaved={() => {
+            refetch();
+            void queryClient.invalidateQueries({ queryKey: ['alertas-stock'] });
+          }}
         />
     </AdminPageShell>
   );

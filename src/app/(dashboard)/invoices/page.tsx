@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -14,10 +16,12 @@ import {
 import { Card } from '@/components/ui/card';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
-import { Download, Loader2, Search, FileText, UserPlus, Trash2 } from 'lucide-react';
+import { Download, Loader2, Search, FileText, UserPlus, Trash2, Calendar, Upload } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { InvoiceDetailSheet } from '@/components/invoice-detail-sheet';
 import { AssignTaskModal } from '@/components/assign-task-modal';
+import { DailySalesSummaryCard } from '@/components/sales/daily-sales-summary-card';
 import { invoiceService } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePermission } from '@/hooks/usePermission';
@@ -25,6 +29,12 @@ import { usePaginatedQuery } from '@/hooks/usePaginatedQuery';
 import { FiscalIntegrationStrip } from '@/components/fiscal/v2/fiscal-integration-strip';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 import { toast } from 'sonner';
+import { isProductFeatureEnabled } from '@/lib/features';
+import {
+  displayDateToIso,
+  isoToDisplayDate,
+  maskDisplayDateInput,
+} from '@/lib/dates';
 
 interface InvoiceItem {
   id: number;
@@ -55,17 +65,38 @@ interface Invoice {
   items: InvoiceItem[];
 }
 
+function toLocalYmd(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function getDefaultDateRange(): { start: string; end: string } {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - 30);
+  return { start: toLocalYmd(start), end: toLocalYmd(end) };
+}
+
 export default function InvoicesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { selectedCompanyId, user } = useAuthStore();
-  const { canManageInvoices, canManageFiscal } = usePermission();
+  const { canManageInvoices, canManageFiscal, canManageInventory } = usePermission();
   const { formatForDisplay } = useDisplayCurrency();
   const isSuperAdmin = !!user?.isSuperAdmin;
+  const tasksEnabled = isProductFeatureEnabled('tasks');
   const [detailInvoiceId, setDetailInvoiceId] = useState<number | null>(null);
   const [detailSheetOpen, setDetailSheetOpen] = useState(false);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [assignModalInvoiceId, setAssignModalInvoiceId] = useState<number | null>(null);
+
+  const defaultRange = getDefaultDateRange();
+  const [startDate, setStartDate] = useState(defaultRange.start);
+  const [endDate, setEndDate] = useState(defaultRange.end);
+  const [startInput, setStartInput] = useState(() => isoToDisplayDate(defaultRange.start));
+  const [endInput, setEndInput] = useState(() => isoToDisplayDate(defaultRange.end));
 
   const {
     data: invoices,
@@ -82,6 +113,52 @@ export default function InvoicesPage() {
     limit: 20,
     enabled: !!selectedCompanyId,
   });
+
+  const { data: history, isLoading: historyLoading } = useQuery({
+    queryKey: ['invoices-history', selectedCompanyId, startDate, endDate],
+    queryFn: () => invoiceService.getHistory({ startDate, endDate }),
+    enabled: !!selectedCompanyId && canManageInvoices,
+    staleTime: 30_000,
+  });
+
+  const periodTotals = useMemo(() => {
+    const days = history?.dailySummary ?? [];
+    return {
+      invoiceCount: days.reduce((s, d) => s + (d.invoiceCount ?? 0), 0),
+      totalSales: days.reduce((s, d) => s + Number(d.netSales ?? d.totalSales ?? 0), 0),
+      totalProfit: days.reduce((s, d) => s + Number(d.totalProfit ?? 0), 0),
+    };
+  }, [history]);
+
+  const recentDays = useMemo(
+    () => (history?.dailySummary ?? []).slice(-7).reverse(),
+    [history],
+  );
+
+  const handleStartInputChange = (raw: string) => {
+    setStartInput(maskDisplayDateInput(raw));
+  };
+  const handleEndInputChange = (raw: string) => {
+    setEndInput(maskDisplayDateInput(raw));
+  };
+  const handleStartBlur = () => {
+    const iso = displayDateToIso(startInput);
+    if (iso) {
+      setStartDate(iso);
+      setStartInput(isoToDisplayDate(iso));
+    } else {
+      setStartInput(isoToDisplayDate(startDate));
+    }
+  };
+  const handleEndBlur = () => {
+    const iso = displayDateToIso(endInput);
+    if (iso) {
+      setEndDate(iso);
+      setEndInput(isoToDisplayDate(iso));
+    } else {
+      setEndInput(isoToDisplayDate(endDate));
+    }
+  };
 
   /** Deep link desde campanita: /invoices?detalle=ID */
   useEffect(() => {
@@ -163,14 +240,99 @@ export default function InvoicesPage() {
       title="Facturas"
       subtitle={
         <>
-          {canManageFiscal && <FiscalIntegrationStrip variant="invoices" className="mb-3" />}
-          <span className="block">Historial de facturas generadas</span>
+          {canManageFiscal && isProductFeatureEnabled('fiscal') && (
+            <FiscalIntegrationStrip variant="invoices" className="mb-3" />
+          )}
+          <span className="block">Facturas e historial de ventas del período</span>
           <span className="block text-sm text-muted-foreground mt-1">
             Las facturas y tickets se guardan aquí. Puede descargar o imprimir el PDF en cualquier momento con el botón &quot;PDF&quot; (en el momento o después).
           </span>
         </>
       }
+      actions={
+        canManageInventory ? (
+          <Button variant="outline" asChild className="h-11 w-full cursor-pointer sm:w-auto">
+            <Link href="/importar?tipo=ventas">
+              <Upload className="mr-2 h-4 w-4" />
+              Importar Excel
+            </Link>
+          </Button>
+        ) : undefined
+      }
     >
+        <AdminCard
+          title={
+            <span className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Resumen del período
+            </span>
+          }
+        >
+          <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="invoice-start">Desde</Label>
+              <Input
+                id="invoice-start"
+                type="text"
+                inputMode="numeric"
+                placeholder="DD/MM/YYYY"
+                value={startInput}
+                onChange={(e) => handleStartInputChange(e.target.value)}
+                onBlur={handleStartBlur}
+                maxLength={10}
+                className="w-full sm:w-[11rem]"
+                autoComplete="off"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="invoice-end">Hasta</Label>
+              <Input
+                id="invoice-end"
+                type="text"
+                inputMode="numeric"
+                placeholder="DD/MM/YYYY"
+                value={endInput}
+                onChange={(e) => handleEndInputChange(e.target.value)}
+                onBlur={handleEndBlur}
+                maxLength={10}
+                className="w-full sm:w-[11rem]"
+                autoComplete="off"
+              />
+            </div>
+          </div>
+          {historyLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Cargando resumen…
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+              <div className="rounded-lg border border-border/50 bg-background/70 px-3 py-2">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Facturas</p>
+                <p className="text-lg font-semibold">{periodTotals.invoiceCount}</p>
+              </div>
+              <div className="rounded-lg border border-border/50 bg-background/70 px-3 py-2">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ventas netas</p>
+                <p className="text-lg font-semibold">{formatForDisplay(periodTotals.totalSales)}</p>
+              </div>
+              <div className="rounded-lg border border-border/50 bg-background/70 px-3 py-2">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Utilidad</p>
+                <p className="text-lg font-semibold">{formatForDisplay(periodTotals.totalProfit)}</p>
+              </div>
+            </div>
+          )}
+          {recentDays.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Últimos días del rango
+              </p>
+              {recentDays.map((day) => (
+                <DailySalesSummaryCard key={day.date} day={day} />
+              ))}
+            </div>
+          )}
+        </AdminCard>
+
         <AdminCard
           title="Historial de Facturas"
           headerActions={
@@ -219,13 +381,15 @@ export default function InvoicesPage() {
                         </span>
                       </div>
                       <p className="font-bold text-primary mb-3">{formatForDisplay(Number(invoice.totalAmount))}</p>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => { setDetailInvoiceId(invoice.id); setDetailSheetOpen(true); }}>
                           <FileText className="mr-1 h-4 w-4" /> Ver
                         </Button>
-                        <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => { setAssignModalInvoiceId(invoice.id); setAssignModalOpen(true); }}>
-                          <UserPlus className="mr-1 h-4 w-4" /> Asignar
-                        </Button>
+                        {tasksEnabled && (
+                          <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => { setAssignModalInvoiceId(invoice.id); setAssignModalOpen(true); }}>
+                            <UserPlus className="mr-1 h-4 w-4" /> Asignar
+                          </Button>
+                        )}
                         <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => handleDownloadPDF(invoice.id)}>
                           <Download className="mr-1 h-4 w-4" /> PDF
                         </Button>
@@ -292,18 +456,20 @@ export default function InvoicesPage() {
                                 <FileText className="mr-2 h-4 w-4" />
                                 Ver detalle
                               </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="cursor-pointer"
-                                onClick={() => {
-                                  setAssignModalInvoiceId(invoice.id);
-                                  setAssignModalOpen(true);
-                                }}
-                              >
-                                <UserPlus className="mr-2 h-4 w-4" />
-                                Asignar Revisión
-                              </Button>
+                              {tasksEnabled && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="cursor-pointer"
+                                  onClick={() => {
+                                    setAssignModalInvoiceId(invoice.id);
+                                    setAssignModalOpen(true);
+                                  }}
+                                >
+                                  <UserPlus className="mr-2 h-4 w-4" />
+                                  Asignar Revisión
+                                </Button>
+                              )}
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -373,7 +539,7 @@ export default function InvoicesPage() {
         onRefresh={refetch}
       />
 
-      {assignModalInvoiceId != null && (
+      {tasksEnabled && assignModalInvoiceId != null && (
         <AssignTaskModal
           open={assignModalOpen}
           onOpenChange={(open) => {

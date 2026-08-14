@@ -37,7 +37,7 @@ export function ImportPreviewShell({
   className,
 }: ImportPreviewShellProps) {
   return (
-    <div className={`space-y-4 rounded-lg border p-4 ${className ?? ''}`}>
+    <div className={`space-y-4 rounded-2xl border border-border/70 p-3 sm:p-4 ${className ?? ''}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm">{summary}</div>
         {!canConfirm && (

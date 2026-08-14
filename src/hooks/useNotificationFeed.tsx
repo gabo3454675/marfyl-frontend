@@ -14,6 +14,7 @@ import apiClient, { fiscalService } from '@/lib/api';
 import { getApiErrorMessage } from '@/lib/api/get-error-message';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePermission } from '@/hooks/usePermission';
+import { isProductFeatureEnabled } from '@/lib/features';
 import type { TaskForResolution } from '@/components/task-resolution-modal';
 import {
   buildNotificationFeedItems,
@@ -75,8 +76,12 @@ export function NotificationFeedProvider({ children }: { children: ReactNode }) 
       setFiscalLoadError(null);
       setOperationalErrors([]);
 
+      const tasksEnabled = isProductFeatureEnabled('tasks');
+      const fiscalEnabled = isProductFeatureEnabled('fiscal');
       const [tasksRes, invoicesRes, productsRes] = await Promise.allSettled([
-        apiClient.get<TaskForResolution[]>('/tasks/my-pending'),
+        tasksEnabled
+          ? apiClient.get<TaskForResolution[]>('/tasks/my-pending')
+          : Promise.resolve({ data: [] as TaskForResolution[] }),
         apiClient.get<typeof pendingInvoices>('/dashboard/pending-invoices'),
         apiClient.get<typeof lowStockProducts>('/dashboard/low-stock'),
       ]);
@@ -104,7 +109,7 @@ export function NotificationFeedProvider({ children }: { children: ReactNode }) 
         opErrors.push(getApiErrorMessage(productsRes.reason, 'No se pudieron cargar alertas de inventario.'));
       }
 
-      if (canManageFiscal) {
+      if (canManageFiscal && fiscalEnabled) {
         try {
           const hub = await fiscalService.getComplianceHub({ year, month });
           setFiscal({

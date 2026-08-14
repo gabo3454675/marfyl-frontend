@@ -2,13 +2,15 @@
 
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Users, CreditCard } from 'lucide-react';
+import { Users, CreditCard, ScrollText } from 'lucide-react';
 import { HelpCenterCard } from '@/components/help/help-center-card';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard } from '@/components/admin/admin-card';
+import { usePermission } from '@/hooks/usePermission';
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { isSuperAdmin } = usePermission();
 
   return (
     <AdminPageShell
@@ -18,6 +20,26 @@ export default function SettingsPage() {
       subtitle="Ajustes de la organización, equipo y herramientas de administración."
     >
       <HelpCenterCard />
+
+      {isSuperAdmin && (
+        <AdminCard
+          title={
+            <span className="flex items-center gap-2">
+              <ScrollText className="h-5 w-5" />
+              Trazabilidad
+            </span>
+          }
+          description="Bitácora de quién editó o anuló facturas, cambió precios, registró autoconsumo o tocó el equipo."
+        >
+          <Button
+            variant="outline"
+            onClick={() => router.push('/trazabilidad')}
+            className="h-11 w-full cursor-pointer sm:w-auto"
+          >
+            Ver bitácora
+          </Button>
+        </AdminCard>
+      )}
 
       <AdminCard
         title={
@@ -46,7 +68,11 @@ export default function SettingsPage() {
         }
         description="Gestiona miembros, roles e invitaciones de tu organización"
       >
-        <Button variant="outline" onClick={() => router.push('/settings/team')} className="cursor-pointer">
+        <Button
+          variant="outline"
+          onClick={() => router.push('/settings/team')}
+          className="h-11 w-full cursor-pointer sm:w-auto"
+        >
           Ir a Equipo
         </Button>
       </AdminCard>

@@ -17,7 +17,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import apiClient from '@/lib/api';
 import { usePermission } from '@/hooks/usePermission';
-import { Loader2, Package, AlertCircle, Download, Upload, FileSpreadsheet } from 'lucide-react';
+import { Download, FileSpreadsheet, Loader2, Package, AlertCircle, Upload } from 'lucide-react';
+import { toast } from 'sonner';
+import { AutoconsumoKpisCard } from './autoconsumo-kpis-card';
 
 const MOVEMENT_TYPES = [
   { value: 'AUTOCONSUMO', label: 'Autoconsumo' },
@@ -432,6 +434,8 @@ export default function InventoryMovementsPage() {
             </ul>
           )}
       </AdminCard>
+
+      <AutoconsumoKpisCard />
     </AdminPageShell>
   );
 }

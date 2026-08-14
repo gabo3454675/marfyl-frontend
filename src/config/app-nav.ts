@@ -24,8 +24,10 @@ import {
   ChefHat,
   ClipboardList,
   Layers,
+  ScrollText,
 } from 'lucide-react';
 import type { PermissionKey } from '@/config/permissions';
+import type { ProductFeature } from '@/lib/features';
 
 /** @deprecated Use `PermissionKey` directly. Kept as alias for backward compatibility. */
 export type NavPermission = PermissionKey;
@@ -38,6 +40,10 @@ export type AppNavItem = {
   permission: PermissionKey;
   /** Texto corto para tooltips / menú móvil */
   hint?: string;
+  /** Si está definido, el ítem solo se muestra con el flag encendido. */
+  feature?: ProductFeature;
+  /** Visible solo para Super Admin. */
+  superAdminOnly?: boolean;
 };
 
 export type AppNavSection = {
@@ -81,7 +87,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     icon: UtensilsCrossed,
     href: '/comanda',
     permission: 'canTakeFloorOrder',
-    hint: 'Tomar y enviar pedidos',
+    hint: 'Tomar pedidos y auditoría',
   },
   {
     id: 'comanda-cocina',
@@ -114,6 +120,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     icon: Landmark,
     href: '/caja-oficina',
     permission: 'canManageCierreCaja',
+    feature: 'cajaOficina',
   },
   {
     id: 'customers',
@@ -121,6 +128,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     icon: Users,
     href: '/customers',
     permission: 'canManageCustomers',
+    feature: 'customers',
   },
   {
     id: 'credits',
@@ -128,6 +136,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     icon: CreditCard,
     href: '/credits',
     permission: 'canViewCredits',
+    feature: 'credits',
   },
 
   // —— Ventas y control ——
@@ -142,23 +151,23 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     id: 'history',
     label: 'Historial de ventas',
     icon: History,
-    href: '/history',
+    href: '/invoices',
     permission: 'canManageInvoices',
     hint: 'Facturas POS / período',
   },
   {
     id: 'licores',
-    label: 'Licores y tobos',
+    label: 'Licores y combos',
     icon: Beer,
     href: '/licores',
     permission: 'canManageInvoices',
-    hint: 'Apertura · vendido · quedan',
+    hint: 'Día, tobos, combos y servicios',
   },
   {
     id: 'sales-import',
     label: 'Importar ventas POS',
     icon: Upload,
-    href: '/sales/import',
+    href: '/importar?tipo=ventas',
     permission: 'canManageInventory',
   },
 
@@ -172,8 +181,8 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
   },
   {
     id: 'servicios-combos',
-    label: 'Servicios y Combos',
-    href: '/servicios-combos',
+    label: 'Combos y servicios',
+    href: '/licores?tab=combos',
     icon: Layers,
     permission: 'canManageProducts',
     hint: 'Paquetes y servicios',
@@ -186,17 +195,25 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     permission: 'canManageInventory',
   },
   {
-    id: 'autoconsumo',
+  {
+    id: 'invoice-upload',
+    label: 'Compras',
+    icon: FileUp,
+    href: '/inventory/invoice-upload',
+    permission: 'canManageInventory',
+    hint: 'A mano, PDF o Excel',
+  },
+  {
     label: 'Autoconsumo',
     icon: BarChart3,
-    href: '/autoconsumo',
+    href: '/inventory/movements',
     permission: 'canManageInventory',
   },
   {
     id: 'alertas-stock',
     label: 'Alertas de stock',
     icon: AlertTriangle,
-    href: '/alertas-stock',
+    href: '/products?stock=bajo',
     permission: 'canManageInventory',
   },
 
@@ -214,6 +231,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     icon: Truck,
     href: '/suppliers',
     permission: 'canManageExpenses',
+    feature: 'suppliersNav',
   },
   {
     id: 'accounts-payable',
@@ -221,6 +239,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     icon: Landmark,
     href: '/accounts-payable',
     permission: 'canManageExpenses',
+    feature: 'accountsPayable',
   },
   {
     id: 'tasas',
@@ -228,6 +247,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     icon: TrendingUp,
     href: '/tasas',
     permission: 'canManageExpenses',
+    feature: 'tasas',
   },
 
   // —— Equipo / sistema ——
@@ -237,6 +257,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     icon: UsersRound,
     href: '/nomina',
     permission: 'canManageTeam',
+    feature: 'payroll',
   },
   {
     id: 'settings',
@@ -244,6 +265,15 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     icon: Settings,
     href: '/settings',
     permission: 'canManageSettings',
+  },
+  {
+    id: 'trazabilidad',
+    label: 'Trazabilidad',
+    icon: ScrollText,
+    href: '/trazabilidad',
+    permission: 'canManageSettings',
+    superAdminOnly: true,
+    hint: 'Quién cambió qué',
   },
 ];
 
@@ -256,31 +286,26 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     label: 'Servicio en piso',
     icon: UtensilsCrossed,
     defaultOpen: true,
-    itemIds: ['comanda', 'comanda-cocina', 'comanda-historial'],
+    itemIds: ['comanda', 'comanda-cocina'],
   },
   {
     id: 'caja',
-    label: 'Caja del día',
+    label: 'Caja extra',
     icon: Wallet,
-    defaultOpen: true,
-    itemIds: ['cierre-caja', 'caja-oficina', 'customers', 'credits'],
+    defaultOpen: false,
+    itemIds: ['credits', 'caja-oficina'],
   },
   {
     id: 'ventas',
     label: 'Ventas y control',
     icon: CircleDollarSign,
-    itemIds: ['invoices', 'history', 'licores', 'sales-import'],
+    itemIds: ['invoices', 'licores'],
   },
   {
     id: 'inventario',
     label: 'Inventario',
     icon: Box,
-    itemIds: [
-      'products',
-      'movements',
-      'autoconsumo',
-      'alertas-stock',
-    ],
+    itemIds: ['products', 'movements', 'invoice-upload'],
   },
   {
     id: 'finanzas',
@@ -298,26 +323,28 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     id: 'sistema',
     label: 'Sistema',
     icon: Settings,
-    itemIds: ['settings'],
+    itemIds: ['settings', 'trazabilidad'],
   },
 ];
 
 export function resolveAppNavId(pathname: string): string {
   if (pathname === '/' || pathname === '/') return 'dashboard';
   if (pathname.startsWith('/pos')) return 'pos';
-  if (pathname.startsWith('/comanda/historial')) return 'comanda-historial';
+  if (pathname.startsWith('/comanda/historial')) return 'comanda';
   if (pathname.startsWith('/comanda/cocina')) return 'comanda-cocina';
   if (pathname.startsWith('/comanda')) return 'comanda';
-  if (pathname.startsWith('/servicios-combos')) return 'servicios-combos';
+  if (pathname.startsWith('/servicios-combos')) return 'licores';
   if (pathname.startsWith('/products')) return 'products';
   if (pathname.startsWith('/inventory/movements')) return 'movements';
-  if (pathname.startsWith('/autoconsumo')) return 'autoconsumo';
-  if (pathname.startsWith('/alertas-stock')) return 'alertas-stock';
+  if (pathname.startsWith('/autoconsumo')) return 'movements';
+  if (pathname.startsWith('/alertas-stock')) return 'products';
+  if (pathname.startsWith('/inventory/invoice-upload')) return 'invoice-upload';
+  if (pathname.startsWith('/inventory/purchases-import')) return 'invoice-upload';
   if (pathname.startsWith('/inventory')) return 'products';
   if (pathname.startsWith('/customers')) return 'customers';
-  if (pathname.startsWith('/sales/import')) return 'sales-import';
+  if (pathname.startsWith('/sales/import') || pathname.startsWith('/importar')) return 'invoices';
   if (pathname.startsWith('/invoices')) return 'invoices';
-  if (pathname.startsWith('/history')) return 'history';
+  if (pathname.startsWith('/history')) return 'invoices';
   if (pathname.startsWith('/licores')) return 'licores';
   if (pathname.startsWith('/cierre-caja')) return 'cierre-caja';
   if (pathname.startsWith('/caja-oficina')) return 'caja-oficina';
@@ -326,6 +353,7 @@ export function resolveAppNavId(pathname: string): string {
   if (pathname.startsWith('/suppliers')) return 'suppliers';
   if (pathname.startsWith('/accounts-payable')) return 'accounts-payable';
   if (pathname.startsWith('/tasas')) return 'tasas';
+  if (pathname.startsWith('/trazabilidad')) return 'trazabilidad';
   if (pathname.startsWith('/settings')) return 'settings';
   if (pathname.startsWith('/nomina')) return 'nomina';
   if (pathname.startsWith('/concierto/escaner')) return 'concierto-escaner';

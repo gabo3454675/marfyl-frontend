@@ -5,6 +5,8 @@ import { DisplayCurrencyToggle } from '@/components/display-currency-toggle';
 import { TasksNotificationBell } from '@/components/tasks-notification-bell';
 import { OrganizationSwitcher } from '@/components/organization-switcher';
 import { CashboxSwitchWrapper } from './cashbox-switch-wrapper';
+import { isProductFeatureEnabled } from '@/lib/features';
+import { usePermission } from '@/hooks/usePermission';
 import { cn } from '@/lib/utils';
 
 export function AdminTopbar({
@@ -14,6 +16,9 @@ export function AdminTopbar({
   onOpenRateConfig: () => void;
   className?: string;
 }) {
+  const { canManageCierreCaja } = usePermission();
+  const showTasks = isProductFeatureEnabled('tasks');
+
   return (
     <header
       className={cn(
@@ -30,8 +35,8 @@ export function AdminTopbar({
       </div>
 
       <div className="ml-auto flex flex-wrap items-center justify-end gap-2 sm:gap-3 md:gap-4">
-        <CashboxSwitchWrapper />
-        <TasksNotificationBell />
+        {canManageCierreCaja && <CashboxSwitchWrapper />}
+        {showTasks && <TasksNotificationBell />}
         <DisplayCurrencyToggle className="hidden sm:flex shrink-0" short />
         <ExchangeRateIndicator
           onOpenConfig={onOpenRateConfig}

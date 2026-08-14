@@ -6,9 +6,11 @@ import {
   FileText,
   Landmark,
   ShoppingCart,
+  UtensilsCrossed,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { isProductFeatureEnabled } from '@/lib/features';
 import type { UsePermissionReturn } from '@/hooks/usePermission';
 
 type QuickAction = {
@@ -38,6 +40,14 @@ export function QuickActionsRow({ permissions, className }: QuickActionsRowProps
       primary: true,
     },
     {
+      id: 'comanda',
+      label: 'Anfitrión',
+      shortLabel: 'Piso',
+      href: '/comanda',
+      icon: UtensilsCrossed,
+      show: permissions.canTakeFloorOrder,
+    },
+    {
       id: 'invoices',
       label: 'Facturas',
       shortLabel: 'Facturas',
@@ -49,7 +59,7 @@ export function QuickActionsRow({ permissions, className }: QuickActionsRowProps
       id: 'stock',
       label: 'Alertas stock',
       shortLabel: 'Stock',
-      href: '/alertas-stock',
+      href: '/products?stock=bajo',
       icon: AlertTriangle,
       show: permissions.canManageInventory || permissions.canManageProducts,
     },
@@ -59,7 +69,7 @@ export function QuickActionsRow({ permissions, className }: QuickActionsRowProps
       shortLabel: 'Fiscal',
       href: '/fiscal',
       icon: Landmark,
-      show: permissions.canManageFiscal,
+      show: permissions.canManageFiscal && isProductFeatureEnabled('fiscal'),
     },
   ].filter((a) => a.show);
 

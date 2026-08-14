@@ -1,6 +1,11 @@
 import { useMemo } from 'react';
 import { usePermission } from './usePermission';
-import { getRequiredPermission, ROUTE_PERMISSIONS } from '@/config/route-permissions';
+import {
+  getRequiredPermission,
+  ROUTE_PERMISSIONS,
+  ROUTE_ANY_PERMISSIONS,
+  isSuperAdminOnlyRoute,
+} from '@/config/route-permissions';
 import type { PermissionKey } from '@/config/permissions';
 
 export interface RouteAccessResult {
@@ -23,6 +28,23 @@ export function useRouteAccess(pathname: string): RouteAccessResult {
   const permissions = usePermission();
 
   const result = useMemo(() => {
+    if (isSuperAdminOnlyRoute(pathname)) {
+      return {
+        hasAccess: permissions.isSuperAdmin,
+        requiredPermission: null,
+        currentRole: permissions.role,
+      };
+    }
+
+    const anyPermissions = ROUTE_ANY_PERMISSIONS[pathname];
+    if (anyPermissions?.length) {
+      return {
+        hasAccess: anyPermissions.some((perm) => permissions[perm] === true),
+        requiredPermission: anyPermissions[0],
+        currentRole: permissions.role,
+      };
+    }
+
     const requiredPermission = getRequiredPermission(pathname);
 
     // Si no hay permiso requerido, es accesible

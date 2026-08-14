@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard } from '@/components/admin/admin-card';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Upload } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 import apiClient from '@/lib/api';
 
 import { useAuthStore } from '@/store/useAuthStore';
@@ -29,9 +32,18 @@ import { CreateSupplierDialog } from './components/CreateSupplierDialog';
 import { PaymentDialog } from './components/PaymentDialog';
 import { InvoiceDetailsDialog } from './components/InvoiceDetailsDialog';
 
+const PURCHASE_TABS = new Set(['entry', 'import', 'history']);
+
+function tabFromSearch(params: { get: (key: string) => string | null }): string {
+  const t = params.get('tab');
+  return t && PURCHASE_TABS.has(t) ? t : 'entry';
+}
+
 /* ─────────── Main Page ─────────── */
 
 export default function InvoiceUploadPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { selectedCompanyId } = useAuthStore();
   const { canManageInventory } = usePermission();
 
@@ -50,7 +62,7 @@ export default function InvoiceUploadPage() {
 
   /* ── Supporting state ── */
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [activeTab, setActiveTab] = useState('entry');
+  const [activeTab, setActiveTab] = useState(() => tabFromSearch(searchParams));
   const [history, setHistory] = useState<InvoiceHistoryResponse | null>(null);
   const [historyPage, setHistoryPage] = useState(1);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -175,10 +187,30 @@ export default function InvoiceUploadPage() {
   }, [selectedCompanyId, canManageInventory, fetchSuppliers]);
 
   useEffect(() => {
+    if (searchParams.get('tab') === 'excel') {
+      router.replace('/importar?tipo=compras');
+    }
+  }, [searchParams, router]);
+
+  useEffect(() => {
+    const next = tabFromSearch(searchParams);
+    setActiveTab(next);
+  }, [searchParams]);
+
+  useEffect(() => {
     if (activeTab === 'history') {
       fetchHistory(historyPage);
     }
   }, [activeTab, historyPage, fetchHistory]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    const href =
+      value === 'entry'
+        ? '/inventory/invoice-upload'
+        : `/inventory/invoice-upload?tab=${value}`;
+    router.replace(href, { scroll: false });
+  };
 
   /* ── Product search effect (debounced) ── */
   useEffect(() => {
@@ -339,14 +371,22 @@ export default function InvoiceUploadPage() {
     <AdminPageShell
       eyebrow="Inventario"
       title="Entrada de Compra"
-      subtitle="Registra productos comprados y actualiza el inventario"
+      subtitle="Registra a mano, sube un PDF o importa Excel"
       maxWidth="wide"
+      actions={
+        <Button variant="outline" asChild className="h-11 w-full cursor-pointer sm:w-auto">
+          <Link href="/importar?tipo=compras">
+            <Upload className="mr-2 h-4 w-4" />
+            Importar Excel
+          </Link>
+        </Button>
+      }
     >
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex flex-wrap h-auto gap-1">
-          <TabsTrigger value="entry">Registrar compra</TabsTrigger>
-          <TabsTrigger value="import">Importar archivo</TabsTrigger>
-          <TabsTrigger value="history">Historial</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
+        <TabsList className="flex h-auto w-full flex-wrap gap-1">
+          <TabsTrigger value="entry" className="min-h-10 flex-1">A mano</TabsTrigger>
+          <TabsTrigger value="import" className="min-h-10 flex-1">PDF</TabsTrigger>
+          <TabsTrigger value="history" className="min-h-10 flex-1">Historial</TabsTrigger>
         </TabsList>
 
         <PurchaseEntryTab

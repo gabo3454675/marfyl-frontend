@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Loader2, Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { round2 } from '@/lib/currencyConversion';
+import { isProductFeatureEnabled } from '@/lib/features';
 
 type CurrencyMode = 'BS' | 'USD';
 type PaymentMethod = 'CASH_USD' | 'CASH_BS' | 'PAGO_MOVIL' | 'ZELLE' | 'CARD' | 'CREDIT';
@@ -324,7 +325,9 @@ export function PosCartPanel({
                     { id: 'CARD', label: 'Tarjeta' },
                     { id: 'CREDIT', label: 'Crédito' },
                   ] as const
-                ).map(({ id, label }) => (
+                )
+                  .filter((m) => m.id !== 'CREDIT' || isProductFeatureEnabled('credits'))
+                  .map(({ id, label }) => (
                   <button
                     key={id}
                     type="button"

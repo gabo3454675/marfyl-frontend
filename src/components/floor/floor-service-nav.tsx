@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import {
   ClipboardList,
   ChefHat,
@@ -25,7 +25,7 @@ const STATIONS: {
     | 'canViewKitchenQueue'
     | 'canViewFloorHistory'
     | 'canAccessPOS';
-  match: (path: string) => boolean;
+  match: (p: string, _tab?: string) => boolean;
 }[] = [
   {
     id: 'host',
@@ -34,11 +34,12 @@ const STATIONS: {
     step: '1',
     icon: UtensilsCrossed,
     permission: 'canTakeFloorOrder',
-    match: (p) =>
-      p === '/comanda' ||
-      (p.startsWith('/comanda') &&
-        !p.startsWith('/comanda/cocina') &&
-        !p.startsWith('/comanda/historial')),
+    match: (p, tab) =>
+      (p === '/comanda' ||
+        (p.startsWith('/comanda') &&
+          !p.startsWith('/comanda/cocina') &&
+          !p.startsWith('/comanda/historial'))) &&
+      tab !== 'auditoria',
   },
   {
     id: 'kitchen',
@@ -60,12 +61,12 @@ const STATIONS: {
   },
   {
     id: 'audit',
-    href: '/comanda/historial',
+    href: '/comanda?tab=auditoria',
     label: FLOOR_COPY.audit.short,
     step: '4',
     icon: ClipboardList,
     permission: 'canViewFloorHistory',
-    match: (p) => p.startsWith('/comanda/historial'),
+    match: (p, tab) => p.startsWith('/comanda/historial') || tab === 'auditoria',
   },
 ];
 
@@ -75,12 +76,14 @@ const STATIONS: {
  */
 export function FloorServiceNav({ className }: { className?: string }) {
   const pathname = usePathname() ?? '';
+  const searchParams = useSearchParams();
+  const tab = searchParams.get('tab') ?? undefined;
   const permissions = usePermission();
 
   const visible = STATIONS.filter((s) => permissions[s.permission] === true);
   if (visible.length < 2) return null;
 
-  const activeId = visible.find((s) => s.match(pathname))?.id;
+  const activeId = visible.find((s) => s.match(pathname, tab))?.id;
 
   return (
     <nav

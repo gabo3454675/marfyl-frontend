@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRouteAccess } from '@/hooks/useRouteAccess';
+import { getFeatureForPath, isProductFeatureEnabled } from '@/lib/features';
 import { Loader2 } from 'lucide-react';
 
 interface RouteGuardProps {
@@ -22,10 +23,16 @@ interface RouteGuardProps {
 export function RouteGuard({ children, pathname }: RouteGuardProps) {
   const { hasAccess, requiredPermission, currentRole } = useRouteAccess(pathname);
   const router = useRouter();
+  const feature = getFeatureForPath(pathname);
+  const featureOn = !feature || isProductFeatureEnabled(feature);
+  const allowed = hasAccess && featureOn;
 
   useEffect(() => {
+    if (!featureOn) {
+      router.replace('/');
+      return;
+    }
     if (!hasAccess) {
-      // Guardar la ruta intentada para mostrar en la página de acceso denegado
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('denied-route', pathname);
         sessionStorage.setItem('required-permission', requiredPermission || '');
@@ -33,10 +40,9 @@ export function RouteGuard({ children, pathname }: RouteGuardProps) {
       }
       router.push('/acceso-denegado');
     }
-  }, [hasAccess, pathname, requiredPermission, currentRole, router]);
+  }, [hasAccess, featureOn, pathname, requiredPermission, currentRole, router]);
 
-  // Mientras se verifica, mostrar skeleton
-  if (!hasAccess) {
+  if (!allowed) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-3">

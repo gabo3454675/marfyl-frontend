@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { AlertTriangle, ArrowRight, Lightbulb, Package, ListTodo } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { isProductFeatureEnabled } from '@/lib/features';
 import type {
   DashboardDiagnosis,
   DashboardHealth,
@@ -42,12 +43,12 @@ export function buildAttentionItems({
       id: 'low-stock',
       tone: 'alert',
       title: `${summary.lowStockCount} producto${summary.lowStockCount === 1 ? '' : 's'} con stock bajo`,
-      href: '/alertas-stock',
+      href: '/products?stock=bajo',
       cta: 'Revisar',
     });
   }
 
-  if (pendingTasksCount > 0) {
+  if (pendingTasksCount > 0 && isProductFeatureEnabled('tasks')) {
     items.push({
       id: 'tasks',
       tone: 'info',
@@ -70,7 +71,7 @@ export function buildAttentionItems({
     }
 
     const friction = strategy.frictionFunnel?.mensajeAlerta;
-    if (friction) {
+    if (friction && isProductFeatureEnabled('credits')) {
       items.push({
         id: 'friction',
         tone: 'alert',
@@ -81,7 +82,7 @@ export function buildAttentionItems({
     }
 
     const insight = strategy.insights?.[0];
-    if (items.length === 0 && insight?.texto) {
+    if (items.length === 0 && insight?.texto && isProductFeatureEnabled('fiscal')) {
       items.push({
         id: 'insight',
         tone: 'info',

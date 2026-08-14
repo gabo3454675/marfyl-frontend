@@ -28,12 +28,15 @@ export const ROUTE_PERMISSIONS: Record<string, PermissionKey> = {
   '/autoconsumo': 'canManageInventory',
   '/alertas-stock': 'canManageInventory',
   '/sales/import': 'canManageInventory',
+  '/importar': 'canManageInventory',
 
   // Clientes y Ventas
   '/customers': 'canManageCustomers',
   '/invoices': 'canManageInvoices',
   '/history': 'canManageInvoices',
+  '/licores': 'canManageInvoices',
   '/cierre-caja': 'canManageCierreCaja',
+  '/caja-oficina': 'canManageCierreCaja',
   '/credits': 'canViewCredits',
 
   // Gastos
@@ -63,6 +66,20 @@ export const ROUTE_PERMISSIONS: Record<string, PermissionKey> = {
   '/concierto/ordenes': 'canManageCustomers',
   '/concierto/escaner': 'canManageCustomers',
 };
+
+/** Rutas que admiten cualquiera de varios permisos (OR). */
+export const ROUTE_ANY_PERMISSIONS: Record<string, PermissionKey[]> = {
+  '/comanda': ['canTakeFloorOrder', 'canViewFloorHistory'],
+};
+
+/** Solo Super Admin (plataforma o rol SUPER_ADMIN del local). */
+export const SUPER_ADMIN_ONLY_ROUTES = ['/trazabilidad'] as const;
+
+export function isSuperAdminOnlyRoute(pathname: string): boolean {
+  return SUPER_ADMIN_ONLY_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
+}
 
 /**
  * Obtiene el permiso requerido para una ruta.

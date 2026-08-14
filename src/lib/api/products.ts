@@ -36,6 +36,7 @@ export interface CreateProductPayload {
   isExempt?: boolean;
   isBundle?: boolean;
   isService?: boolean;
+  bundleComponents?: { productId: number; quantity: number }[] | null;
 }
 
 export interface LowStockProduct {

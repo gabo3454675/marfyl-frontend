@@ -2,12 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Grid2x2, ShoppingCart, Box, MoreVertical, LogOut, ExternalLink } from 'lucide-react';
+import { Grid2x2, ShoppingCart, Box, MoreVertical, LogOut, ExternalLink, UtensilsCrossed, ChefHat } from 'lucide-react';
 import { FISCAL_NAV_ITEMS } from '@/config/fiscal-nav';
 import {
   APP_NAV_SECTIONS,
   getNavItem,
-  getQuickAccessItems,
   getSectionIdForNavItem,
   resolveAppNavId,
 } from '@/config/app-nav';
@@ -31,11 +30,14 @@ import { usePermission } from '@/hooks/usePermission';
 import { canShowNavItem, type NavItem } from '@/hooks/useNavByRole';
 import { useAuthStore } from '@/store/useAuthStore';
 import { markExplicitLogout } from '@/lib/fiscal-preview';
+import { isProductFeatureEnabled } from '@/lib/features';
 
-const bottomBarItems = [
+const ALL_BOTTOM_CANDIDATES = [
   { id: 'dashboard', label: 'Inicio', icon: Grid2x2, href: '/', permission: 'canViewDashboard' as const },
   { id: 'pos', label: 'Caja', icon: ShoppingCart, href: '/pos', permission: 'canAccessPOS' as const },
-  { id: 'products', label: 'Inventario', icon: Box, href: '/products', permission: 'canManageProducts' as const },
+  { id: 'comanda', label: 'Piso', icon: UtensilsCrossed, href: '/comanda', permission: 'canTakeFloorOrder' as const },
+  { id: 'comanda-cocina', label: 'Cocina', icon: ChefHat, href: '/comanda/cocina', permission: 'canViewKitchenQueue' as const },
+  { id: 'products', label: 'Stock', icon: Box, href: '/products', permission: 'canManageProducts' as const },
 ];
 
 export default function BottomNav() {
@@ -46,17 +48,28 @@ export default function BottomNav() {
   const { logout } = useAuthStore();
   const concertNavItems = useConcertNavItems();
 
+  const visibleMainNav = (() => {
+    const allowed = ALL_BOTTOM_CANDIDATES.filter((item) => canShowNavItem(item, permissions));
+    const hasHost = allowed.some((i) => i.id === 'comanda');
+    const withoutKitchenIfHost = hasHost
+      ? allowed.filter((i) => i.id !== 'comanda-cocina')
+      : allowed;
+    const withoutStockIfBusy =
+      withoutKitchenIfHost.length > 3
+        ? withoutKitchenIfHost.filter((i) => i.id !== 'products')
+        : withoutKitchenIfHost;
+    return withoutStockIfBusy.slice(0, 3);
+  })();
+
   const activeItem = (() => {
     if (resolveConcertNavId(pathname ?? '')) return 'more';
     const appId = resolveAppNavId(pathname ?? '');
-    if (appId === 'dashboard' || appId === 'pos' || appId === 'products') return appId;
+    if (visibleMainNav.some((item) => item.id === appId)) return appId;
     return 'more';
   })();
 
   const activeSectionId = getSectionIdForNavItem(resolveAppNavId(pathname ?? ''));
   const { isOpen: isSectionOpen, toggle: toggleSection } = useNavSectionsOpen(activeSectionId);
-
-  const visibleMainNav = bottomBarItems.filter((item) => canShowNavItem(item, permissions));
 
   const handleMenuItemClick = (href: string) => {
     router.push(href);
@@ -113,36 +126,14 @@ export default function BottomNav() {
               <OrganizationSwitcher variant="menu-list" onBeforeSwitch={() => setIsSheetOpen(false)} />
             </div>
 
-            <div className="mt-3 sm:mt-4">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-2">
-                Inicio
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {getQuickAccessItems()
-                  .filter((item) => canShowNavItem(item, permissions))
-                  .map((item) => {
-                    const isActive = resolveAppNavId(pathname ?? '') === item.id;
-                    return (
-                      <Button
-                        key={item.id}
-                        variant={isActive ? 'default' : 'outline'}
-                        className="h-12 min-h-[48px] justify-start gap-2 cursor-pointer touch-manipulation text-sm"
-                        onClick={() => handleMenuItemClick(item.href)}
-                      >
-                        <item.icon className="h-4 w-4 shrink-0" />
-                        <span className="truncate">{item.label}</span>
-                      </Button>
-                    );
-                  })}
-              </div>
-            </div>
-
             <div className="mt-4 space-y-0">
               {APP_NAV_SECTIONS.map((section) => {
+                const barIds = new Set(visibleMainNav.map((i) => i.id));
                 const items = section.itemIds
                   .map((id) => getNavItem(id))
                   .filter(Boolean)
-                  .filter((item) => canShowNavItem(item as NavItem, permissions));
+                  .filter((item) => canShowNavItem(item as NavItem, permissions))
+                  .filter((item) => !barIds.has(item!.id));
                 if (items.length === 0) return null;
                 const hasActiveChild = items.some(
                   (item) => resolveAppNavId(pathname ?? '') === item!.id,
@@ -181,7 +172,7 @@ export default function BottomNav() {
                 );
               })}
 
-              {permissions.canManageFiscal && (
+              {permissions.canManageFiscal && isProductFeatureEnabled('fiscal') && (
                 <NavSectionCollapsible
                   id="fiscal"
                   label="Fiscal MARFYL"

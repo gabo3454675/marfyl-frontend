@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ModalPortal, useBodyScrollLock } from "@/components/ui/modal-portal"
 import type { BoxSummary } from "@/lib/api/cierre-caja"
+import Link from "next/link"
 
 interface CashboxModalProps {
   type: "open" | "close"
@@ -325,6 +326,15 @@ export function CashboxModal({
         </div>
 
         <footer className="shrink-0 border-t bg-card px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
+          <div className="mb-3 text-center">
+            <Link
+              href="/cierre-caja"
+              onClick={onClose}
+              className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Ver historial de turnos
+            </Link>
+          </div>
           <div className="flex flex-col-reverse gap-3 sm:flex-row">
             <Button variant="outline" onClick={onClose} disabled={isLoading} className="min-h-[44px] flex-1 cursor-pointer">
               Cancelar

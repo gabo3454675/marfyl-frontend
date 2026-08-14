@@ -39,6 +39,7 @@ import { usePermission } from '@/hooks/usePermission';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { isOperationalRole } from '@/config/staff-roles';
 
 interface Member {
   id: number;
@@ -87,7 +88,7 @@ function getAuditActionLabel(action: string): string {
 export default function TeamPage() {
   const router = useRouter();
   const { user, selectedOrganizationId, selectedCompanyId, getCurrentOrganization, setOrganizationConfig } = useAuthStore();
-  const { canManageTeam, isSuperAdmin, isAdmin } = usePermission();
+  const { canManageTeam, isSuperAdmin, isAdmin, isManager } = usePermission();
   const currentUserId = user?.id ?? 0;
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -385,18 +386,28 @@ export default function TeamPage() {
     return member.email.slice(0, 2).toUpperCase();
   };
 
+  const assignableRoles = ROLES_FOR_SELECT.filter((r) => {
+    if (r.value === 'SUPER_ADMIN' || r.value === 'ADMIN') return isSuperAdmin;
+    if (r.value === 'MANAGER') return isSuperAdmin || isAdmin;
+    return true;
+  });
+
   const canChangeRole = (member: Member) => {
+    if (member.userId === currentUserId) return false;
     if (member.role === 'SUPER_ADMIN' && !isSuperAdmin) return false;
-    return isSuperAdmin || isAdmin;
+    if (isSuperAdmin) return true;
+    if (isAdmin) return member.role !== 'ADMIN';
+    if (isManager) return isOperationalRole(member.role);
+    return false;
   };
 
   /** Reglas de eliminación: no eliminarse a sí mismo; no eliminar SUPER_ADMIN salvo que seas SUPER_ADMIN; ADMIN no puede eliminar a otro ADMIN. */
   const canDeleteMember = (member: Member) => {
     if (member.userId === currentUserId) return false;
     if (member.role === 'SUPER_ADMIN' && !isSuperAdmin) return false;
-    if (isAdmin && !isSuperAdmin && member.role === 'SUPER_ADMIN') return false;
     if (isAdmin && !isSuperAdmin && member.role === 'ADMIN') return false;
-    return canManageTeam;
+    if (isManager) return isOperationalRole(member.role);
+    return canManageTeam && (isSuperAdmin || isAdmin);
   };
 
   const handleRoleChange = async (member: Member, newRole: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'SELLER' | 'WAREHOUSE' | 'POS_OPERATOR' | 'WAITER' | 'KITCHEN') => {
@@ -582,9 +593,7 @@ export default function TeamPage() {
                                     )}
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {ROLES_FOR_SELECT.filter(
-                                      (r) => isSuperAdmin || r.value !== 'SUPER_ADMIN'
-                                    ).map((r) => (
+                                    {assignableRoles.map((r) => (
                                       <SelectItem key={r.value} value={r.value} className="min-h-[44px]">
                                         {r.label}
                                       </SelectItem>
@@ -692,9 +701,7 @@ export default function TeamPage() {
                                   )}
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {ROLES_FOR_SELECT.filter(
-                                    (r) => isSuperAdmin || r.value !== 'SUPER_ADMIN'
-                                  ).map((r) => (
+                                  {assignableRoles.map((r) => (
                                     <SelectItem key={r.value} value={r.value}>
                                       {r.label}
                                     </SelectItem>
@@ -888,18 +895,11 @@ export default function TeamPage() {
                   <SelectValue placeholder="Selecciona un rol" />
                 </SelectTrigger>
                 <SelectContent>
-                  {isSuperAdmin && (
-                    <SelectItem value="SUPER_ADMIN">Super Administrador</SelectItem>
-                  )}
-                  {isSuperAdmin && (
-                    <SelectItem value="ADMIN">Administrador (ADMIN)</SelectItem>
-                  )}
-                  <SelectItem value="MANAGER">Gerente (MANAGER)</SelectItem>
-                  <SelectItem value="SELLER">Cajero/Vendedor (SELLER)</SelectItem>
-                  <SelectItem value="WAREHOUSE">Almacén (WAREHOUSE)</SelectItem>
-                  <SelectItem value="POS_OPERATOR">Caja (POS)</SelectItem>
-                  <SelectItem value="WAITER">Anfitrión / Pasillero (WAITER)</SelectItem>
-                  <SelectItem value="KITCHEN">Cocina / Barra (KITCHEN)</SelectItem>
+                  {assignableRoles.map((r) => (
+                    <SelectItem key={r.value} value={r.value}>
+                      {r.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
