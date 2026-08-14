@@ -2,7 +2,7 @@
 
 import { Bot, MessageCircle, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ASSISTANT_QUICK_PROMPTS } from './assistant-tokens';
+import { FISCAL_QUICK_PROMPTS } from './assistant-tokens';
 import { useAssistantOptional } from './assistant-provider';
 
 export function FiscalAssistantHint() {
@@ -24,7 +24,7 @@ export function FiscalAssistantHint() {
         </div>
         <div>
           <p className="font-semibold text-sm">Asistente Fiscal</p>
-          <p className="text-xs text-muted-foreground">Groq · validaciones SENIAT</p>
+          <p className="text-xs text-muted-foreground">Nemotron · SENIAT</p>
         </div>
       </div>
       <p className="text-sm text-muted-foreground leading-relaxed">
@@ -36,7 +36,7 @@ export function FiscalAssistantHint() {
         Abrir asistente
       </Button>
       <ul className="space-y-2">
-        {ASSISTANT_QUICK_PROMPTS.map((p) => (
+        {FISCAL_QUICK_PROMPTS.map((p) => (
           <li key={p}>
             <button
               type="button"

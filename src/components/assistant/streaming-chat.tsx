@@ -19,33 +19,17 @@ import { AssistantComposer } from './assistant-composer';
 import { cn } from '@/lib/utils';
 import { DmAmbientMotion } from '@/components/ui/dm-ambient-motion';
 import { ChatMessage } from '@/lib/api/assistant';
-
-// ============================================
-// Context builder
-// ============================================
+import { ASSISTANT_QUICK_PROMPTS, ASSISTANT_STARTER, buildAssistantContext } from './assistant-tokens';
 
 function buildContext(pathname: string): string {
-  if (pathname.startsWith('/fiscal')) return 'Usuario en módulo Fiscal MARFYL';
-  if (pathname.startsWith('/pos')) return 'Usuario en POS';
-  if (pathname.startsWith('/invoices')) return 'Usuario en Facturas';
-  if (pathname.startsWith('/assistant')) return 'Usuario en pantalla dedicada del Asistente IA';
-  return 'Usuario en dashboard MARFYL';
+  return buildAssistantContext(pathname);
 }
 
-// ============================================
-// Quick prompts
-// ============================================
-
-const QUICK_PROMPTS = [
-  'Resumen del dashboard',
-  'Productos con stock bajo',
-  'Calendario fiscal actual',
-  'Estado de facturas',
-] as const;
+const QUICK_PROMPTS = ASSISTANT_QUICK_PROMPTS;
 
 const STARTER_MESSAGE: ChatMessage = {
   role: 'assistant',
-  content: 'Hola, soy MARFYL Assistant, tu copiloto inteligente. Puedo ayudarte con POS, facturas, inventario, gastos y el módulo fiscal. ¿En qué puedo ayudarte hoy?',
+  content: ASSISTANT_STARTER,
 };
 
 // ============================================

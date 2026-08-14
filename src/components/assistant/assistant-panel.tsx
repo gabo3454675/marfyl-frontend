@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Bot, ChevronDown, History, MoreHorizontal, Sparkles } from 'lucide-react';
 import { sendFiscalAdvisorStream, sendAssistantMessageStream, type ChatMessage } from '@/lib/api/assistant';
 import { useAuthStore } from '@/store/useAuthStore';
-import { ASSISTANT_QUICK_PROMPTS } from './assistant-tokens';
+import { ASSISTANT_QUICK_PROMPTS, buildAssistantContext } from './assistant-tokens';
 import {
   ASSISTANT_STARTER_MESSAGE,
   clearAssistantHistory,
@@ -36,11 +36,7 @@ import { useAssistantLoadingLabel } from './assistant-loading-phases';
 import { cn } from '@/lib/utils';
 
 function buildContext(pathname: string) {
-  if (pathname.startsWith('/fiscal')) return 'Usuario en módulo Fiscal MARFYL';
-  if (pathname.startsWith('/pos')) return 'Usuario en POS';
-  if (pathname.startsWith('/invoices')) return 'Usuario en Facturas';
-  if (pathname.startsWith('/assistant')) return 'Usuario en pantalla dedicada del Asistente IA';
-  return 'Usuario en dashboard MARFYL';
+  return buildAssistantContext(pathname);
 }
 
 const SCROLL_BOTTOM_THRESHOLD = 72;
