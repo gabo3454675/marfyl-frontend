@@ -4,6 +4,8 @@ export interface CierreAbierto {
   id: number;
   fechaApertura: string;
   montoInicial: number;
+  montoInicialBs?: number;
+  observaciones?: string | null;
   ventasEfectivo: number;
   ventasDigitales: number;
   ventasEfectivoUsd: number;
@@ -42,6 +44,7 @@ export interface CierreTicket {
 
 export interface AperturaPayload {
   montoInicial: number;
+  montoInicialBs?: number;
 }
 
 export interface CierreZPayload {
@@ -80,9 +83,20 @@ export const cierreCajaService = {
   },
 };
 
+const APERTURA_BS_PREFIX = 'APERTURA_BS=';
+
+export function parseAperturaBs(observaciones?: string | null): number {
+  if (!observaciones) return 0;
+  const line = observaciones.split('\n').find((l) => l.startsWith(APERTURA_BS_PREFIX));
+  if (!line) return 0;
+  const n = Number(line.slice(APERTURA_BS_PREFIX.length));
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
 /** Resumen bimoneda alineado con el backend (montoInicial en USD). */
 export interface BoxSummary {
   montoInicial: number;
+  montoInicialBs: number;
   cashBs: number;
   cashUsd: number;
   pagoMovil: number;
@@ -94,18 +108,23 @@ export interface BoxSummary {
 
 export function buildBoxSummary(cierre: CierreAbierto, exchangeRate: number): BoxSummary {
   const montoInicial = Number(cierre.montoInicial ?? 0);
+  const montoInicialBs =
+    cierre.montoInicialBs != null
+      ? Number(cierre.montoInicialBs)
+      : parseAperturaBs(cierre.observaciones);
   const cashBs = Number(cierre.ventasEfectivoBs ?? 0);
   const cashUsd = Number(cierre.ventasEfectivoUsd ?? 0);
   const pagoMovil = Number(cierre.ventasPagoMovil ?? 0);
   const zelle = Number(cierre.ventasPos ?? 0);
   return {
     montoInicial,
+    montoInicialBs,
     cashBs,
     cashUsd,
     pagoMovil,
     zelle,
     totalUsd: montoInicial + cashUsd + zelle,
-    totalVes: cashBs + pagoMovil,
+    totalVes: montoInicialBs + cashBs + pagoMovil,
     exchangeRate,
   };
 }

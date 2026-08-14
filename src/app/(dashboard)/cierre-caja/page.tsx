@@ -17,7 +17,7 @@ import {
   Printer,
   AlertCircle,
 } from 'lucide-react';
-import { cierreCajaService, type CierreAbierto, type CierreCerrado } from '@/lib/api/cierre-caja';
+import { cierreCajaService, parseAperturaBs, type CierreAbierto, type CierreCerrado } from '@/lib/api/cierre-caja';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 import { useAuthStore } from '@/store/useAuthStore';
 
@@ -30,6 +30,7 @@ export default function CierreCajaPage() {
   const [error, setError] = useState<string | null>(null);
   const [successClose, setSuccessClose] = useState<CierreCerrado | null>(null);
   const [montoInicial, setMontoInicial] = useState('0');
+  const [montoInicialBs, setMontoInicialBs] = useState('0');
   const [montoFisicoUsd, setMontoFisicoUsd] = useState('');
   const [montoFisicoVes, setMontoFisicoVes] = useState('');
   const [observaciones, setObservaciones] = useState('');
@@ -55,14 +56,19 @@ export default function CierreCajaPage() {
     setSending(true);
     setError(null);
     const num = parseFloat(montoInicial) || 0;
-    if (num < 0) {
-      setError('El monto inicial no puede ser negativo.');
+    const numBs = parseFloat(montoInicialBs) || 0;
+    if (num < 0 || numBs < 0) {
+      setError('Los montos iniciales no pueden ser negativos.');
       setSending(false);
       return;
     }
     try {
-      await cierreCajaService.apertura({ montoInicial: num });
+      await cierreCajaService.apertura({
+        montoInicial: num,
+        montoInicialBs: numBs,
+      });
       setMontoInicial('0');
+      setMontoInicialBs('0');
       invalidate();
     } catch (e: unknown) {
       const msg = e && typeof e === 'object' && 'response' in e
@@ -189,7 +195,7 @@ export default function CierreCajaPage() {
               Abrir turno
             </span>
           }
-          description="Monto inicial en USD. También puedes abrir desde el switch del topbar."
+          description="Monto inicial en USD y bolívares. También puedes abrir desde el interruptor de caja."
         >
           <form onSubmit={handleApertura} className="flex flex-wrap items-end gap-4">
             <div className="min-w-[180px] space-y-2">
@@ -201,6 +207,17 @@ export default function CierreCajaPage() {
                 min="0"
                 value={montoInicial}
                 onChange={(e) => setMontoInicial(e.target.value)}
+              />
+            </div>
+            <div className="min-w-[180px] space-y-2">
+              <Label htmlFor="montoInicialBs">Monto inicial (Bs)</Label>
+              <Input
+                id="montoInicialBs"
+                type="number"
+                step="0.01"
+                min="0"
+                value={montoInicialBs}
+                onChange={(e) => setMontoInicialBs(e.target.value)}
               />
             </div>
             <Button type="submit" disabled={sending}>
@@ -288,7 +305,8 @@ function TurnoAbiertoCard({
     >
       <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
         {[
-          ['Monto inicial', abierto.montoInicial],
+          ['Monto inicial USD', abierto.montoInicial],
+          ['Monto inicial Bs', abierto.montoInicialBs ?? parseAperturaBs(abierto.observaciones)],
           ['Efectivo USD', abierto.ventasEfectivoUsd ?? 0],
           ['Efectivo Bs', abierto.ventasEfectivoBs ?? 0],
           ['Pago móvil Bs', abierto.ventasPagoMovil ?? 0],

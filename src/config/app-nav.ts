@@ -290,13 +290,6 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     itemIds: ['comanda', 'comanda-cocina'],
   },
   {
-    id: 'caja',
-    label: 'Caja extra',
-    icon: Wallet,
-    defaultOpen: false,
-    itemIds: ['credits', 'caja-oficina'],
-  },
-  {
     id: 'ventas',
     label: 'Ventas y control',
     icon: CircleDollarSign,

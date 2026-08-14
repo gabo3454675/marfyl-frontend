@@ -10,7 +10,9 @@ import { Button } from '@/components/ui/button';
 import { MarfylLogo } from '@/components/brand/marfyl-logo';
 import { BackToGalleryButton } from '@/components/gallery/back-to-gallery-button';
 import { ExchangeRateIndicator } from '@/components/exchange-rate-indicator';
+import { CashboxSwitchWrapper } from '@/components/admin/cashbox-switch-wrapper';
 import { useAuthStore } from '@/store/useAuthStore';
+import { usePermission } from '@/hooks/usePermission';
 import { markExplicitLogout } from '@/lib/fiscal-preview';
 import { cn } from '@/lib/utils';
 
@@ -33,6 +35,7 @@ export function GalleryAppBar({
 }) {
   const pathname = usePathname() ?? '';
   const logout = useAuthStore((s) => s.logout);
+  const { canManageCierreCaja } = usePermission();
   const isHome = pathname === homeHref || pathname === '';
   const [rateCurrency, setRateCurrency] = useState<'USD' | 'EUR'>('USD');
 
@@ -109,6 +112,7 @@ export function GalleryAppBar({
             currency={rateCurrency}
             className="hidden h-9 min-h-9 shrink-0 gap-1.5 rounded-xl px-2 text-xs sm:inline-flex sm:px-2.5 sm:text-sm"
           />
+          {canManageCierreCaja && <CashboxSwitchWrapper />}
           <ThemeToggle variant="compact" className="shrink-0" />
           <Button
             type="button"

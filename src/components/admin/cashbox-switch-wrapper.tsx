@@ -3,8 +3,9 @@
 import { useCallback } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { CashboxSwitch } from "./cashbox-switch"
-import { cierreCajaService, buildBoxSummary } from "@/lib/api/cierre-caja"
+import { cierreCajaService, buildBoxSummary, parseAperturaBs } from "@/lib/api/cierre-caja"
 import { useAuthStore } from "@/store/useAuthStore"
+import type { OpenBoxAmounts } from "./cashbox-modal"
 
 export function CashboxSwitchWrapper() {
   const queryClient = useQueryClient()
@@ -26,8 +27,11 @@ export function CashboxSwitchWrapper() {
   }, [queryClient])
 
   const handleOpenBox = useCallback(
-    async (amount: number) => {
-      await cierreCajaService.apertura({ montoInicial: amount })
+    async (amounts: OpenBoxAmounts) => {
+      await cierreCajaService.apertura({
+        montoInicial: amounts.usd,
+        montoInicialBs: amounts.bs,
+      })
       invalidate()
     },
     [invalidate],
@@ -52,12 +56,17 @@ export function CashboxSwitchWrapper() {
   if (isLoading) return null
 
   const summary = abierto ? buildBoxSummary(abierto, exchangeRate) : undefined
+  const initialAmountBs =
+    summary?.montoInicialBs ??
+    parseAperturaBs(abierto?.observaciones) ??
+    0
 
   return (
     <CashboxSwitch
       isBoxOpen={!!abierto}
       boxOpenedAt={abierto ? new Date(abierto.fechaApertura) : null}
       initialAmount={abierto?.montoInicial ?? 0}
+      initialAmountBs={initialAmountBs}
       onOpenBox={handleOpenBox}
       onCloseBox={handleCloseBox}
       summary={summary}

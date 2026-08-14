@@ -2,27 +2,24 @@
 
 import { useMemo } from 'react';
 import { usePermission } from '@/hooks/usePermission';
-import { useAuthStore } from '@/store/useAuthStore';
-import { GALLERY_MODULES, type GalleryModuleConfig } from '@/config/modules';
-import { isConcertFeatureEnabled } from '@/lib/concert/feature';
+import { GALLERY_MODULES, resolveModuleItems, type GalleryModuleConfig } from '@/config/modules';
 
 /**
  * Hook que retorna los módulos de la galería visibles para el usuario actual.
- * Filtra por permisos del rol y feature flags.
+ * Filtra por permisos del rol, feature flags e ítems realmente visibles.
  */
 export function useVisibleModules(): GalleryModuleConfig[] {
   const permissions = usePermission();
-  const currentOrganization = useAuthStore((s) => s.getCurrentOrganization());
 
   return useMemo(() => {
     return GALLERY_MODULES
       .filter((mod) => {
-        // Feature flag check — si el módulo tiene featureFlag, debe retornar true
         if (mod.featureFlag && !mod.featureFlag()) return false;
-
-        // Permission check — OR logic: basta con tener AL MENOS UNO de los permisos requeridos
-        return mod.requiredPermissions.some((perm) => permissions[perm] === true);
+        if (!mod.requiredPermissions.some((perm) => permissions[perm] === true)) {
+          return false;
+        }
+        return resolveModuleItems(mod, permissions).length > 0;
       })
       .sort((a, b) => a.order - b.order);
-  }, [permissions, currentOrganization]);
+  }, [permissions]);
 }

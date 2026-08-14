@@ -8,11 +8,13 @@ import { ModalPortal, useBodyScrollLock } from "@/components/ui/modal-portal"
 import type { BoxSummary } from "@/lib/api/cierre-caja"
 import Link from "next/link"
 
+export type OpenBoxAmounts = { usd: number; bs?: number }
+
 interface CashboxModalProps {
   type: "open" | "close"
   isOpen: boolean
   onClose: () => void
-  onOpenBox: (amount: number) => Promise<void>
+  onOpenBox: (amounts: OpenBoxAmounts) => Promise<void>
   onCloseBox: (data: { physicalAmountBs: number; physicalAmountUsd: number; observations: string }) => Promise<void>
   summary?: BoxSummary
 }
@@ -34,6 +36,7 @@ export function CashboxModal({
   summary,
 }: CashboxModalProps) {
   const [initialAmount, setInitialAmount] = useState("")
+  const [initialAmountBs, setInitialAmountBs] = useState("")
   const [physicalAmountBs, setPhysicalAmountBs] = useState("")
   const [physicalAmountUsd, setPhysicalAmountUsd] = useState("")
   const [observations, setObservations] = useState("")
@@ -44,6 +47,7 @@ export function CashboxModal({
   useEffect(() => {
     if (isOpen) {
       setInitialAmount("")
+      setInitialAmountBs("")
       setPhysicalAmountBs("")
       setPhysicalAmountUsd("")
       setObservations("")
@@ -64,15 +68,21 @@ export function CashboxModal({
   }
 
   const handleOpenBox = async () => {
-    const amount = parseFloat(initialAmount.replace(/,/g, ""))
+    const amount = initialAmount.trim() === "" ? 0 : parseFloat(initialAmount.replace(/,/g, ""))
+    const amountBsRaw = initialAmountBs.trim()
+    const amountBs = amountBsRaw === "" ? 0 : parseFloat(amountBsRaw.replace(/,/g, ""))
     if (Number.isNaN(amount) || amount < 0) {
-      setErrorMsg("Ingresa un monto inicial válido (USD).")
+      setErrorMsg("Ingresa un monto inicial válido en USD.")
+      return
+    }
+    if (Number.isNaN(amountBs) || amountBs < 0) {
+      setErrorMsg("Ingresa un monto inicial válido en bolívares.")
       return
     }
     setIsLoading(true)
     setErrorMsg(null)
     try {
-      await onOpenBox(amount)
+      await onOpenBox({ usd: amount, bs: amountBs })
       setIsComplete(true)
       setTimeout(() => onClose(), 1500)
     } catch {
@@ -163,7 +173,7 @@ export function CashboxModal({
                 {isOpenType ? "Abrir Caja" : "Cerrar Caja"}
               </h2>
               <p className="truncate text-sm text-muted-foreground">
-                {isOpenType ? "Monto inicial en USD para iniciar el turno" : "Conciliación bimoneda del turno"}
+                {isOpenType ? "Registra con cuánto inicia el turno en USD y en bolívares" : "Conciliación bimoneda del turno"}
               </p>
             </div>
             <Button
@@ -186,35 +196,56 @@ export function CashboxModal({
           )}
 
           {isOpenType ? (
-            <div className="space-y-4">
-              <label className="flex items-center gap-2 text-sm font-medium">
-                <DollarSign className="h-4 w-4 text-emerald-500" />
-                Monto Inicial (USD)
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={initialAmount}
-                  onChange={(e) => setInitialAmount(formatInputNumber(e.target.value))}
-                  placeholder="0.00"
-                  autoFocus
-                  className="h-14 min-h-[44px] w-full rounded-xl border bg-muted/30 pl-10 pr-4 text-xl font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-                />
+            <div className="space-y-5">
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <DollarSign className="h-4 w-4 text-emerald-500" />
+                  Inicio en dólares (USD)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={initialAmount}
+                    onChange={(e) => setInitialAmount(formatInputNumber(e.target.value))}
+                    placeholder="0.00"
+                    autoFocus
+                    className="h-14 min-h-[44px] w-full rounded-xl border bg-muted/30 pl-10 pr-4 text-xl font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[50, 100, 200, 500].map((amount) => (
+                    <button
+                      key={amount}
+                      type="button"
+                      onClick={() => setInitialAmount(amount.toString())}
+                      className="min-h-[44px] min-w-[4.5rem] flex-1 cursor-pointer rounded-lg border py-2 text-sm text-muted-foreground hover:bg-muted"
+                    >
+                      ${amount}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground">Saldo inicial en dólares con el que comienza el turno.</p>
-              <div className="flex flex-wrap gap-2">
-                {[50, 100, 200, 500].map((amount) => (
-                  <button
-                    key={amount}
-                    type="button"
-                    onClick={() => setInitialAmount(amount.toString())}
-                    className="min-h-[44px] min-w-[4.5rem] flex-1 cursor-pointer rounded-lg border py-2 text-sm text-muted-foreground hover:bg-muted"
-                  >
-                    ${amount}
-                  </button>
-                ))}
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <Banknote className="h-4 w-4 text-emerald-500" />
+                  Inicio en bolívares (Bs)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">Bs</span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={initialAmountBs}
+                    onChange={(e) => setInitialAmountBs(formatInputNumber(e.target.value))}
+                    placeholder="0.00"
+                    className="h-14 min-h-[44px] w-full rounded-xl border bg-muted/30 pl-12 pr-4 text-xl font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Ambos montos quedan registrados al abrir el turno. Puedes poner 0 si no hay efectivo en esa moneda.
+                </p>
               </div>
             </div>
           ) : summary ? (
@@ -228,6 +259,10 @@ export function CashboxModal({
                   <div className="flex justify-between rounded-lg bg-muted/40 px-3 py-2">
                     <span className="text-muted-foreground">Monto inicial USD</span>
                     <span className="font-medium">{formatUsd(summary.montoInicial)}</span>
+                  </div>
+                  <div className="flex justify-between rounded-lg bg-muted/40 px-3 py-2">
+                    <span className="text-muted-foreground">Monto inicial Bs</span>
+                    <span className="font-medium">{formatBs(summary.montoInicialBs)}</span>
                   </div>
                   <div className="flex justify-between rounded-lg bg-muted/40 px-3 py-2">
                     <span className="flex items-center gap-1 text-muted-foreground">

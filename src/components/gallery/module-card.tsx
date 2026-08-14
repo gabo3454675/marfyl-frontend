@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { type GalleryModuleConfig, resolveModuleItems } from '@/config/modules';
+import { usePermission } from '@/hooks/usePermission';
 import { cn } from '@/lib/utils';
 import { ArrowRight } from 'lucide-react';
 
@@ -10,8 +11,8 @@ type ModuleCardProps = {
 };
 
 export function ModuleCard({ module }: ModuleCardProps) {
-  // Si el módulo tiene solo 1 item, navegar directamente a ese item
-  const items = resolveModuleItems(module);
+  const permissions = usePermission();
+  const items = resolveModuleItems(module, permissions);
   const isSingleItem = items.length === 1;
   const href = module.directHref ?? (isSingleItem ? items[0].href : `/modules/${module.id}`);
 

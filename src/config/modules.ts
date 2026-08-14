@@ -4,7 +4,6 @@ import type { AppNavItem } from '@/config/app-nav';
 import {
   LayoutDashboard,
   UtensilsCrossed,
-  Wallet,
   TrendingUp,
   Beer,
   Box,
@@ -12,17 +11,16 @@ import {
   UsersRound,
   Settings,
   Scale,
-  Ticket,
 } from 'lucide-react';
 import { APP_NAV_ITEMS } from '@/config/app-nav';
 import { FISCAL_NAV_ITEMS } from '@/config/fiscal-nav';
-import { CONCERT_NAV_ITEMS } from '@/config/concert-nav';
-import { isConcertFeatureEnabled } from '@/lib/concert/feature';
 import { isProductFeatureEnabled } from '@/lib/features';
+import { canShowNavItem, type NavItem } from '@/hooks/useNavByRole';
+import type { UsePermissionReturn } from '@/hooks/usePermission';
 
 /**
  * Referencia a un item de navegación existente.
- * navId debe coincidir con el id de APP_NAV_ITEMS, FISCAL_NAV_ITEMS o CONCERT_NAV_ITEMS.
+ * navId debe coincidir con el id de APP_NAV_ITEMS o FISCAL_NAV_ITEMS.
  */
 export type GalleryModuleItemRef = {
   navId: string;
@@ -54,7 +52,6 @@ export type GalleryModuleConfig = {
 const ALL_NAV_ITEMS: AppNavItem[] = [
   ...APP_NAV_ITEMS,
   ...FISCAL_NAV_ITEMS.map((item) => ({ ...item, permission: 'canManageFiscal' as PermissionKey })),
-  ...CONCERT_NAV_ITEMS,
 ];
 
 /**
@@ -67,12 +64,16 @@ export function getGalleryNavItem(navId: string): AppNavItem | undefined {
 /**
  * Resuelve los items de un módulo, aplicando overrides.
  */
-export function resolveModuleItems(module: GalleryModuleConfig): (AppNavItem & { hint?: string; itemAccentGradient?: string })[] {
+export function resolveModuleItems(
+  module: GalleryModuleConfig,
+  permissions?: UsePermissionReturn,
+): (AppNavItem & { hint?: string; itemAccentGradient?: string })[] {
   const items: (AppNavItem & { hint?: string; itemAccentGradient?: string })[] = [];
   for (const ref of module.itemRefs) {
     const base = getGalleryNavItem(ref.navId);
     if (!base) continue;
     if (base.feature && !isProductFeatureEnabled(base.feature)) continue;
+    if (permissions && !canShowNavItem(base as NavItem, permissions)) continue;
     items.push({
       ...base,
       label: ref.labelOverride ?? base.label,
@@ -116,21 +117,6 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
     order: 1,
   },
   {
-    id: 'caja-clientes',
-    label: 'Caja extra',
-    description: 'Créditos y caja de oficina',
-    icon: Wallet,
-    accentColor: 'text-emerald-500',
-    accentGradient: 'from-emerald-500 to-emerald-600',
-    bgGradient: 'from-emerald-500/10 to-emerald-600/5',
-    itemRefs: [
-      { navId: 'caja-oficina', itemAccentGradient: 'from-teal-400 to-teal-500' },
-      { navId: 'credits', hintOverride: 'Cuentas por cobrar', itemAccentGradient: 'from-sky-400 to-sky-500' },
-    ],
-    requiredPermissions: ['canManageCierreCaja', 'canViewCredits'],
-    order: 2,
-  },
-  {
     id: 'ventas',
     label: 'Ventas',
     description: 'Facturas del período. Importar Excel desde el botón de la página',
@@ -142,7 +128,7 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
       { navId: 'invoices', itemAccentGradient: 'from-violet-400 to-violet-500' },
     ],
     requiredPermissions: ['canManageInvoices'],
-    order: 3,
+    order: 2,
   },
   {
     id: 'licores',
@@ -161,7 +147,7 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
     ],
     requiredPermissions: ['canManageInvoices'],
     directHref: '/licores',
-    order: 4,
+    order: 3,
   },
   {
     id: 'inventario',
@@ -177,7 +163,7 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
       { navId: 'invoice-upload', itemAccentGradient: 'from-blue-400 to-blue-500' },
     ],
     requiredPermissions: ['canManageProducts', 'canManageInventory'],
-    order: 5,
+    order: 4,
   },
   {
     id: 'finanzas',
@@ -194,7 +180,7 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
       { navId: 'tasas', itemAccentGradient: 'from-lime-400 to-lime-500' },
     ],
     requiredPermissions: ['canManageExpenses'],
-    order: 6,
+    order: 5,
   },
   {
     id: 'equipo',
@@ -210,21 +196,25 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
     requiredPermissions: ['canManageTeam'],
     directHref: '/nomina',
     featureFlag: () => isProductFeatureEnabled('payroll'),
-    order: 7,
+    order: 6,
   },
   {
     id: 'sistema',
     label: 'Sistema',
-    description: 'Configuración general',
+    description: 'Configuración y auditoría',
     icon: Settings,
     accentColor: 'text-slate-400',
     accentGradient: 'from-slate-400 to-slate-500',
     bgGradient: 'from-slate-400/10 to-slate-500/5',
     itemRefs: [
       { navId: 'settings', itemAccentGradient: 'from-slate-400 to-slate-500' },
+      {
+        navId: 'trazabilidad',
+        hintOverride: 'Quién cambió qué',
+        itemAccentGradient: 'from-indigo-400 to-indigo-500',
+      },
     ],
     requiredPermissions: ['canManageSettings'],
-    directHref: '/settings',
     order: 8,
   },
   {
@@ -248,23 +238,5 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
     requiredPermissions: ['canManageFiscal'],
     featureFlag: () => isProductFeatureEnabled('fiscal'),
     order: 9,
-  },
-  {
-    id: 'concierto',
-    label: 'Concierto',
-    description: 'Gestión de eventos y entradas',
-    icon: Ticket,
-    accentColor: 'text-fuchsia-500',
-    accentGradient: 'from-fuchsia-500 to-fuchsia-600',
-    bgGradient: 'from-fuchsia-500/10 to-fuchsia-600/5',
-    itemRefs: [
-      { navId: 'concierto', itemAccentGradient: 'from-fuchsia-400 to-fuchsia-500' },
-      { navId: 'concierto-mapa', itemAccentGradient: 'from-pink-400 to-pink-500' },
-      { navId: 'concierto-ordenes', itemAccentGradient: 'from-purple-400 to-purple-500' },
-      { navId: 'concierto-escaner', itemAccentGradient: 'from-rose-400 to-rose-500' },
-    ],
-    requiredPermissions: ['canManageCustomers'],
-    featureFlag: () => isConcertFeatureEnabled(),
-    order: 10,
   },
 ];

@@ -3,14 +3,15 @@
 import { useState } from "react"
 import { Lock, Unlock } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { CashboxModal } from "./cashbox-modal"
+import { CashboxModal, type OpenBoxAmounts } from "./cashbox-modal"
 import type { BoxSummary } from "@/lib/api/cierre-caja"
 
 interface CashboxSwitchProps {
   isBoxOpen: boolean
   boxOpenedAt: Date | null
   initialAmount: number
-  onOpenBox: (amount: number) => Promise<void>
+  initialAmountBs: number
+  onOpenBox: (amounts: OpenBoxAmounts) => Promise<void>
   onCloseBox: (data: {
     physicalAmountBs: number
     physicalAmountUsd: number
@@ -21,6 +22,10 @@ interface CashboxSwitchProps {
 
 function formatUsd(amount: number): string {
   return `$ ${amount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}`
+}
+
+function formatBs(amount: number): string {
+  return `Bs ${amount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}`
 }
 
 function formatTime(date: Date): string {
@@ -35,6 +40,7 @@ export function CashboxSwitch({
   isBoxOpen,
   boxOpenedAt,
   initialAmount,
+  initialAmountBs,
   onOpenBox,
   onCloseBox,
   summary,
@@ -102,6 +108,7 @@ export function CashboxSwitch({
               <p className="text-[10px] sm:text-xs text-emerald-500/70">
                 Desde {boxOpenedAt ? formatTime(boxOpenedAt) : "--:--"} ·{" "}
                 {formatUsd(initialAmount)}
+                {initialAmountBs > 0 ? ` · ${formatBs(initialAmountBs)}` : ""}
               </p>
             </>
           ) : (

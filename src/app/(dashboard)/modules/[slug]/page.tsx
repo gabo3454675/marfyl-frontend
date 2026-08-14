@@ -73,7 +73,7 @@ export default function ModuleOverviewPage() {
     );
   }
 
-  const items = resolveModuleItems(mod);
+  const items = resolveModuleItems(mod, permissions);
 
   return (
     <AdminPanel className="p-6 md:p-8 lg:p-10">
