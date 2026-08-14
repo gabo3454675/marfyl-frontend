@@ -259,6 +259,8 @@ export function SalesImportPanel() {
             hint="Hasta 10 archivos .xls / .xlsx"
             files={files}
             onFiles={addFiles}
+            onDownloadTemplate={downloadTemplate}
+            downloadingTemplate={downloading}
           />
 
           {files.length > 0 && (

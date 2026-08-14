@@ -30,6 +30,7 @@ import { FiscalIntegrationStrip } from '@/components/fiscal/v2/fiscal-integratio
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 import { toast } from 'sonner';
 import { isProductFeatureEnabled } from '@/lib/features';
+import { salesImportService } from '@/lib/api/sales-import';
 import {
   displayDateToIso,
   isoToDisplayDate,
@@ -97,6 +98,18 @@ export default function InvoicesPage() {
   const [endDate, setEndDate] = useState(defaultRange.end);
   const [startInput, setStartInput] = useState(() => isoToDisplayDate(defaultRange.start));
   const [endInput, setEndInput] = useState(() => isoToDisplayDate(defaultRange.end));
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+
+  const downloadSalesTemplate = async () => {
+    setDownloadingTemplate(true);
+    try {
+      await salesImportService.downloadTemplate();
+    } catch {
+      toast.error('No se pudo descargar la plantilla');
+    } finally {
+      setDownloadingTemplate(false);
+    }
+  };
 
   const {
     data: invoices,
@@ -251,12 +264,28 @@ export default function InvoicesPage() {
       }
       actions={
         canManageInventory ? (
-          <Button variant="outline" asChild className="h-11 w-full cursor-pointer sm:w-auto">
-            <Link href="/importar?tipo=ventas">
-              <Upload className="mr-2 h-4 w-4" />
-              Importar Excel
-            </Link>
-          </Button>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <Button
+              type="button"
+              variant="secondary"
+              className="h-11 w-full cursor-pointer sm:w-auto"
+              disabled={downloadingTemplate}
+              onClick={downloadSalesTemplate}
+            >
+              {downloadingTemplate ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Descargar plantilla
+            </Button>
+            <Button variant="outline" asChild className="h-11 w-full cursor-pointer sm:w-auto">
+              <Link href="/importar?tipo=ventas">
+                <Upload className="mr-2 h-4 w-4" />
+                Importar Excel
+              </Link>
+            </Button>
+          </div>
         ) : undefined
       }
     >

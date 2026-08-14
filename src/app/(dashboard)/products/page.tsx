@@ -26,7 +26,7 @@ import { Card } from '@/components/ui/card';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Edit, Trash2, Search, Loader2, Upload, FileSpreadsheet, CheckCircle2, XCircle, Package, AlertTriangle } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Loader2, Download, FileSpreadsheet, CheckCircle2, XCircle, Package, AlertTriangle } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { usePermission } from '@/hooks/usePermission';
 import { usePaginatedQuery } from '@/hooks/usePaginatedQuery';
@@ -489,8 +489,8 @@ export default function ProductsPage() {
               disabled={importing}
               className="w-full sm:w-auto shrink-0 cursor-pointer"
             >
-              <Upload className="mr-2 h-4 w-4" />
-              Descargar Plantilla
+              <Download className="mr-2 h-4 w-4" />
+              Descargar plantilla
             </Button>
             <Button
               variant="outline"

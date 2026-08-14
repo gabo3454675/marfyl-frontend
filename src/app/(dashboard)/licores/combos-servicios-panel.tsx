@@ -22,7 +22,7 @@ import {
   parseRecipeFromUnknown,
   type RecipeLine,
 } from '@/components/bundle-recipe-editor';
-import { productService, type Product } from '@/lib/api/products';
+import { productService, type BomComboView, type Product } from '@/lib/api/products';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 import { usePermission } from '@/hooks/usePermission';
 import { toast } from 'sonner';
@@ -43,6 +43,18 @@ export function CombosServiciosPanel() {
     queryFn: () => productService.getAll() as Promise<CatalogProduct[]>,
     staleTime: 30_000,
   });
+
+  const { data: bom } = useQuery({
+    queryKey: ['products', 'bom'],
+    queryFn: () => productService.getBom(),
+    staleTime: 15_000,
+  });
+
+  const bomById = useMemo(() => {
+    const map = new Map<number, BomComboView>();
+    for (const row of bom?.combos ?? []) map.set(row.id, row);
+    return map;
+  }, [bom]);
 
   const combos = useMemo(
     () => catalog.filter((p) => p.isBundle),
@@ -120,6 +132,7 @@ export function CombosServiciosPanel() {
       }
       setOpen(false);
       await queryClient.invalidateQueries({ queryKey: ['products'] });
+      await queryClient.invalidateQueries({ queryKey: ['products', 'bom'] });
     } catch (e) {
       const msg =
         e && typeof e === 'object' && 'response' in e
@@ -146,9 +159,25 @@ export function CombosServiciosPanel() {
       <AdminCard>
         <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">
           Aquí se arman las cosas que se venden juntas o que se cobran sin ser inventario.
-          El <strong>combo</strong> (tobo, paquete) descuenta varios productos a la vez.
+          El <strong>combo</strong> (tobo, paquete) descuenta varios productos a la vez según su receta (BOM).
           El <strong>servicio</strong> (descorche, cubierto) solo cobra, y puede usar insumos si quieres.
         </p>
+        {bom && bom.blockedBy.length > 0 && (
+          <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/8 px-3.5 py-3">
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+              Estos productos bloquean combos
+            </p>
+            <ul className="mt-2 space-y-1.5 text-sm text-muted-foreground">
+              {bom.blockedBy.slice(0, 8).map((row) => (
+                <li key={row.productId}>
+                  <span className="font-medium text-foreground">{row.name}</span>
+                  {' · '}
+                  {row.availableStock} en stock · frena {row.comboNames.join(', ')}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {canManageProducts && (
           <div className="mt-4 flex flex-col min-[420px]:flex-row gap-2">
             <Button type="button" className="cursor-pointer" onClick={() => openCreate('combo')}>
@@ -178,6 +207,7 @@ export function CombosServiciosPanel() {
             recipeLabel={recipeLabel}
             canEdit={canManageProducts}
             onEdit={openEdit}
+            bomById={bomById}
           />
           <KindList
             title="Servicios"
@@ -264,6 +294,7 @@ function KindList({
   recipeLabel,
   canEdit,
   onEdit,
+  bomById,
 }: {
   title: string;
   icon: ReactNode;
@@ -273,6 +304,7 @@ function KindList({
   recipeLabel: (p: CatalogProduct) => string;
   canEdit: boolean;
   onEdit: (p: CatalogProduct) => void;
+  bomById?: Map<number, BomComboView>;
 }) {
   return (
     <AdminCard
@@ -287,7 +319,9 @@ function KindList({
         <p className="text-sm text-muted-foreground leading-relaxed py-4">{empty}</p>
       ) : (
         <ul className="space-y-3">
-          {items.map((item) => (
+          {items.map((item) => {
+            const bomRow = bomById?.get(item.id);
+            return (
             <li
               key={item.id}
               className="rounded-xl border border-border/60 bg-background/60 p-3.5"
@@ -298,6 +332,28 @@ function KindList({
                   <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
                     {recipeLabel(item)}
                   </p>
+                  {bomRow && (
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <Badge
+                        variant={bomRow.buildable > 0 ? 'secondary' : 'destructive'}
+                        className="font-normal tabular-nums"
+                      >
+                        {bomRow.recipeOk
+                          ? `Puedes armar ${bomRow.buildable}`
+                          : 'Receta incompleta'}
+                      </Badge>
+                      {bomRow.bottleneck && bomRow.buildable === 0 && bomRow.recipeOk && (
+                        <span className="text-xs text-muted-foreground">
+                          Falta {bomRow.bottleneck.name} ({bomRow.bottleneck.availableStock} disp.)
+                        </span>
+                      )}
+                      {bomRow.bottleneck && bomRow.buildable > 0 && bomRow.buildable < 8 && (
+                        <span className="text-xs text-muted-foreground">
+                          Limita {bomRow.bottleneck.name}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="font-semibold tabular-nums">{formatPrice(Number(item.salePrice))}</p>
@@ -318,7 +374,8 @@ function KindList({
                 </Button>
               )}
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </AdminCard>

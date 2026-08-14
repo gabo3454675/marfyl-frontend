@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { Camera, FileSpreadsheet, Upload } from 'lucide-react';
+import { Camera, Download, FileSpreadsheet, Loader2, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type ImportDropzoneProps = {
@@ -13,6 +13,9 @@ type ImportDropzoneProps = {
   className?: string;
   /** Abre la cámara del celular (foto de factura). */
   allowCamera?: boolean;
+  onDownloadTemplate?: () => void;
+  downloadingTemplate?: boolean;
+  templateLabel?: string;
 };
 
 export function ImportDropzone({
@@ -23,6 +26,9 @@ export function ImportDropzone({
   onFiles,
   className,
   allowCamera = false,
+  onDownloadTemplate,
+  downloadingTemplate = false,
+  templateLabel = 'Descargar plantilla',
 }: ImportDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -90,6 +96,21 @@ export function ImportDropzone({
         }}
       />
     </button>
+    {onDownloadTemplate && (
+      <button
+        type="button"
+        onClick={onDownloadTemplate}
+        disabled={downloadingTemplate}
+        className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 text-sm font-semibold text-foreground hover:bg-primary/15 disabled:opacity-60"
+      >
+        {downloadingTemplate ? (
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+        ) : (
+          <Download className="h-4 w-4" aria-hidden />
+        )}
+        {templateLabel}
+      </button>
+    )}
     {allowCamera && (
       <>
         <ButtonCamera

@@ -13,6 +13,8 @@ export interface Product {
   salePrice: number | string;
   salePriceCurrency?: string;
   stock: number;
+  reservedStock?: number;
+  availableStock?: number;
   imageUrl?: string | null;
   minStock?: number;
   isExempt?: boolean;
@@ -48,6 +50,37 @@ export interface LowStockProduct {
   updatedAt?: string;
 }
 
+export type BomLineView = {
+  productId: number;
+  name: string;
+  sku: string | null;
+  quantity: number;
+  availableStock: number;
+  missing: boolean;
+  inactive: boolean;
+};
+
+export type BomComboView = {
+  id: number;
+  name: string;
+  salePrice: number;
+  recipeOk: boolean;
+  buildable: number;
+  bottleneck: { productId: number; name: string; availableStock: number } | null;
+  lines: BomLineView[];
+};
+
+export type BomOverview = {
+  combos: BomComboView[];
+  blockedBy: {
+    productId: number;
+    name: string;
+    availableStock: number;
+    comboIds: number[];
+    comboNames: string[];
+  }[];
+};
+
 export const productService = {
   getPaginated(params: PaginationParams = {}): Promise<PaginatedResponse<Product>> {
     const searchParams = new URLSearchParams();
@@ -71,6 +104,9 @@ export const productService = {
   },
   getAlertasStock(): Promise<LowStockProduct[]> {
     return apiClient.get<LowStockProduct[]>('/products/alertas-stock').then((res) => res.data);
+  },
+  getBom(): Promise<BomOverview> {
+    return apiClient.get<BomOverview>('/products/bom').then((res) => res.data);
   },
   create(payload: CreateProductPayload): Promise<Product> {
     return apiClient.post<Product>('/products', payload).then((res) => res.data);

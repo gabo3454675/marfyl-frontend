@@ -20,7 +20,6 @@ import {
   type PurchasesImportPreviewResult,
 } from '@/lib/api/purchases-import';
 import { toast } from 'sonner';
-import apiClient from '@/lib/api';
 import Link from 'next/link';
 
 function formatUsd(n: number) {
@@ -47,13 +46,7 @@ export function ExcelPurchasesPanel() {
   const downloadTemplate = async () => {
     setDownloading(true);
     try {
-      const res = await apiClient.get('/purchases-import/template', { responseType: 'blob' });
-      const url = URL.createObjectURL(res.data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'MARFYL-plantilla-COMPRAS.xlsx';
-      a.click();
-      URL.revokeObjectURL(url);
+      await purchasesImportService.downloadTemplate();
     } catch {
       toast.error('No se pudo descargar la plantilla');
     } finally {
@@ -116,7 +109,7 @@ export function ExcelPurchasesPanel() {
             variant="secondary"
             onClick={downloadTemplate}
             disabled={downloading}
-            className="h-11 w-full shrink-0 sm:w-auto"
+            className="h-11 w-full shrink-0 cursor-pointer sm:w-auto"
           >
             {downloading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -134,6 +127,8 @@ export function ExcelPurchasesPanel() {
           hint="Un Excel .xls / .xlsx"
           files={file ? [file] : []}
           onFiles={pickFile}
+          onDownloadTemplate={downloadTemplate}
+          downloadingTemplate={downloading}
         />
         <p className="mt-3 text-sm text-muted-foreground">
           Si tienes la factura en foto,{' '}

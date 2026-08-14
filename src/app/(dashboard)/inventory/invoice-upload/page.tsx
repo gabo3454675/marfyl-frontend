@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard } from '@/components/admin/admin-card';
-import { AlertCircle, Upload } from 'lucide-react';
+import { AlertCircle, Download, Loader2, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import apiClient from '@/lib/api';
@@ -22,6 +22,8 @@ import {
   type InvoiceHistoryDetail,
 } from '@/lib/api/invoice-upload';
 import { supplierService, type Supplier } from '@/lib/api/suppliers';
+import { purchasesImportService } from '@/lib/api/purchases-import';
+import { toast } from 'sonner';
 import type { PurchaseLine } from './types';
 
 // Components
@@ -78,6 +80,7 @@ export default function InvoiceUploadPage() {
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsTarget, setDetailsTarget] = useState<InvoiceHistoryDetail | null>(null);
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
 
   /* ── Refs ── */
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -374,12 +377,37 @@ export default function InvoiceUploadPage() {
       subtitle="Registra a mano, con foto, PDF o Excel"
       maxWidth="wide"
       actions={
-        <Button variant="outline" asChild className="h-11 w-full cursor-pointer sm:w-auto">
-          <Link href="/importar?tipo=compras">
-            <Upload className="mr-2 h-4 w-4" />
-            Importar Excel
-          </Link>
-        </Button>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <Button
+            type="button"
+            variant="secondary"
+            className="h-11 w-full cursor-pointer sm:w-auto"
+            disabled={downloadingTemplate}
+            onClick={async () => {
+              setDownloadingTemplate(true);
+              try {
+                await purchasesImportService.downloadTemplate();
+              } catch {
+                toast.error('No se pudo descargar la plantilla');
+              } finally {
+                setDownloadingTemplate(false);
+              }
+            }}
+          >
+            {downloadingTemplate ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            Descargar plantilla
+          </Button>
+          <Button variant="outline" asChild className="h-11 w-full cursor-pointer sm:w-auto">
+            <Link href="/importar?tipo=compras">
+              <Upload className="mr-2 h-4 w-4" />
+              Importar Excel
+            </Link>
+          </Button>
+        </div>
       }
     >
       <Tabs value={activeTab} onValueChange={handleTabChange}>

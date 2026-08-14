@@ -45,6 +45,16 @@ export interface PurchasesImportConfirmResult {
 }
 
 export const purchasesImportService = {
+  async downloadTemplate(): Promise<void> {
+    const res = await apiClient.get('/purchases-import/template', { responseType: 'blob' });
+    const url = URL.createObjectURL(res.data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'MARFYL-plantilla-COMPRAS.xlsx';
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
   preview(file: File): Promise<PurchasesImportPreviewResult> {
     const formData = new FormData();
     formData.append('file', file);

@@ -28,7 +28,7 @@ type Props = {
 
 export function parseRecipeFromUnknown(raw: unknown): RecipeLine[] {
   if (!Array.isArray(raw)) return [];
-  const out: RecipeLine[] = [];
+  const merged = new Map<number, number>();
   for (const item of raw) {
     if (!item || typeof item !== 'object') continue;
     const o = item as { productId?: unknown; quantity?: unknown };
@@ -36,9 +36,10 @@ export function parseRecipeFromUnknown(raw: unknown): RecipeLine[] {
     const quantity = Number(o.quantity);
     if (!Number.isFinite(productId) || productId <= 0) continue;
     if (!Number.isFinite(quantity) || quantity < 1) continue;
-    out.push({ productId, quantity: Math.max(1, Math.floor(quantity)) });
+    const qty = Math.max(1, Math.floor(quantity));
+    merged.set(productId, (merged.get(productId) ?? 0) + qty);
   }
-  return out;
+  return [...merged.entries()].map(([productId, quantity]) => ({ productId, quantity }));
 }
 
 export function BundleRecipeEditor({

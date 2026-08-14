@@ -1,8 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ShoppingCart, Truck } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, ShoppingCart, Truck } from 'lucide-react';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard } from '@/components/admin/admin-card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,9 @@ import { cn } from '@/lib/utils';
 import { usePermission } from '@/hooks/usePermission';
 import { SalesImportPanel } from '../sales/import/sales-import-panel';
 import { ExcelPurchasesPanel } from '../inventory/invoice-upload/excel-purchases-panel';
+import { salesImportService } from '@/lib/api/sales-import';
+import { purchasesImportService } from '@/lib/api/purchases-import';
+import { toast } from 'sonner';
 
 type ImportKind = 'ventas' | 'compras';
 
@@ -54,6 +58,20 @@ export default function ImportarPage() {
 
   const setTipo = (next: ImportKind) => {
     router.replace(`/importar?tipo=${next}`, { scroll: false });
+  };
+
+  const [downloading, setDownloading] = useState<ImportKind | null>(null);
+
+  const downloadKind = async (kind: ImportKind) => {
+    setDownloading(kind);
+    try {
+      if (kind === 'ventas') await salesImportService.downloadTemplate();
+      else await purchasesImportService.downloadTemplate();
+    } catch {
+      toast.error('No se pudo descargar la plantilla');
+    } finally {
+      setDownloading(null);
+    }
   };
 
   const active = KINDS.find((k) => k.id === tipo);
@@ -103,10 +121,47 @@ export default function ImportarPage() {
       </div>
 
       {!tipo && (
-        <p className="rounded-2xl border border-border/70 bg-card/60 px-4 py-4 text-sm leading-relaxed text-muted-foreground">
-          Elige <strong>ventas</strong> o <strong>compras</strong>. No se mezclan: cada archivo tiene su
-          plantilla.
-        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {KINDS.map((k) => {
+            const Icon = k.icon;
+            return (
+              <AdminCard key={k.id}>
+                <div className="flex items-start gap-3">
+                  <Icon className={cn('mt-0.5 h-5 w-5', k.id === 'ventas' ? 'text-violet-500' : 'text-cyan-500')} />
+                  <div className="min-w-0 flex-1 space-y-3">
+                    <div>
+                      <p className="font-semibold">{k.short}</p>
+                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{k.blurb}</p>
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="h-11 w-full cursor-pointer sm:w-auto"
+                        disabled={downloading !== null}
+                        onClick={() => downloadKind(k.id)}
+                      >
+                        {downloading === k.id ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className="mr-2 h-4 w-4" />
+                        )}
+                        Descargar plantilla
+                      </Button>
+                      <Button
+                        type="button"
+                        className="h-11 w-full cursor-pointer sm:w-auto"
+                        onClick={() => setTipo(k.id)}
+                      >
+                        Subir archivo
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </AdminCard>
+            );
+          })}
+        </div>
       )}
 
       {active && (
