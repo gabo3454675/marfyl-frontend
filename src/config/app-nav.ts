@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Settings,
   UsersRound,
+  FileUp,
   Upload,
   CircleDollarSign,
   UtensilsCrossed,
@@ -195,7 +196,6 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     permission: 'canManageInventory',
   },
   {
-  {
     id: 'invoice-upload',
     label: 'Compras',
     icon: FileUp,
@@ -204,6 +204,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     hint: 'A mano, PDF o Excel',
   },
   {
+    id: 'autoconsumo',
     label: 'Autoconsumo',
     icon: BarChart3,
     href: '/inventory/movements',
