@@ -31,10 +31,15 @@ export {
   hybridService,
   getHybridVentas,
   getHybridVenta,
+  getHybridCatalogos,
+  getHybridCatalogo,
+  getHybridMonedas,
   getHybridErrorMessage,
   formatHybridCliente,
   formatHybridMoney,
   HYBRID_REQUEST_TIMEOUT_MS,
+  HYBRID_LIST_TIMEOUT_MS,
+  HYBRID_DETAIL_TIMEOUT_MS,
   HYBRID_VENTAS_QUERY_KEYS,
 } from './hybrid';
 export type {
@@ -45,6 +50,8 @@ export type {
   HybridVentaDetail,
   HybridVentasListResult,
   HybridVentasQueryKey,
+  HybridCatalogItem,
+  HybridCatalogos,
 } from './hybrid';
 
 export { fiscalService } from './fiscal';

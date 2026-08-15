@@ -9,6 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Table,
   TableBody,
   TableCell,
@@ -20,12 +27,16 @@ import { useHybridPageGate } from '@/hooks/useHybridPageGate';
 import {
   formatHybridCliente,
   formatHybridMoney,
+  getHybridCatalogos,
   getHybridErrorMessage,
   getHybridVentas,
+  type HybridCatalogItem,
   type HybridVentaListItem,
 } from '@/lib/api/hybrid';
 
 const PAGE_SIZE = 25;
+/** Sentinel Radix Select: valor vacío no es válido en SelectItem. */
+const FILTER_ALL = '__all__';
 
 function toLocalYmd(d: Date): string {
   const y = d.getFullYear();
@@ -59,6 +70,83 @@ function documentoKey(item: HybridVentaListItem, index: number): string {
   return `row-${index}`;
 }
 
+function asCatalogList(value: unknown): HybridCatalogItem[] {
+  return Array.isArray(value) ? (value as HybridCatalogItem[]) : [];
+}
+
+function catalogOptionValue(item: HybridCatalogItem, index: number): string {
+  if (item.codigo != null && String(item.codigo).trim() !== '') {
+    return String(item.codigo);
+  }
+  if (item.nombre != null && String(item.nombre).trim() !== '') {
+    return String(item.nombre);
+  }
+  return `opt-${index}`;
+}
+
+function catalogOptionLabel(item: HybridCatalogItem): string {
+  const nombre = item.nombre != null ? String(item.nombre).trim() : '';
+  const codigo = item.codigo != null ? String(item.codigo).trim() : '';
+  if (nombre && codigo && nombre !== codigo) return `${codigo} — ${nombre}`;
+  return nombre || codigo || '—';
+}
+
+type AppliedFilters = {
+  desde: string;
+  hasta: string;
+  q: string;
+  tipo: string;
+  status: string;
+  caja: string;
+  serie: string;
+};
+
+function CatalogFilterSelect({
+  id,
+  label,
+  value,
+  onChange,
+  items,
+  placeholder,
+  disabled,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (next: string) => void;
+  items: HybridCatalogItem[];
+  placeholder: string;
+  disabled?: boolean;
+}) {
+  if (items.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label}</Label>
+      <Select
+        value={value || FILTER_ALL}
+        onValueChange={(v) => onChange(v === FILTER_ALL ? '' : v)}
+        disabled={disabled}
+      >
+        <SelectTrigger id={id} className="w-full">
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={FILTER_ALL}>{placeholder}</SelectItem>
+          {items.map((item, index) => {
+            const opt = catalogOptionValue(item, index);
+            return (
+              <SelectItem key={`${id}-${opt}`} value={opt}>
+                {catalogOptionLabel(item)}
+              </SelectItem>
+            );
+          })}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 export default function HybridVentasPage() {
   const { ready, allowed } = useHybridPageGate();
   const initial = useMemo(() => defaultRange(), []);
@@ -66,16 +154,52 @@ export default function HybridVentasPage() {
   const [desde, setDesde] = useState(initial.desde);
   const [hasta, setHasta] = useState(initial.hasta);
   const [q, setQ] = useState('');
-  const [applied, setApplied] = useState({
+  const [tipo, setTipo] = useState('');
+  const [status, setStatus] = useState('');
+  const [caja, setCaja] = useState('');
+  const [serie, setSerie] = useState('');
+  const [applied, setApplied] = useState<AppliedFilters>({
     desde: initial.desde,
     hasta: initial.hasta,
     q: '',
+    tipo: '',
+    status: '',
+    caja: '',
+    serie: '',
   });
   const [offset, setOffset] = useState(0);
   const [items, setItems] = useState<HybridVentaListItem[]>([]);
   const [total, setTotal] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [tiposVenta, setTiposVenta] = useState<HybridCatalogItem[]>([]);
+  const [statusVenta, setStatusVenta] = useState<HybridCatalogItem[]>([]);
+  const [cajas, setCajas] = useState<HybridCatalogItem[]>([]);
+  const [series, setSeries] = useState<HybridCatalogItem[]>([]);
+  const [catalogsLoading, setCatalogsLoading] = useState(false);
+  const [catalogsError, setCatalogsError] = useState<string | null>(null);
+
+  const loadCatalogos = useCallback(async () => {
+    if (!allowed) return;
+    setCatalogsLoading(true);
+    setCatalogsError(null);
+    try {
+      const data = await getHybridCatalogos();
+      setTiposVenta(asCatalogList(data.tipos_venta));
+      setStatusVenta(asCatalogList(data.status_venta));
+      setCajas(asCatalogList(data.cajas));
+      setSeries(asCatalogList(data.series));
+    } catch (err) {
+      setTiposVenta([]);
+      setStatusVenta([]);
+      setCajas([]);
+      setSeries([]);
+      setCatalogsError(getHybridErrorMessage(err, 'No se pudieron cargar catálogos'));
+    } finally {
+      setCatalogsLoading(false);
+    }
+  }, [allowed]);
 
   const load = useCallback(async () => {
     if (!allowed) return;
@@ -86,6 +210,10 @@ export default function HybridVentasPage() {
         desde: applied.desde || undefined,
         hasta: applied.hasta || undefined,
         q: applied.q || undefined,
+        tipo: applied.tipo || undefined,
+        status: applied.status || undefined,
+        caja: applied.caja || undefined,
+        serie: applied.serie || undefined,
         limit: PAGE_SIZE,
         offset,
       });
@@ -102,6 +230,11 @@ export default function HybridVentasPage() {
 
   useEffect(() => {
     if (!ready || !allowed) return;
+    void loadCatalogos();
+  }, [ready, allowed, loadCatalogos]);
+
+  useEffect(() => {
+    if (!ready || !allowed) return;
     void load();
   }, [ready, allowed, load]);
 
@@ -111,6 +244,10 @@ export default function HybridVentasPage() {
       desde: desde.trim(),
       hasta: hasta.trim(),
       q: q.trim(),
+      tipo: tipo.trim(),
+      status: status.trim(),
+      caja: caja.trim(),
+      serie: serie.trim(),
     });
   };
 
@@ -160,8 +297,17 @@ export default function HybridVentasPage() {
     >
       <AdminCard
         title="Filtros"
-        description="Busque por texto y rango de fechas (desde / hasta)."
+        description="Busque por texto, fechas y catálogos Hybrid (tipo, estado, caja, serie)."
       >
+        {catalogsError ? (
+          <div
+            role="status"
+            className="mb-4 rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+          >
+            {catalogsError}. Puede filtrar por fechas y texto.
+          </div>
+        ) : null}
+
         <form
           className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
           onSubmit={(e) => {
@@ -196,7 +342,45 @@ export default function HybridVentasPage() {
               onChange={(e) => setQ(e.target.value)}
             />
           </div>
-          <div className="flex items-end">
+
+          <CatalogFilterSelect
+            id="hybrid-tipo"
+            label="Tipo"
+            value={tipo}
+            onChange={setTipo}
+            items={tiposVenta}
+            placeholder="Todos los tipos"
+            disabled={catalogsLoading}
+          />
+          <CatalogFilterSelect
+            id="hybrid-status"
+            label="Estado"
+            value={status}
+            onChange={setStatus}
+            items={statusVenta}
+            placeholder="Todos los estados"
+            disabled={catalogsLoading}
+          />
+          <CatalogFilterSelect
+            id="hybrid-caja"
+            label="Caja"
+            value={caja}
+            onChange={setCaja}
+            items={cajas}
+            placeholder="Todas las cajas"
+            disabled={catalogsLoading}
+          />
+          <CatalogFilterSelect
+            id="hybrid-serie"
+            label="Serie"
+            value={serie}
+            onChange={setSerie}
+            items={series}
+            placeholder="Todas las series"
+            disabled={catalogsLoading}
+          />
+
+          <div className="flex items-end sm:col-span-2 lg:col-span-1">
             <Button type="submit" className="w-full cursor-pointer" disabled={loading}>
               <Search className="mr-2 h-4 w-4" />
               Filtrar
@@ -249,6 +433,9 @@ export default function HybridVentasPage() {
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {formatFecha(item.fecha)}
+                          {item.serie != null && String(item.serie).trim() !== ''
+                            ? ` · Serie ${String(item.serie)}`
+                            : ''}
                         </p>
                       </div>
                       <p className="text-sm font-semibold shrink-0">
@@ -277,10 +464,11 @@ export default function HybridVentasPage() {
 
             <div className="hidden md:block">
               <AdminTableWrap>
-                <Table className="min-w-[720px]">
+                <Table className="min-w-[820px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Documento</TableHead>
+                      <TableHead>Serie</TableHead>
                       <TableHead>Fecha</TableHead>
                       <TableHead>Cliente</TableHead>
                       <TableHead>Tipo</TableHead>
@@ -297,6 +485,11 @@ export default function HybridVentasPage() {
                         <TableRow key={documentoKey(item, index)}>
                           <TableCell className="font-medium">
                             {doc || '—'}
+                          </TableCell>
+                          <TableCell>
+                            {item.serie != null && String(item.serie).trim() !== ''
+                              ? String(item.serie)
+                              : '—'}
                           </TableCell>
                           <TableCell>{formatFecha(item.fecha)}</TableCell>
                           <TableCell>

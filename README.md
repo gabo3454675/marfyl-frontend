@@ -53,7 +53,8 @@ src/
 ### Hybrid (Monddy)
 
 - Nav y páginas `/hybrid/ventas` + detalle: solo org Monddy
-- El frontend habla únicamente con el API Marfyl (timeout 150s); sin secretos Hybrid en el cliente
+- Combos vía `/hybrid/catalogos` (sin hardcode de tipos); contrato Hybrid Local API v0.4.0
+- El frontend habla únicamente con el API Marfyl; sin secretos Hybrid en el cliente
 - Contrato backend: `marfyl-backend/docs/architecture/hybrid-integration.md`
 
 ## Variables de Entorno

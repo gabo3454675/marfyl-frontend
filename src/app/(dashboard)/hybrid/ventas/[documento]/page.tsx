@@ -149,6 +149,12 @@ export default function HybridVentaDetailPage() {
                   {formatCell(cabecera?.documento ?? documento)}
                 </dd>
               </div>
+              {cabecera?.serie != null && String(cabecera.serie).trim() !== '' ? (
+                <div>
+                  <dt className="text-xs text-muted-foreground">Serie</dt>
+                  <dd className="font-medium">{formatCell(cabecera.serie)}</dd>
+                </div>
+              ) : null}
               <div>
                 <dt className="text-xs text-muted-foreground">Fecha</dt>
                 <dd className="font-medium">{formatFecha(cabecera?.fecha)}</dd>
@@ -171,6 +177,12 @@ export default function HybridVentaDetailPage() {
                   {formatCell(cabecera?.status_nombre)}
                 </dd>
               </div>
+              {cabecera?.caja != null && String(cabecera.caja).trim() !== '' ? (
+                <div>
+                  <dt className="text-xs text-muted-foreground">Caja</dt>
+                  <dd className="font-medium">{formatCell(cabecera.caja)}</dd>
+                </div>
+              ) : null}
               <div>
                 <dt className="text-xs text-muted-foreground">Neto</dt>
                 <dd className="font-semibold">

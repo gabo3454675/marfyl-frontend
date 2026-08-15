@@ -1,10 +1,15 @@
 import { AxiosError } from 'axios';
 import { apiClient } from './client';
 
-/** Timeout por request: Hybrid upstream puede ser lento (tunel / LAN). */
-export const HYBRID_REQUEST_TIMEOUT_MS = 150_000;
+/** Listados / catálogos (Hybrid README v0.4: ~60s). */
+export const HYBRID_LIST_TIMEOUT_MS = 60_000;
+/** Detalle de venta (primera carga puede ser lenta: ~180s). */
+export const HYBRID_DETAIL_TIMEOUT_MS = 180_000;
 
-/** Espejo allowlist backend HYBRID_VENTAS_QUERY_KEYS (subset útil en UI). */
+/** @deprecated usar HYBRID_LIST_TIMEOUT_MS / HYBRID_DETAIL_TIMEOUT_MS */
+export const HYBRID_REQUEST_TIMEOUT_MS = HYBRID_LIST_TIMEOUT_MS;
+
+/** Espejo allowlist backend HYBRID_VENTAS_QUERY_KEYS (v0.4 incluye caja/serie). */
 export const HYBRID_VENTAS_QUERY_KEYS = [
   'q',
   'desde',
@@ -20,6 +25,8 @@ export const HYBRID_VENTAS_QUERY_KEYS = [
   'usuario',
   'deposito',
   'moneda',
+  'caja',
+  'serie',
   'documento_origen',
   'limit',
   'offset',
@@ -36,6 +43,23 @@ export type HybridVentaDetailParams = {
   offset?: string | number | null;
 };
 
+export type HybridCatalogItem = {
+  codigo?: string | number | null;
+  nombre?: string | null;
+  cantidad?: number | null;
+  fuente?: string | null;
+  [key: string]: unknown;
+};
+
+export type HybridCatalogos = {
+  tipos_venta?: HybridCatalogItem[];
+  status_venta?: HybridCatalogItem[];
+  cajas?: HybridCatalogItem[];
+  series?: HybridCatalogItem[];
+  monedas?: HybridCatalogItem[];
+  [key: string]: unknown;
+};
+
 export type HybridVentaListItem = {
   documento?: string | number | null;
   fecha?: string | null;
@@ -44,6 +68,8 @@ export type HybridVentaListItem = {
   status_nombre?: string | null;
   neto?: string | number | null;
   moneda_simbolo?: string | null;
+  serie?: string | null;
+  caja?: string | null;
   [key: string]: unknown;
 };
 
@@ -101,6 +127,17 @@ function asTotal(data: unknown): number | undefined {
   return typeof total === 'number' && Number.isFinite(total) ? total : undefined;
 }
 
+function asCatalogItems(data: unknown, group?: string): HybridCatalogItem[] {
+  if (Array.isArray(data)) return data as HybridCatalogItem[];
+  if (!data || typeof data !== 'object') return [];
+  const obj = data as Record<string, unknown>;
+  if (group && Array.isArray(obj[group])) {
+    return obj[group] as HybridCatalogItem[];
+  }
+  if (Array.isArray(obj.items)) return obj.items as HybridCatalogItem[];
+  return [];
+}
+
 /** Mensaje legible para errores Hybrid (503 / timeout / resto). */
 export function getHybridErrorMessage(
   err: unknown,
@@ -147,14 +184,42 @@ export function formatHybridMoney(
   return sym ? `${sym} ${amount}` : amount;
 }
 
+/** Catálogos Hybrid (combos). No hardcodear tipos/status. */
+export async function getHybridCatalogos(): Promise<HybridCatalogos> {
+  const { data } = await apiClient.get<HybridCatalogos>('/hybrid/catalogos', {
+    timeout: HYBRID_LIST_TIMEOUT_MS,
+  });
+  return data ?? {};
+}
+
+export async function getHybridCatalogo(
+  grupo: string,
+): Promise<HybridCatalogItem[]> {
+  const encoded = encodeURIComponent(grupo);
+  const { data } = await apiClient.get<unknown>(`/hybrid/catalogos/${encoded}`, {
+    timeout: HYBRID_LIST_TIMEOUT_MS,
+  });
+  return asCatalogItems(data, grupo);
+}
+
+export async function getHybridMonedas(): Promise<HybridCatalogItem[]> {
+  const { data } = await apiClient.get<unknown>('/hybrid/monedas', {
+    timeout: HYBRID_LIST_TIMEOUT_MS,
+  });
+  return asCatalogItems(data);
+}
+
 /** Lista ventas Hybrid vía backend Marfyl (nunca URL Hybrid directa). */
 export async function getHybridVentas(
   params?: HybridVentasParams,
 ): Promise<HybridVentasListResult> {
-  const query = pickAllowlisted(params as Record<string, unknown> | undefined, HYBRID_VENTAS_QUERY_KEYS);
+  const query = pickAllowlisted(
+    params as Record<string, unknown> | undefined,
+    HYBRID_VENTAS_QUERY_KEYS,
+  );
   const { data } = await apiClient.get<unknown>('/hybrid/ventas', {
     params: query,
-    timeout: HYBRID_REQUEST_TIMEOUT_MS,
+    timeout: HYBRID_LIST_TIMEOUT_MS,
   });
   return {
     items: asListItems(data),
@@ -173,14 +238,20 @@ export async function getHybridVenta(
     'offset',
   ]);
   const encoded = encodeURIComponent(documento);
-  const { data } = await apiClient.get<HybridVentaDetail>(`/hybrid/ventas/${encoded}`, {
-    params: query,
-    timeout: HYBRID_REQUEST_TIMEOUT_MS,
-  });
+  const { data } = await apiClient.get<HybridVentaDetail>(
+    `/hybrid/ventas/${encoded}`,
+    {
+      params: query,
+      timeout: HYBRID_DETAIL_TIMEOUT_MS,
+    },
+  );
   return data ?? {};
 }
 
 export const hybridService = {
+  getCatalogos: getHybridCatalogos,
+  getCatalogo: getHybridCatalogo,
+  getMonedas: getHybridMonedas,
   getVentas: getHybridVentas,
   getVenta: getHybridVenta,
 };
