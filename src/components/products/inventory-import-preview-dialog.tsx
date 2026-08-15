@@ -20,6 +20,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ImportPreviewShell } from '@/components/import';
+import { cn } from '@/lib/utils';
 import type { InventoryImportPreviewResult } from '@/lib/api/inventory';
 
 type InventoryImportPreviewDialogProps = {
@@ -90,29 +91,46 @@ export function InventoryImportPreviewDialog({
                     <TableHead className="text-right">Costo</TableHead>
                     <TableHead className="text-right">P. venta</TableHead>
                     <TableHead className="text-right">Ganancia</TableHead>
-                    <TableHead className="text-right">Stock</TableHead>
+                    <TableHead className="whitespace-nowrap text-right">Stock actual</TableHead>
+                    <TableHead className="whitespace-nowrap text-right">Stock final</TableHead>
                     <TableHead>Exento</TableHead>
                     <TableHead>Acción</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {preview.preview.map((row) => (
-                    <TableRow key={`${row.rowNumber}-${row.sku}`}>
-                      <TableCell className="text-muted-foreground">{row.rowNumber}</TableCell>
-                      <TableCell className="font-mono text-xs">{row.sku}</TableCell>
-                      <TableCell>{row.name}</TableCell>
-                      <TableCell className="text-right">{formatPrice(row.costPrice)}</TableCell>
-                      <TableCell className="text-right">{formatPrice(row.salePrice)}</TableCell>
-                      <TableCell className="text-right">{formatPrice(row.profit)}</TableCell>
-                      <TableCell className="text-right">{row.stock}</TableCell>
-                      <TableCell>{row.isExempt ? 'Sí' : 'No'}</TableCell>
-                      <TableCell>
-                        <Badge variant={row.action === 'create' ? 'default' : 'secondary'}>
-                          {row.action === 'create' ? 'Crear' : 'Actualizar'}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {preview.preview.map((row) => {
+                    const stockWillChange =
+                      row.action === 'update' &&
+                      typeof row.currentStock === 'number' &&
+                      row.currentStock !== row.stock;
+
+                    return (
+                      <TableRow key={`${row.rowNumber}-${row.sku}`}>
+                        <TableCell className="text-muted-foreground">{row.rowNumber}</TableCell>
+                        <TableCell className="font-mono text-xs">{row.sku}</TableCell>
+                        <TableCell>{row.name}</TableCell>
+                        <TableCell className="text-right">{formatPrice(row.costPrice)}</TableCell>
+                        <TableCell className="text-right">{formatPrice(row.salePrice)}</TableCell>
+                        <TableCell className="text-right">{formatPrice(row.profit)}</TableCell>
+                        <TableCell
+                          className={cn('text-right tabular-nums', stockWillChange && 'font-medium')}
+                        >
+                          {row.currentStock == null ? '—' : row.currentStock}
+                        </TableCell>
+                        <TableCell
+                          className={cn('text-right tabular-nums', stockWillChange && 'font-medium')}
+                        >
+                          {row.stock}
+                        </TableCell>
+                        <TableCell>{row.isExempt ? 'Sí' : 'No'}</TableCell>
+                        <TableCell>
+                          <Badge variant={row.action === 'create' ? 'default' : 'secondary'}>
+                            {row.action === 'create' ? 'Crear' : 'Actualizar'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             ) : null}

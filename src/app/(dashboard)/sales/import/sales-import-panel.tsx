@@ -39,6 +39,7 @@ import {
   type SalesImportConfirmResult,
   type SalesImportInvoicePreview,
   type SalesImportInvoiceStatus,
+  type SalesImportLinePreview,
   type SalesImportPreviewResult,
 } from '@/lib/api/sales-import';
 import { toast } from 'sonner';
@@ -68,6 +69,49 @@ function statusBadge(status: SalesImportInvoiceStatus) {
     case 'already_imported':
       return <Badge variant="outline">Ya importada</Badge>;
   }
+}
+
+function StockValue({ value }: { value: number | null | undefined }) {
+  if (value === null || value === undefined) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  return <span>{value}</span>;
+}
+
+function StockDeltaValue({ value }: { value: number | null | undefined }) {
+  if (value === null || value === undefined) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  if (value === 0) {
+    return <span className="text-muted-foreground">0</span>;
+  }
+  // El signo (negativo en ventas) viene del backend; solo se renderiza.
+  return (
+    <span className={value < 0 ? 'text-red-600' : 'text-emerald-600'}>{value}</span>
+  );
+}
+
+function StockSummary({ line }: { line: SalesImportLinePreview }) {
+  if (line.currentStock == null && line.stockDelta == null && line.finalStock == null) {
+    return <p className="mt-1 font-mono text-[11px] tabular-nums text-muted-foreground">Stock: —</p>;
+  }
+  const current = line.currentStock ?? '—';
+  const final = line.finalStock ?? '—';
+  return (
+    <p className="mt-1 font-mono text-[11px] tabular-nums text-muted-foreground">
+      Stock: {current} → {final} (
+      {line.stockDelta == null ? (
+        '—'
+      ) : line.stockDelta === 0 ? (
+        '0'
+      ) : (
+        <span className={line.stockDelta < 0 ? 'text-red-600' : 'text-emerald-600'}>
+          {line.stockDelta}
+        </span>
+      )}
+      )
+    </p>
+  );
 }
 
 export function SalesImportPanel() {
@@ -568,11 +612,17 @@ function InvoiceCard({
           {inv.issues.length > 0 && (
             <p className="text-sm text-amber-800 dark:text-amber-200">{inv.issues.join(' · ')}</p>
           )}
+          {inv.lines.some((line) => line.stockDelta === 0) && (
+            <p className="text-xs text-muted-foreground">
+              Los servicios/combos no descuentan inventario
+            </p>
+          )}
           {inv.lines.map((line, idx) => (
             <div key={`${inv.legacyKey}-${idx}`} className="flex items-start justify-between gap-3 text-sm">
               <div className="min-w-0">
                 <p className="truncate font-medium">{line.productName ?? line.description}</p>
                 <p className="font-mono text-[11px] text-muted-foreground">{line.productCode}</p>
+                <StockSummary line={line} />
               </div>
               <div className="shrink-0 text-right tabular-nums">
                 <p>{line.quantity} u.</p>
@@ -619,12 +669,25 @@ function InvoiceRow({
             {inv.issues.length > 0 && (
               <p className="px-4 pt-3 text-sm text-amber-800 dark:text-amber-200">{inv.issues.join(' · ')}</p>
             )}
+            {inv.lines.some((line) => line.stockDelta === 0) && (
+              <p className="px-4 pb-2 pt-1 text-xs text-muted-foreground">
+                Los servicios/combos no descuentan inventario
+              </p>
+            )}
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>SKU</TableHead>
                   <TableHead>Producto</TableHead>
                   <TableHead className="text-right">Cant.</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">Stock actual</TableHead>
+                  <TableHead
+                    className="text-right whitespace-nowrap"
+                    title="Impacto en inventario tras importar"
+                  >
+                    Δ stock
+                  </TableHead>
+                  <TableHead className="text-right whitespace-nowrap">Stock final</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead>Match</TableHead>
                 </TableRow>
@@ -640,6 +703,15 @@ function InvoiceRow({
                       )}
                     </TableCell>
                     <TableCell className="text-right">{line.quantity}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      <StockValue value={line.currentStock} />
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      <StockDeltaValue value={line.stockDelta} />
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      <StockValue value={line.finalStock} />
+                    </TableCell>
                     <TableCell className="text-right">{formatUsd(line.lineTotal)}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{line.matchBy ?? '—'}</TableCell>
                   </TableRow>

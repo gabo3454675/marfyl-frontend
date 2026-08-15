@@ -14,6 +14,9 @@ export interface SalesImportLinePreview {
   productId?: number;
   productName?: string;
   matchBy?: 'sku' | 'barcode' | 'name';
+  currentStock?: number | null;
+  stockDelta?: number | null;
+  finalStock?: number | null;
 }
 
 export interface SalesImportInvoicePreview {

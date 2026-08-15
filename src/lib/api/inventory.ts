@@ -40,6 +40,7 @@ export interface InventoryImportPreviewRow {
   salePrice: number;
   profit: number;
   stock: number;
+  currentStock?: number | null;
   description: string | null;
   isExempt: boolean;
   action: 'create' | 'update' | 'skip';

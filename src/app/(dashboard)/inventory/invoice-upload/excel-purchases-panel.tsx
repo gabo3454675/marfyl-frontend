@@ -17,6 +17,7 @@ import { Download, Loader2 } from 'lucide-react';
 import {
   purchasesImportService,
   type PurchasesImportConfirmResult,
+  type PurchasesImportLinePreview,
   type PurchasesImportPreviewResult,
 } from '@/lib/api/purchases-import';
 import { toast } from 'sonner';
@@ -33,6 +34,53 @@ function formatUsd(n: number) {
 function isExcel(name: string) {
   const n = name.toLowerCase();
   return n.endsWith('.xlsx') || n.endsWith('.xls');
+}
+
+function StockValue({ value }: { value: number | null | undefined }) {
+  if (value === null || value === undefined) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  return <span>{value}</span>;
+}
+
+function StockDeltaValue({ value }: { value: number | null | undefined }) {
+  if (value === null || value === undefined) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  if (value === 0) {
+    return <span className="text-muted-foreground">0</span>;
+  }
+  // El signo (positivo en compras) viene del backend; solo se renderiza.
+  return (
+    <span className={value < 0 ? 'text-red-600' : 'text-emerald-600'}>
+      {value > 0 ? `+${value}` : value}
+    </span>
+  );
+}
+
+function StockSummary({ line }: { line: PurchasesImportLinePreview }) {
+  const hasStock =
+    line.willCreate || line.currentStock != null || line.stockDelta != null || line.finalStock != null;
+  if (!hasStock) {
+    return <p className="mt-1 font-mono text-[11px] tabular-nums text-muted-foreground">Stock: —</p>;
+  }
+  const current = line.willCreate ? 0 : line.currentStock ?? '—';
+  const final = line.willCreate ? line.quantity : line.finalStock ?? '—';
+  return (
+    <p className="mt-1 font-mono text-[11px] tabular-nums text-muted-foreground">
+      Stock: {current} → {final} (
+      {line.stockDelta == null ? (
+        '—'
+      ) : line.stockDelta === 0 ? (
+        '0'
+      ) : (
+        <span className={line.stockDelta < 0 ? 'text-red-600' : 'text-emerald-600'}>
+          {line.stockDelta > 0 ? `+${line.stockDelta}` : line.stockDelta}
+        </span>
+      )}
+      )
+    </p>
+  );
 }
 
 export function ExcelPurchasesPanel() {
@@ -193,8 +241,16 @@ export function ExcelPurchasesPanel() {
                     {g.lines.map((l) => (
                       <div key={l.rowNum} className="flex items-start justify-between gap-3 text-sm">
                         <div className="min-w-0">
-                          <p className="truncate font-medium">{l.productName ?? l.description}</p>
+                          <p className="truncate font-medium">
+                            {l.productName ?? l.description}
+                            {l.willCreate && (
+                              <Badge variant="secondary" className="ml-2 text-xs">
+                                Nuevo
+                              </Badge>
+                            )}
+                          </p>
                           <p className="font-mono text-[11px] text-muted-foreground">{l.sku}</p>
+                          <StockSummary line={l} />
                         </div>
                         <div className="shrink-0 text-right tabular-nums">
                           <p>{l.quantity} u.</p>
@@ -211,6 +267,14 @@ export function ExcelPurchasesPanel() {
                           <TableHead>Producto</TableHead>
                           <TableHead className="text-right">Cant.</TableHead>
                           <TableHead className="text-right">Costo</TableHead>
+                          <TableHead className="text-right whitespace-nowrap">Stock actual</TableHead>
+                          <TableHead
+                            className="text-right whitespace-nowrap"
+                            title="Impacto en inventario tras importar"
+                          >
+                            Δ stock
+                          </TableHead>
+                          <TableHead className="text-right whitespace-nowrap">Stock final</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -227,6 +291,15 @@ export function ExcelPurchasesPanel() {
                             </TableCell>
                             <TableCell className="text-right">{l.quantity}</TableCell>
                             <TableCell className="text-right">{formatUsd(l.unitCostUsd)}</TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              <StockValue value={l.willCreate ? 0 : l.currentStock} />
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              <StockDeltaValue value={l.stockDelta} />
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              <StockValue value={l.willCreate ? l.quantity : l.finalStock} />
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

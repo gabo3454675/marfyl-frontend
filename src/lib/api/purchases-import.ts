@@ -11,6 +11,9 @@ export interface PurchasesImportLinePreview {
   productName: string | null;
   matchMethod: string;
   willCreate: boolean;
+  currentStock?: number | null;
+  stockDelta?: number | null;
+  finalStock?: number | null;
 }
 
 export interface PurchasesImportGroupPreview {
