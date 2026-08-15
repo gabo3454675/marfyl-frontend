@@ -274,11 +274,176 @@ export async function getHybridVenta(
   return data ?? {};
 }
 
+// ============================================================================
+// Hybrid Inventario / Clientes / Existencia / Health
+// ============================================================================
+
+export type HybridInventarioItem = {
+  codigo?: string | null;
+  nombre?: string | null;
+  referencia?: string | null;
+  unidad?: string | null;
+  familia?: string | null;
+  marca?: string | null;
+  activo?: boolean | null;
+  moneda?: string | null;
+  [key: string]: unknown;
+};
+
+export type HybridClienteItem = {
+  codigo?: string | null;
+  nombre?: string | null;
+  rif?: string | null;
+  nit?: string | null;
+  telefono?: string | null;
+  email?: string | null;
+  direccion?: string | null;
+  activo?: boolean | null;
+  [key: string]: unknown;
+};
+
+export type HybridExistenciaItem = {
+  codigo?: string | null;
+  nombre?: string | null;
+  deposito?: string | null;
+  lote?: string | null;
+  existencia?: number | null;
+  apartada?: number | null;
+  [key: string]: unknown;
+};
+
+export type HybridHealthResponse = {
+  ok: boolean;
+  tablas?: number;
+  solo_lectura?: boolean;
+};
+
+export type HybridListResult<T> = {
+  items: T[];
+  total?: number;
+  raw: unknown;
+};
+
+// Query params types
+export type HybridInventarioParams = {
+  q?: string | null;
+  limit?: number | null;
+  offset?: number | null;
+};
+
+export type HybridClientesParams = {
+  q?: string | null;
+  limit?: number | null;
+  offset?: number | null;
+};
+
+export type HybridExistenciaParams = {
+  codigo?: string | null;
+  limit?: number | null;
+  offset?: number | null;
+};
+
+// Generic list item parser (works with any shape)
+function asGenericListItems(data: unknown): unknown[] {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === 'object') {
+    const obj = data as Record<string, unknown>;
+    const candidate = obj.items ?? obj.data ?? obj.results;
+    if (Array.isArray(candidate)) return candidate;
+  }
+  return [];
+}
+
+/** Health check del endpoint Hybrid (no requiere Super Admin). */
+export async function getHybridHealth(): Promise<HybridHealthResponse> {
+  const { data } = await apiClient.get<HybridHealthResponse>('/hybrid/health', {
+    timeout: HYBRID_LIST_TIMEOUT_MS,
+  });
+  return data ?? { ok: false };
+}
+
+/** Lista inventario Hybrid con filtros opcionales. */
+export async function getHybridInventario(
+  params?: HybridInventarioParams,
+): Promise<HybridListResult<HybridInventarioItem>> {
+  const query: Record<string, string> = {};
+  if (params?.q) query.q = String(params.q);
+  if (params?.limit != null) query.limit = String(params.limit);
+  if (params?.offset != null) query.offset = String(params.offset);
+
+  const { data } = await apiClient.get<unknown>('/hybrid/inventario', {
+    params: query,
+    timeout: HYBRID_LIST_TIMEOUT_MS,
+  });
+  return {
+    items: asGenericListItems(data) as HybridInventarioItem[],
+    total: asTotal(data),
+    raw: data,
+  };
+}
+
+/** Detalle de un item de inventario por código. */
+export async function getHybridInventarioByCodigo(
+  codigo: string,
+): Promise<HybridInventarioItem> {
+  const encoded = encodeURIComponent(codigo);
+  const { data } = await apiClient.get<HybridInventarioItem>(
+    `/hybrid/inventario/${encoded}`,
+    { timeout: HYBRID_LIST_TIMEOUT_MS },
+  );
+  return data ?? {};
+}
+
+/** Lista clientes Hybrid con filtros opcionales. */
+export async function getHybridClientes(
+  params?: HybridClientesParams,
+): Promise<HybridListResult<HybridClienteItem>> {
+  const query: Record<string, string> = {};
+  if (params?.q) query.q = String(params.q);
+  if (params?.limit != null) query.limit = String(params.limit);
+  if (params?.offset != null) query.offset = String(params.offset);
+
+  const { data } = await apiClient.get<unknown>('/hybrid/clientes', {
+    params: query,
+    timeout: HYBRID_LIST_TIMEOUT_MS,
+  });
+  return {
+    items: asGenericListItems(data) as HybridClienteItem[],
+    total: asTotal(data),
+    raw: data,
+  };
+}
+
+/** Lista existencias Hybrid con filtros opcionales. */
+export async function getHybridExistencia(
+  params?: HybridExistenciaParams,
+): Promise<HybridListResult<HybridExistenciaItem>> {
+  const query: Record<string, string> = {};
+  if (params?.codigo) query.codigo = String(params.codigo);
+  if (params?.limit != null) query.limit = String(params.limit);
+  if (params?.offset != null) query.offset = String(params.offset);
+
+  const { data } = await apiClient.get<unknown>('/hybrid/existencia', {
+    params: query,
+    timeout: HYBRID_LIST_TIMEOUT_MS,
+  });
+  return {
+    items: asGenericListItems(data) as HybridExistenciaItem[],
+    total: asTotal(data),
+    raw: data,
+  };
+}
+
 export const hybridService = {
   getConnection: getHybridConnection,
+  getHealth: getHybridHealth,
   getCatalogos: getHybridCatalogos,
   getCatalogo: getHybridCatalogo,
   getMonedas: getHybridMonedas,
+  getInventario: getHybridInventario,
+  getInventarioByCodigo: getHybridInventarioByCodigo,
+  getClientes: getHybridClientes,
+  getExistencia: getHybridExistencia,
   getVentas: getHybridVentas,
   getVenta: getHybridVenta,
 };

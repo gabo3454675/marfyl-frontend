@@ -278,21 +278,29 @@ export default function HybridVentasPage() {
       title="Consulta Hybrid"
       subtitle="Ventas Hybrid vía API Marfyl. No se modifica el sistema externo."
       actions={
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="cursor-pointer"
-          onClick={() => void load()}
-          disabled={loading}
-        >
-          {loading ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="mr-2 h-4 w-4" />
-          )}
-          Actualizar
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm" className="cursor-pointer">
+            <Link href="/hybrid">
+              <Search className="mr-2 h-4 w-4" />
+              Todas las consultas
+            </Link>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="cursor-pointer"
+            onClick={() => void load()}
+            disabled={loading}
+          >
+            {loading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            Actualizar
+          </Button>
+        </div>
       }
     >
       <AdminCard
