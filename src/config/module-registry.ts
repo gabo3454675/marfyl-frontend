@@ -380,6 +380,18 @@ export const MODULE_REGISTRY: ModuleRegistry = [
           accentGradient: 'from-teal-400 to-teal-500',
         },
       },
+      {
+        id: 'hybrid-import',
+        label: 'Importar Hybrid',
+        href: '/hybrid/importar',
+        icon: Upload,
+        permission: 'canManageInvoices',
+        superAdminOnly: true,
+        hint: 'Importar ventas de Hybrid a Marfyl',
+        gallery: {
+          accentGradient: 'from-teal-400 to-teal-500',
+        },
+      },
     ],
     requiredPermissions: ['canManageSettings'],
   },

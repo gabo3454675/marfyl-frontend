@@ -434,6 +434,77 @@ export async function getHybridExistencia(
   };
 }
 
+// ============================================================================
+// Hybrid Import
+// ============================================================================
+
+export type HybridImportPreviewResult = {
+  batchId: string;
+  organizationId: number;
+  summary: {
+    ventas: number;
+    lineas: number;
+    ready: number;
+    warnings: number;
+    errors: number;
+    alreadyImported: number;
+  };
+  invoices: HybridImportInvoicePreview[];
+};
+
+export type HybridImportInvoicePreview = {
+  documento: string;
+  fecha: string;
+  cliente: string;
+  status: 'ready' | 'warning' | 'error' | 'already_imported';
+  hybridStatus: number;
+  marfylStatus: string;
+  totalAmount: number;
+  lineCount: number;
+  issues: string[];
+  lines: unknown[];
+};
+
+export type HybridImportResult = {
+  imported: number;
+  skipped: Array<{ key: string; reason: string; details?: string }>;
+  errors: Array<{ key: string; error: string; code: string }>;
+  warnings: Array<{ key: string; message: string; code: string }>;
+};
+
+/** Preview de importación de ventas Hybrid. */
+export async function getHybridImportPreview(): Promise<HybridImportPreviewResult> {
+  const { data } = await apiClient.get<HybridImportPreviewResult>(
+    '/hybrid-import/ventas/preview',
+    { timeout: HYBRID_DETAIL_TIMEOUT_MS },
+  );
+  return data;
+}
+
+/** Preview de importación de ventas específicas. */
+export async function postHybridImportPreview(
+  documentos: string[],
+): Promise<HybridImportPreviewResult> {
+  const { data } = await apiClient.post<HybridImportPreviewResult>(
+    '/hybrid-import/ventas/preview',
+    { documentos },
+    { timeout: HYBRID_DETAIL_TIMEOUT_MS },
+  );
+  return data;
+}
+
+/** Confirmar importación de ventas. */
+export async function confirmHybridImport(
+  documentos: string[],
+): Promise<HybridImportResult> {
+  const { data } = await apiClient.post<HybridImportResult>(
+    '/hybrid-import/ventas/confirm',
+    { documentos },
+    { timeout: HYBRID_DETAIL_TIMEOUT_MS * 2 },
+  );
+  return data;
+}
+
 export const hybridService = {
   getConnection: getHybridConnection,
   getHealth: getHybridHealth,
@@ -446,4 +517,7 @@ export const hybridService = {
   getExistencia: getHybridExistencia,
   getVentas: getHybridVentas,
   getVenta: getHybridVenta,
+  getImportPreview: getHybridImportPreview,
+  postImportPreview: postHybridImportPreview,
+  confirmImport: confirmHybridImport,
 };
