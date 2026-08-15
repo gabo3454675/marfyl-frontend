@@ -102,7 +102,7 @@ export default function HybridVentaDetailPage() {
       actions={
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm" className="cursor-pointer">
-            <Link href="/hybrid">
+            <Link href="/hybrid/conexion">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Volver
             </Link>

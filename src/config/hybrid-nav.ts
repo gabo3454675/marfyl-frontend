@@ -6,7 +6,7 @@ export const HYBRID_NAV_ITEMS: AppNavItem[] = [
     id: 'hybrid',
     label: 'Hybrid',
     icon: FileSearch,
-    href: '/hybrid',
+    href: '/hybrid/conexion',
     permission: 'canManageInvoices',
     hybridOrgOnly: true,
     hint: 'Consulta Hybrid (solo lectura)',
@@ -14,8 +14,6 @@ export const HYBRID_NAV_ITEMS: AppNavItem[] = [
 ];
 
 export function resolveHybridNavId(pathname: string): string | null {
-  // Conexión SA vive en app-nav (sistema), no en el menú Hybrid Monddy.
-  if (pathname.startsWith('/hybrid/conexion')) return null;
   if (pathname.startsWith('/hybrid')) return 'hybrid';
   return null;
 }
