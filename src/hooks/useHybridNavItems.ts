@@ -10,6 +10,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 /** Ítems de navegación Hybrid (solo Monddy), filtrados por org y rol. */
 export function useHybridNavItems() {
   const permissions = usePermission();
+  const getCurrentOrganization = useAuthStore((s) => s.getCurrentOrganization);
   const user = useAuthStore((s) => s.user);
   const superAdminOrganizations = useAuthStore((s) => s.superAdminOrganizations);
   const selectedOrganizationId = useAuthStore((s) => s.selectedOrganizationId);
@@ -19,15 +20,7 @@ export function useHybridNavItems() {
   return useMemo(() => {
     if (!_hasHydrated) return [];
 
-    const selectedId = selectedOrganizationId ?? selectedCompanyId;
-    let currentOrg: { slug: string } | null = null;
-
-    if (user?.isSuperAdmin && superAdminOrganizations.length > 0 && selectedId) {
-      currentOrg = superAdminOrganizations.find((o) => o.id === selectedId) ?? null;
-    } else if (selectedId && user?.organizations?.length) {
-      currentOrg = user.organizations.find((o) => o.id === selectedId) ?? null;
-    }
-
+    const currentOrg = getCurrentOrganization();
     if (!isHybridEnabledForOrganization(currentOrg)) return [];
 
     return HYBRID_NAV_ITEMS.filter((item) =>
@@ -35,6 +28,7 @@ export function useHybridNavItems() {
     );
   }, [
     _hasHydrated,
+    getCurrentOrganization,
     user,
     superAdminOrganizations,
     selectedOrganizationId,

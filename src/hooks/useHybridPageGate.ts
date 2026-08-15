@@ -23,10 +23,7 @@ export function useHybridPageGate(): {
 
   const allowed = useMemo(() => {
     if (!_hasHydrated) return false;
-    const org = getCurrentOrganization();
-    const slug =
-      org && 'slug' in org && typeof org.slug === 'string' ? org.slug : null;
-    return isHybridEnabledForOrganization(slug ? { slug } : null);
+    return isHybridEnabledForOrganization(getCurrentOrganization());
   }, [
     _hasHydrated,
     selectedOrganizationId,

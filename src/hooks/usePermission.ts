@@ -85,7 +85,8 @@ export function usePermission(): UsePermissionReturn {
   const selectedId = selectedOrganizationId ?? selectedCompanyId;
 
   const currentOrg = useMemo(
-    () => organizations.find((o) => o.id === selectedId) ?? null,
+    () =>
+      organizations.find((o) => Number(o.id) === Number(selectedId)) ?? null,
     [organizations, selectedId],
   );
 

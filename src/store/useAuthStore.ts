@@ -247,19 +247,21 @@ export const useAuthStore = create<AuthState>()(
       // Helper para obtener la organización actual (prioriza organizations)
       getCurrentOrganization: () => {
         const state = get();
-        const selectedId = state.selectedOrganizationId || state.selectedCompanyId;
-        if (state.user?.isSuperAdmin && state.superAdminOrganizations.length > 0 && selectedId) {
-          const found = state.superAdminOrganizations.find((o) => o.id === selectedId);
+        const selectedId = Number(
+          state.selectedOrganizationId || state.selectedCompanyId || 0,
+        );
+        const matchId = (id: number) => Number(id) === selectedId;
+        if (selectedId && state.user?.isSuperAdmin && state.superAdminOrganizations.length > 0) {
+          const found = state.superAdminOrganizations.find((o) => matchId(o.id));
           if (found) return found;
         }
-        if (selectedId && state.user?.organizations) {
-          const found = state.user.organizations.find((o) => o.id === selectedId);
-          return found || null;
+        if (selectedId && state.user?.organizations?.length) {
+          const found = state.user.organizations.find((o) => matchId(o.id));
+          if (found) return found;
         }
         if (state.selectedCompanyId && state.user?.companies) {
-          const found = state.user.companies.find(
-            (c) => c.id === state.selectedCompanyId
-          );
+          const companyId = Number(state.selectedCompanyId);
+          const found = state.user.companies.find((c) => Number(c.id) === companyId);
           return found || null;
         }
         return null;

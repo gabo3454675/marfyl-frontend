@@ -24,7 +24,7 @@ export interface NavItem {
 export function canShowNavItem(
   item: NavItem,
   permissions: ReturnType<typeof usePermission>,
-  org?: { slug?: string | null } | null,
+  org?: { slug?: string | null; name?: string | null } | null,
 ): boolean {
   if (item.hybridOrgOnly && !isHybridEnabledForOrganization(org)) {
     return false;

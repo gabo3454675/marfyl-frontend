@@ -11,16 +11,18 @@ import {
   UsersRound,
   Settings,
   Scale,
+  FileSearch,
 } from 'lucide-react';
 import { APP_NAV_ITEMS } from '@/config/app-nav';
 import { FISCAL_NAV_ITEMS } from '@/config/fiscal-nav';
+import { HYBRID_NAV_ITEMS } from '@/config/hybrid-nav';
 import { isProductFeatureEnabled } from '@/lib/features';
 import { canShowNavItem, type NavItem } from '@/hooks/useNavByRole';
 import type { UsePermissionReturn } from '@/hooks/usePermission';
 
 /**
  * Referencia a un item de navegación existente.
- * navId debe coincidir con el id de APP_NAV_ITEMS o FISCAL_NAV_ITEMS.
+ * navId debe coincidir con el id de APP_NAV_ITEMS, HYBRID_NAV_ITEMS o FISCAL_NAV_ITEMS.
  */
 export type GalleryModuleItemRef = {
   navId: string;
@@ -51,6 +53,7 @@ export type GalleryModuleConfig = {
 /** Todos los items de navegación combinados (FiscalNavItems se extienden con permission por defecto). */
 const ALL_NAV_ITEMS: AppNavItem[] = [
   ...APP_NAV_ITEMS,
+  ...HYBRID_NAV_ITEMS,
   ...FISCAL_NAV_ITEMS.map((item) => ({ ...item, permission: 'canManageFiscal' as PermissionKey })),
 ];
 
@@ -67,7 +70,7 @@ export function getGalleryNavItem(navId: string): AppNavItem | undefined {
 export function resolveModuleItems(
   module: GalleryModuleConfig,
   permissions?: UsePermissionReturn,
-  org?: { slug?: string | null } | null,
+  org?: { slug?: string | null; name?: string | null } | null,
 ): (AppNavItem & { hint?: string; itemAccentGradient?: string })[] {
   const items: (AppNavItem & { hint?: string; itemAccentGradient?: string })[] = [];
   for (const ref of module.itemRefs) {
@@ -198,6 +201,25 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
     directHref: '/nomina',
     featureFlag: () => isProductFeatureEnabled('payroll'),
     order: 6,
+  },
+  {
+    id: 'hybrid',
+    label: 'Hybrid',
+    description: 'Consulta de ventas Hybrid POS (solo Monddy, solo lectura)',
+    icon: FileSearch,
+    accentColor: 'text-cyan-500',
+    accentGradient: 'from-cyan-500 to-teal-600',
+    bgGradient: 'from-cyan-500/10 to-teal-600/5',
+    itemRefs: [
+      {
+        navId: 'hybrid-ventas',
+        hintOverride: 'Ventas Hybrid (solo lectura)',
+        itemAccentGradient: 'from-cyan-400 to-teal-500',
+      },
+    ],
+    requiredPermissions: ['canManageInvoices'],
+    directHref: '/hybrid/ventas',
+    order: 7,
   },
   {
     id: 'sistema',

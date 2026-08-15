@@ -20,6 +20,9 @@ export default function ModuleOverviewPage() {
   const permissions = usePermission();
   const currentOrg = useAuthStore((s) => {
     void s.selectedOrganizationId;
+    void s.selectedCompanyId;
+    void s.superAdminOrganizations;
+    void s.user;
     return s.getCurrentOrganization();
   });
 

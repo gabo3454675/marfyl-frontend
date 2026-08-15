@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { type GalleryModuleConfig, resolveModuleItems } from '@/config/modules';
 import { usePermission } from '@/hooks/usePermission';
+import { useAuthStore } from '@/store/useAuthStore';
 import { cn } from '@/lib/utils';
 import { ArrowRight } from 'lucide-react';
 
@@ -12,7 +13,14 @@ type ModuleCardProps = {
 
 export function ModuleCard({ module }: ModuleCardProps) {
   const permissions = usePermission();
-  const items = resolveModuleItems(module, permissions);
+  const currentOrg = useAuthStore((s) => {
+    void s.selectedOrganizationId;
+    void s.selectedCompanyId;
+    void s.superAdminOrganizations;
+    void s.user;
+    return s.getCurrentOrganization();
+  });
+  const items = resolveModuleItems(module, permissions, currentOrg);
   const isSingleItem = items.length === 1;
   const href = module.directHref ?? (isSingleItem ? items[0].href : `/modules/${module.id}`);
 
