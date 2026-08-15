@@ -46,7 +46,7 @@ export type AppNavItem = {
   feature?: ProductFeature;
   /** Visible solo para Super Admin. */
   superAdminOnly?: boolean;
-  /** Visible solo con la org Monddy (Hybrid POS). */
+  /** Visible solo con orgs fundadoras Hybrid (legacy, ya no se usa en items). */
   hybridOrgOnly?: boolean;
 };
 
@@ -286,7 +286,6 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     href: '/hybrid/conexion',
     permission: 'canManageInvoices',
     superAdminOnly: true,
-    hybridOrgOnly: true,
     hint: 'Consultar Hybrid (solo lectura)',
   },
 ];

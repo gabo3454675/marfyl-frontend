@@ -6,7 +6,7 @@ import { isHybridEnabledForOrganization } from '@/lib/hybrid/feature';
 import { useAuthStore } from '@/store/useAuthStore';
 
 /**
- * Gate de páginas Hybrid: solo Monddy.
+ * Gate de páginas Hybrid: orgs fundadoras.
  * Si la org activa no es elegible, redirige a `/` sin filtrar el nombre del módulo.
  */
 export function useHybridPageGate(): {

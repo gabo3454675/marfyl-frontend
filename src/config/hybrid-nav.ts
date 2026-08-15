@@ -9,7 +9,6 @@ export const HYBRID_NAV_ITEMS: AppNavItem[] = [
     href: '/hybrid/conexion',
     permission: 'canManageInvoices',
     superAdminOnly: true,
-    hybridOrgOnly: true,
     hint: 'Consultar Hybrid (solo lectura)',
   },
 ];

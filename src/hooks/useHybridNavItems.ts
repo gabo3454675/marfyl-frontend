@@ -7,7 +7,7 @@ import { usePermission } from '@/hooks/usePermission';
 import { isHybridEnabledForOrganization } from '@/lib/hybrid/feature';
 import { useAuthStore } from '@/store/useAuthStore';
 
-/** Ítems de navegación Hybrid (solo Monddy), filtrados por org y rol. */
+/** Ítems de navegación Hybrid (orgs fundadoras), filtrados por org y rol. */
 export function useHybridNavItems() {
   const permissions = usePermission();
   const getCurrentOrganization = useAuthStore((s) => s.getCurrentOrganization);
