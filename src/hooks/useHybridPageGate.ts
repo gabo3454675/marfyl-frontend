@@ -15,6 +15,10 @@ export function useHybridPageGate(): {
 } {
   const router = useRouter();
   const _hasHydrated = useAuthStore((s) => s._hasHydrated);
+  const selectedOrganizationId = useAuthStore((s) => s.selectedOrganizationId);
+  const selectedCompanyId = useAuthStore((s) => s.selectedCompanyId);
+  const superAdminOrganizations = useAuthStore((s) => s.superAdminOrganizations);
+  const user = useAuthStore((s) => s.user);
   const getCurrentOrganization = useAuthStore((s) => s.getCurrentOrganization);
 
   const allowed = useMemo(() => {
@@ -23,7 +27,14 @@ export function useHybridPageGate(): {
     const slug =
       org && 'slug' in org && typeof org.slug === 'string' ? org.slug : null;
     return isHybridEnabledForOrganization(slug ? { slug } : null);
-  }, [_hasHydrated, getCurrentOrganization]);
+  }, [
+    _hasHydrated,
+    selectedOrganizationId,
+    selectedCompanyId,
+    superAdminOrganizations,
+    user,
+    getCurrentOrganization,
+  ]);
 
   useEffect(() => {
     if (!_hasHydrated) return;

@@ -31,7 +31,7 @@ export function useHybridNavItems() {
     if (!isHybridEnabledForOrganization(currentOrg)) return [];
 
     return HYBRID_NAV_ITEMS.filter((item) =>
-      canShowNavItem(item as NavItem, permissions),
+      canShowNavItem(item as NavItem, permissions, currentOrg),
     );
   }, [
     _hasHydrated,

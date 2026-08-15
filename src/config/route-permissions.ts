@@ -50,6 +50,9 @@ export const ROUTE_PERMISSIONS: Record<string, PermissionKey> = {
   '/settings/team': 'canManageTeam',
   '/nomina': 'canManageTeam',
 
+  // Hybrid (solo org Monddy; el gate de org vive en useHybridPageGate)
+  '/hybrid/ventas': 'canManageInvoices',
+
   // Fiscal
   '/fiscal': 'canManageFiscal',
   '/fiscal/perfil': 'canManageFiscal',

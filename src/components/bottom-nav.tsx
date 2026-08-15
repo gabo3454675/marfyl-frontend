@@ -47,12 +47,15 @@ export default function BottomNav() {
   const pathname = usePathname();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const permissions = usePermission();
-  const { logout } = useAuthStore();
+  const { logout, getCurrentOrganization } = useAuthStore();
+  const currentOrg = getCurrentOrganization();
   const concertNavItems = useConcertNavItems();
   const hybridNavItems = useHybridNavItems();
 
   const visibleMainNav = (() => {
-    const allowed = ALL_BOTTOM_CANDIDATES.filter((item) => canShowNavItem(item, permissions));
+    const allowed = ALL_BOTTOM_CANDIDATES.filter((item) =>
+      canShowNavItem(item, permissions, currentOrg),
+    );
     const hasHost = allowed.some((i) => i.id === 'comanda');
     const withoutKitchenIfHost = hasHost
       ? allowed.filter((i) => i.id !== 'comanda-cocina')
@@ -136,7 +139,7 @@ export default function BottomNav() {
                 const items = section.itemIds
                   .map((id) => getNavItem(id))
                   .filter(Boolean)
-                  .filter((item) => canShowNavItem(item as NavItem, permissions))
+                  .filter((item) => canShowNavItem(item as NavItem, permissions, currentOrg))
                   .filter((item) => !barIds.has(item!.id));
                 if (items.length === 0) return null;
                 const hasActiveChild = items.some(

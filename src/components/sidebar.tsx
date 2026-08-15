@@ -361,7 +361,7 @@ export default function Sidebar() {
             {/* Accesos rápidos — siempre visibles */}
             <div className="flex flex-col gap-0.5 pb-2 mb-1 border-b border-sidebar-border/40">
               {getQuickAccessItems()
-                .filter((item) => canShowNavItem(item, permissions))
+                .filter((item) => canShowNavItem(item, permissions, currentOrg))
                 .map((item) => (
                   <SidebarNavLink
                     key={item.id}
@@ -375,7 +375,7 @@ export default function Sidebar() {
               const items = section.itemIds
                 .map((id) => getNavItem(id))
                 .filter(Boolean)
-                .filter((item) => canShowNavItem(item as NavItem, permissions));
+                .filter((item) => canShowNavItem(item as NavItem, permissions, currentOrg));
               if (items.length === 0) return null;
               const hasActiveChild = items.some((item) => activeItem === item!.id);
               return (
@@ -448,7 +448,7 @@ export default function Sidebar() {
         ) : (
           <div className="p-2 space-y-1">
             {getQuickAccessItems()
-              .filter((item) => canShowNavItem(item, permissions))
+              .filter((item) => canShowNavItem(item, permissions, currentOrg))
               .map((item) => {
                 const Icon = item.icon;
                 return (
@@ -471,7 +471,7 @@ export default function Sidebar() {
               const items = section.itemIds
                 .map((id) => getNavItem(id))
                 .filter(Boolean)
-                .filter((item) => canShowNavItem(item as NavItem, permissions));
+                .filter((item) => canShowNavItem(item as NavItem, permissions, currentOrg));
               if (items.length === 0) return null;
               const first = items[0]!;
               const HubIcon = section.icon;

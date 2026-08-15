@@ -7,10 +7,18 @@ import { HelpCenterCard } from '@/components/help/help-center-card';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard } from '@/components/admin/admin-card';
 import { usePermission } from '@/hooks/usePermission';
+import { useAuthStore } from '@/store/useAuthStore';
+import { isHybridEnabledForOrganization } from '@/lib/hybrid/feature';
 
 export default function SettingsPage() {
   const router = useRouter();
   const { isSuperAdmin } = usePermission();
+  const currentOrg = useAuthStore((s) => {
+    void s.selectedOrganizationId;
+    return s.getCurrentOrganization();
+  });
+  const showHybrid =
+    isSuperAdmin && isHybridEnabledForOrganization(currentOrg);
 
   return (
     <AdminPageShell
@@ -41,7 +49,7 @@ export default function SettingsPage() {
         </AdminCard>
       )}
 
-      {isSuperAdmin && (
+      {showHybrid && (
         <AdminCard
           title={
             <span className="flex items-center gap-2">

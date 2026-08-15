@@ -46,6 +46,8 @@ export type AppNavItem = {
   feature?: ProductFeature;
   /** Visible solo para Super Admin. */
   superAdminOnly?: boolean;
+  /** Visible solo con la org Monddy (Hybrid POS). */
+  hybridOrgOnly?: boolean;
 };
 
 export type AppNavSection = {
@@ -284,6 +286,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     href: '/hybrid/conexion',
     permission: 'canManageSettings',
     superAdminOnly: true,
+    hybridOrgOnly: true,
     hint: 'Diagnóstico de conexión Hybrid',
   },
 ];

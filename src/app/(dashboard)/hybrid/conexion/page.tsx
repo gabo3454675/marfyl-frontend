@@ -8,6 +8,7 @@ import { AdminStatCard } from '@/components/admin/admin-stat-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePermission } from '@/hooks/usePermission';
+import { useHybridPageGate } from '@/hooks/useHybridPageGate';
 import {
   getHybridConnection,
   getHybridErrorMessage,
@@ -22,13 +23,14 @@ function formatCheckedAt(iso: string | undefined): string {
 }
 
 export default function HybridConexionPage() {
+  const { ready, allowed } = useHybridPageGate();
   const { isSuperAdmin } = usePermission();
   const [status, setStatus] = useState<HybridConnectionStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!isSuperAdmin) return;
+    if (!isSuperAdmin || !allowed) return;
     setLoading(true);
     setError(null);
     try {
@@ -40,12 +42,22 @@ export default function HybridConexionPage() {
     } finally {
       setLoading(false);
     }
-  }, [isSuperAdmin]);
+  }, [isSuperAdmin, allowed]);
 
   useEffect(() => {
-    if (!isSuperAdmin) return;
+    if (!isSuperAdmin || !allowed) return;
     void load();
-  }, [isSuperAdmin, load]);
+  }, [isSuperAdmin, allowed, load]);
+
+  if (!ready || !allowed) {
+    return (
+      <AdminPageShell
+        loading
+        loadingLabel="Verificando acceso…"
+        title="Hybrid POS"
+      />
+    );
+  }
 
   if (!isSuperAdmin) {
     return (

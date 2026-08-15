@@ -8,6 +8,7 @@ import { BackToGalleryButton } from '@/components/gallery/back-to-gallery-button
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { LayoutGrid } from 'lucide-react';
+import { useAuthStore } from '@/store/useAuthStore';
 
 function getModuleBySlug(slug: string): GalleryModuleConfig | undefined {
   return GALLERY_MODULES.find((m) => m.id === slug);
@@ -17,6 +18,10 @@ export default function ModuleOverviewPage() {
   const params = useParams();
   const slug = params.slug as string;
   const permissions = usePermission();
+  const currentOrg = useAuthStore((s) => {
+    void s.selectedOrganizationId;
+    return s.getCurrentOrganization();
+  });
 
   const mod = getModuleBySlug(slug);
 
@@ -73,7 +78,7 @@ export default function ModuleOverviewPage() {
     );
   }
 
-  const items = resolveModuleItems(mod, permissions);
+  const items = resolveModuleItems(mod, permissions, currentOrg);
 
   return (
     <AdminPanel className="p-6 md:p-8 lg:p-10">

@@ -8,6 +8,7 @@ export const HYBRID_NAV_ITEMS: AppNavItem[] = [
     icon: FileSearch,
     href: '/hybrid/ventas',
     permission: 'canManageInvoices',
+    hybridOrgOnly: true,
     hint: 'Ventas Hybrid (solo lectura)',
   },
 ];

@@ -67,13 +67,14 @@ export function getGalleryNavItem(navId: string): AppNavItem | undefined {
 export function resolveModuleItems(
   module: GalleryModuleConfig,
   permissions?: UsePermissionReturn,
+  org?: { slug?: string | null } | null,
 ): (AppNavItem & { hint?: string; itemAccentGradient?: string })[] {
   const items: (AppNavItem & { hint?: string; itemAccentGradient?: string })[] = [];
   for (const ref of module.itemRefs) {
     const base = getGalleryNavItem(ref.navId);
     if (!base) continue;
     if (base.feature && !isProductFeatureEnabled(base.feature)) continue;
-    if (permissions && !canShowNavItem(base as NavItem, permissions)) continue;
+    if (permissions && !canShowNavItem(base as NavItem, permissions, org)) continue;
     items.push({
       ...base,
       label: ref.labelOverride ?? base.label,
