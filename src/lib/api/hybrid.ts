@@ -94,6 +94,23 @@ export type HybridVentasListResult = {
   raw: unknown;
 };
 
+export type HybridConnectionHealth = {
+  ok: boolean;
+  tablas?: number;
+  solo_lectura?: boolean;
+};
+
+/** Diagnóstico de conexión Hybrid POS (Super Admin). Nunca incluye token. */
+export type HybridConnectionStatus = {
+  configured: boolean;
+  baseUrlHost: string | null;
+  latencyMs: number | null;
+  reachable: boolean;
+  health: HybridConnectionHealth | null;
+  error?: string;
+  checkedAt: string;
+};
+
 function pickAllowlisted(
   params: Record<string, unknown> | undefined,
   allowed: readonly string[],
@@ -184,6 +201,15 @@ export function formatHybridMoney(
   return sym ? `${sym} ${amount}` : amount;
 }
 
+/** Diagnóstico de conexión Hybrid POS (solo Super Admin en backend). */
+export async function getHybridConnection(): Promise<HybridConnectionStatus> {
+  const { data } = await apiClient.get<HybridConnectionStatus>(
+    '/hybrid/connection',
+    { timeout: HYBRID_LIST_TIMEOUT_MS },
+  );
+  return data;
+}
+
 /** Catálogos Hybrid (combos). No hardcodear tipos/status. */
 export async function getHybridCatalogos(): Promise<HybridCatalogos> {
   const { data } = await apiClient.get<HybridCatalogos>('/hybrid/catalogos', {
@@ -249,6 +275,7 @@ export async function getHybridVenta(
 }
 
 export const hybridService = {
+  getConnection: getHybridConnection,
   getCatalogos: getHybridCatalogos,
   getCatalogo: getHybridCatalogo,
   getMonedas: getHybridMonedas,

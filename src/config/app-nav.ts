@@ -26,6 +26,7 @@ import {
   ClipboardList,
   Layers,
   ScrollText,
+  Cable,
 } from 'lucide-react';
 import type { PermissionKey } from '@/config/permissions';
 import type { ProductFeature } from '@/lib/features';
@@ -276,6 +277,15 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     superAdminOnly: true,
     hint: 'Quién cambió qué',
   },
+  {
+    id: 'hybrid-conexion',
+    label: 'Hybrid POS',
+    icon: Cable,
+    href: '/hybrid/conexion',
+    permission: 'canManageSettings',
+    superAdminOnly: true,
+    hint: 'Diagnóstico de conexión Hybrid',
+  },
 ];
 
 /**
@@ -317,7 +327,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     id: 'sistema',
     label: 'Sistema',
     icon: Settings,
-    itemIds: ['settings', 'trazabilidad'],
+    itemIds: ['settings', 'trazabilidad', 'hybrid-conexion'],
   },
 ];
 
@@ -348,6 +358,7 @@ export function resolveAppNavId(pathname: string): string {
   if (pathname.startsWith('/accounts-payable')) return 'accounts-payable';
   if (pathname.startsWith('/tasas')) return 'tasas';
   if (pathname.startsWith('/trazabilidad')) return 'trazabilidad';
+  if (pathname.startsWith('/hybrid/conexion')) return 'hybrid-conexion';
   if (pathname.startsWith('/settings')) return 'settings';
   if (pathname.startsWith('/nomina')) return 'nomina';
   if (pathname.startsWith('/concierto/escaner')) return 'concierto-escaner';

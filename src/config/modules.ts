@@ -213,6 +213,11 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
         hintOverride: 'Quién cambió qué',
         itemAccentGradient: 'from-indigo-400 to-indigo-500',
       },
+      {
+        navId: 'hybrid-conexion',
+        hintOverride: 'Conexión Hybrid POS',
+        itemAccentGradient: 'from-cyan-400 to-cyan-500',
+      },
     ],
     requiredPermissions: ['canManageSettings'],
     order: 8,

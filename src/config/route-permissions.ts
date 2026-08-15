@@ -73,7 +73,7 @@ export const ROUTE_ANY_PERMISSIONS: Record<string, PermissionKey[]> = {
 };
 
 /** Solo Super Admin (plataforma o rol SUPER_ADMIN del local). */
-export const SUPER_ADMIN_ONLY_ROUTES = ['/trazabilidad'] as const;
+export const SUPER_ADMIN_ONLY_ROUTES = ['/trazabilidad', '/hybrid/conexion'] as const;
 
 export function isSuperAdminOnlyRoute(pathname: string): boolean {
   return SUPER_ADMIN_ONLY_ROUTES.some(

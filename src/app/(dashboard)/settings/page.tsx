@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Users, CreditCard, ScrollText } from 'lucide-react';
+import { Users, CreditCard, ScrollText, Cable } from 'lucide-react';
 import { HelpCenterCard } from '@/components/help/help-center-card';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard } from '@/components/admin/admin-card';
@@ -37,6 +37,26 @@ export default function SettingsPage() {
             className="h-11 w-full cursor-pointer sm:w-auto"
           >
             Ver bitácora
+          </Button>
+        </AdminCard>
+      )}
+
+      {isSuperAdmin && (
+        <AdminCard
+          title={
+            <span className="flex items-center gap-2">
+              <Cable className="h-5 w-5" />
+              Hybrid POS
+            </span>
+          }
+          description="Diagnóstico de conexión con la API Hybrid (configurado, latencia, health)."
+        >
+          <Button
+            variant="outline"
+            onClick={() => router.push('/hybrid/conexion')}
+            className="h-11 w-full cursor-pointer sm:w-auto"
+          >
+            Ver conexión
           </Button>
         </AdminCard>
       )}

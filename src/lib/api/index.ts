@@ -29,11 +29,12 @@ export type {
 
 export {
   hybridService,
-  getHybridVentas,
-  getHybridVenta,
   getHybridCatalogos,
   getHybridCatalogo,
   getHybridMonedas,
+  getHybridVentas,
+  getHybridVenta,
+  getHybridConnection,
   getHybridErrorMessage,
   formatHybridCliente,
   formatHybridMoney,
@@ -43,6 +44,8 @@ export {
   HYBRID_VENTAS_QUERY_KEYS,
 } from './hybrid';
 export type {
+  HybridConnectionStatus,
+  HybridConnectionHealth,
   HybridVentasParams,
   HybridVentaDetailParams,
   HybridVentaListItem,
