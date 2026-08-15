@@ -13,6 +13,8 @@ export const HYBRID_NAV_ITEMS: AppNavItem[] = [
 ];
 
 export function resolveHybridNavId(pathname: string): string | null {
+  // Conexión SA vive en app-nav (sistema), no en el menú Hybrid Monddy.
+  if (pathname.startsWith('/hybrid/conexion')) return null;
   if (pathname.startsWith('/hybrid/ventas')) return 'hybrid-ventas';
   if (pathname.startsWith('/hybrid')) return 'hybrid-ventas';
   return null;
