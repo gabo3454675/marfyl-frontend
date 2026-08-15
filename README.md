@@ -33,7 +33,7 @@ La app arranca en `http://localhost:3003`.
 src/
 ├── app/              # App Router
 │   ├── (auth)/       # Login, registro, recovery
-│   ├── (dashboard)/  # Panel principal (21 rutas)
+│   ├── (dashboard)/  # Panel principal (incl. /hybrid/ventas — solo Monddy)
 │   └── (marketing)/  # Páginas públicas
 ├── components/       # Componentes React
 │   ├── ui/           # Componentes base (cards, buttons, etc.)
@@ -45,10 +45,16 @@ src/
 │   ├── concert/      # Boletería
 │   └── fiscal/       # Módulo fiscal
 ├── hooks/            # Hooks personalizados
-├── lib/              # Utilidades y API clients
+├── lib/              # Utilidades y API clients (hybrid → solo API Marfyl)
 ├── store/            # Estado global (Zustand)
 └── config/           # Navegación
 ```
+
+### Hybrid (Monddy)
+
+- Nav y páginas `/hybrid/ventas` + detalle: solo org Monddy
+- El frontend habla únicamente con el API Marfyl (timeout 150s); sin secretos Hybrid en el cliente
+- Contrato backend: `marfyl-backend/docs/architecture/hybrid-integration.md`
 
 ## Variables de Entorno
 
@@ -57,7 +63,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3001/api
 NEXT_PUBLIC_APP_NAME=MARFYL
 ```
 
-**NUNCA commitear .env.local al repositorio.**
+**NUNCA commitear .env.local al repositorio.** No hay variables Hybrid en el frontend.
 
 ## Build
 

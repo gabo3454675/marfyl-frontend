@@ -27,6 +27,26 @@ export type {
   SyncCatalogResult,
 } from './concert';
 
+export {
+  hybridService,
+  getHybridVentas,
+  getHybridVenta,
+  getHybridErrorMessage,
+  formatHybridCliente,
+  formatHybridMoney,
+  HYBRID_REQUEST_TIMEOUT_MS,
+  HYBRID_VENTAS_QUERY_KEYS,
+} from './hybrid';
+export type {
+  HybridVentasParams,
+  HybridVentaDetailParams,
+  HybridVentaListItem,
+  HybridVentaDetalleLine,
+  HybridVentaDetail,
+  HybridVentasListResult,
+  HybridVentasQueryKey,
+} from './hybrid';
+
 export { fiscalService } from './fiscal';
 export type {
   FiscalTaxpayerType,

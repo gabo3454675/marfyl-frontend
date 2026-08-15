@@ -13,7 +13,9 @@ import {
   resolveAppNavId,
 } from '@/config/app-nav';
 import { resolveConcertNavId } from '@/config/concert-nav';
+import { resolveHybridNavId } from '@/config/hybrid-nav';
 import { useConcertNavItems } from '@/hooks/useConcertNavItems';
+import { useHybridNavItems } from '@/hooks/useHybridNavItems';
 import { FiscalNavCollapsible, NavSectionCollapsible, SidebarNavLink } from '@/components/layout/sidebar-nav-parts';
 import { useNavSectionsOpen } from '@/hooks/useNavSectionsOpen';
 import { MarfylLogo } from '@/components/brand/marfyl-logo';
@@ -116,8 +118,11 @@ export default function Sidebar() {
   const permissions = usePermission();
   const { isInstallable, install } = usePWAInstall();
   const concertNavItems = useConcertNavItems();
+  const hybridNavItems = useHybridNavItems();
 
   const getActiveItem = () => {
+    const hid = resolveHybridNavId(pathname ?? '');
+    if (hid) return hid;
     const cid = resolveConcertNavId(pathname ?? '');
     if (cid) return cid;
     const fid = resolveFiscalNavId(pathname ?? '');
@@ -420,6 +425,25 @@ export default function Sidebar() {
                 ))}
               </NavSectionCollapsible>
             )}
+
+            {hybridNavItems.length > 0 && (
+              <NavSectionCollapsible
+                id="hybrid"
+                label="Hybrid"
+                open={isSectionOpen('hybrid')}
+                onToggle={() => toggleSection('hybrid')}
+                hasActiveChild={!!resolveHybridNavId(pathname ?? '')}
+              >
+                {hybridNavItems.map((item) => (
+                  <SidebarNavLink
+                    key={item.id}
+                    item={item}
+                    active={activeItem === item.id}
+                    compact
+                  />
+                ))}
+              </NavSectionCollapsible>
+            )}
           </div>
         ) : (
           <div className="p-2 space-y-1">
@@ -505,6 +529,24 @@ export default function Sidebar() {
                 >
                   <Link href={concertItem.href} prefetch>
                     <ConcertIcon className="h-5 w-5 flex-shrink-0" />
+                  </Link>
+                </Button>
+              );
+            })()}
+
+            {hybridNavItems.length > 0 && (() => {
+              const hybridItem = hybridNavItems[0];
+              const HybridIcon = hybridItem.icon;
+              return (
+                <Button
+                  asChild
+                  variant="ghost"
+                  data-active={resolveHybridNavId(pathname ?? '') ? 'true' : 'false'}
+                  className="admin-nav-link-compact justify-center p-0 cursor-pointer"
+                  title="Hybrid"
+                >
+                  <Link href={hybridItem.href} prefetch>
+                    <HybridIcon className="h-5 w-5 flex-shrink-0" />
                   </Link>
                 </Button>
               );

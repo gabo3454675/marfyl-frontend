@@ -11,8 +11,10 @@ import {
   resolveAppNavId,
 } from '@/config/app-nav';
 import { resolveConcertNavId } from '@/config/concert-nav';
+import { resolveHybridNavId } from '@/config/hybrid-nav';
 import { CONCERT_DEFAULT_SLUG } from '@/lib/concert/feature';
 import { useConcertNavItems } from '@/hooks/useConcertNavItems';
+import { useHybridNavItems } from '@/hooks/useHybridNavItems';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { OrganizationSwitcher } from '@/components/organization-switcher';
@@ -47,6 +49,7 @@ export default function BottomNav() {
   const permissions = usePermission();
   const { logout } = useAuthStore();
   const concertNavItems = useConcertNavItems();
+  const hybridNavItems = useHybridNavItems();
 
   const visibleMainNav = (() => {
     const allowed = ALL_BOTTOM_CANDIDATES.filter((item) => canShowNavItem(item, permissions));
@@ -62,6 +65,7 @@ export default function BottomNav() {
   })();
 
   const activeItem = (() => {
+    if (resolveHybridNavId(pathname ?? '')) return 'more';
     if (resolveConcertNavId(pathname ?? '')) return 'more';
     const appId = resolveAppNavId(pathname ?? '');
     if (visibleMainNav.some((item) => item.id === appId)) return appId;
@@ -239,6 +243,36 @@ export default function BottomNav() {
                     <ExternalLink className="h-4 w-4 shrink-0" />
                     <span className="text-sm truncate">Página pública de entradas</span>
                   </Button>
+                </NavSectionCollapsible>
+              )}
+
+              {hybridNavItems.length > 0 && (
+                <NavSectionCollapsible
+                  id="hybrid"
+                  label="Hybrid"
+                  open={isSectionOpen('hybrid')}
+                  onToggle={() => toggleSection('hybrid')}
+                  variant="sheet"
+                >
+                  {hybridNavItems.map((item) => {
+                    const isActive = resolveHybridNavId(pathname ?? '') === item.id;
+                    return (
+                      <Button
+                        key={item.id}
+                        variant="ghost"
+                        className={cn(
+                          'w-full justify-start gap-3 h-12 min-h-[48px] pl-3 sm:pl-4 cursor-pointer touch-manipulation',
+                          isActive
+                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                            : 'text-foreground hover:bg-secondary',
+                        )}
+                        onClick={() => handleMenuItemClick(item.href)}
+                      >
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        <span className="text-sm truncate">{item.label}</span>
+                      </Button>
+                    );
+                  })}
                 </NavSectionCollapsible>
               )}
             </div>
