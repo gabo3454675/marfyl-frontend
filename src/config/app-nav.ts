@@ -26,6 +26,7 @@ import {
   ClipboardList,
   Layers,
   ScrollText,
+  Cable,
 } from 'lucide-react';
 import type { PermissionKey } from '@/config/permissions';
 import type { ProductFeature } from '@/lib/features';
@@ -278,6 +279,16 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     superAdminOnly: true,
     hint: 'Quién cambió qué',
   },
+  {
+    id: 'hybrid',
+    label: 'Hybrid POS',
+    icon: Cable,
+    href: '/hybrid/conexion',
+    permission: 'canManageInvoices',
+    superAdminOnly: true,
+    hybridOrgOnly: true,
+    hint: 'Consultar Hybrid (solo lectura)',
+  },
 ];
 
 /**
@@ -319,7 +330,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     id: 'sistema',
     label: 'Sistema',
     icon: Settings,
-    itemIds: ['settings', 'trazabilidad'],
+    itemIds: ['settings', 'trazabilidad', 'hybrid'],
   },
 ];
 

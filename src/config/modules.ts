@@ -214,6 +214,11 @@ export const GALLERY_MODULES: GalleryModuleConfig[] = [
         hintOverride: 'Quién cambió qué',
         itemAccentGradient: 'from-indigo-400 to-indigo-500',
       },
+      {
+        navId: 'hybrid',
+        hintOverride: 'Solo lectura · Super Admin',
+        itemAccentGradient: 'from-teal-400 to-teal-500',
+      },
     ],
     requiredPermissions: ['canManageSettings'],
     order: 8,

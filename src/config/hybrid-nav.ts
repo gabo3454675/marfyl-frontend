@@ -1,19 +1,22 @@
-import { FileSearch } from 'lucide-react';
+import { Cable } from 'lucide-react';
 import type { AppNavItem } from '@/config/app-nav';
 
 export const HYBRID_NAV_ITEMS: AppNavItem[] = [
   {
     id: 'hybrid',
-    label: 'Hybrid',
-    icon: FileSearch,
+    label: 'Hybrid POS',
+    icon: Cable,
     href: '/hybrid/conexion',
     permission: 'canManageInvoices',
+    superAdminOnly: true,
     hybridOrgOnly: true,
-    hint: 'Consulta Hybrid (solo lectura)',
+    hint: 'Consultar Hybrid (solo lectura)',
   },
 ];
 
 export function resolveHybridNavId(pathname: string): string | null {
+  if (pathname.startsWith('/hybrid/conexion')) return 'hybrid';
+  if (pathname.startsWith('/hybrid/ventas')) return 'hybrid';
   if (pathname.startsWith('/hybrid')) return 'hybrid';
   return null;
 }
