@@ -326,8 +326,10 @@ export default function DashboardLayout({
           {!isModuleGalleryEnabled() && <Sidebar />}
           <main
             className={cn(
-              'admin-main-pane flex flex-1 flex-col min-w-0 w-full bg-background',
-              isPosRoute && 'min-h-0 overflow-hidden',
+              'admin-main-pane min-w-0 w-full bg-background',
+              isPosRoute
+                ? 'flex flex-1 flex-col min-h-0 overflow-hidden'
+                : 'flex flex-1 flex-col',
             )}
           >
             {isModuleGalleryEnabled() ? (
@@ -381,8 +383,10 @@ export default function DashboardLayout({
         {!isPosOnlySeller && !isModuleGalleryEnabled() && <Sidebar />}
         <main
           className={cn(
-            'admin-main-pane flex flex-1 flex-col min-w-0 w-full bg-background',
-            (isAssistantRoute || isPosRoute) && 'min-h-0 overflow-hidden',
+            'admin-main-pane min-w-0 w-full bg-background',
+            (isAssistantRoute || isPosRoute)
+              ? 'flex flex-1 flex-col min-h-0 overflow-hidden'
+              : 'flex-1',
           )}
         >
           {isModuleGalleryEnabled() ? (

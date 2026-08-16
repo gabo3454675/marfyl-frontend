@@ -474,6 +474,12 @@
     @apply rounded-2xl border bg-white shadow-md;
     border-color: hsl(214.3 31.8% 86%);
     transition: border-color 0.2s ease;
+    /*
+     * Clip shimmer ::after (inset -40%/-60%). Sin esto, el abspos cuenta en el
+     * scrollable overflow del documento → vacío enorme + drift horizontal (html left<0).
+     * clip (no hidden): no crea scrollport.
+     */
+    overflow: clip;
   }
   .dark .dm-surface {
     @apply backdrop-blur-xl;
@@ -1230,6 +1236,9 @@
 
   .admin-table-wrap {
     @apply rounded-lg;
+    /* Solo eje X: overflow-x≠visible + y:visible → y:auto (scrollport vacío). */
+    overflow-x: auto;
+    overflow-y: clip;
     scrollbar-width: thin;
     -webkit-overflow-scrolling: touch;
   }

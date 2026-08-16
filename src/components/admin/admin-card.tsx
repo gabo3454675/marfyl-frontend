@@ -97,7 +97,7 @@ export function AdminTableWrap({
   className?: string;
 }) {
   return (
-    <div className={cn('admin-table-wrap -mx-3 sm:-mx-1 overflow-x-auto overscroll-x-contain', className)}>
+    <div className={cn('admin-table-wrap -mx-3 sm:-mx-1 overscroll-x-contain', className)}>
       {children}
     </div>
   );
