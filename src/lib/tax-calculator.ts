@@ -14,8 +14,11 @@ export function computeCartIva(
   }
   baseGeneral = round2(baseGeneral);
   baseExempt = round2(baseExempt);
-  const ivaAmount = ivaDisabled ? 0 : round2(baseGeneral * 0.16);
+  // Desglose de IVA por dentro: salePrice ya incluye IVA → extraer la porción de IVA.
+  // Fórmula aprobada: base = round2(monto / 1.16), iva = round2(monto - base)
+  const ivaAmount = ivaDisabled ? 0 : round2(baseGeneral - round2(baseGeneral / 1.16));
   const subtotal = round2(baseGeneral + baseExempt);
-  const total = round2(subtotal + ivaAmount);
+  // IVA ya está incluido en salePrice → el total es el subtotal (no se suma IVA adicional).
+  const total = subtotal;
   return { subtotal, ivaAmount, total, baseGeneral, baseExempt };
 }

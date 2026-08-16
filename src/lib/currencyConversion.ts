@@ -70,8 +70,10 @@ export function getIvaBaseInBs(
  * Calcula IVA 16% sobre la base en BS (redondeado a 2 decimales).
  * Solo debe usarse cuando el pago es en Bolívares; la base debe estar ya convertida a BS.
  */
+// Desglose de IVA por dentro: ivaBaseBs ya incluye IVA → extraer la porción de IVA.
+// Fórmula aprobada: base = round2(monto / 1.16), iva = round2(monto - base)
 export function calculateIvaOnBaseInBs(ivaBaseBs: number): number {
-  return round2(ivaBaseBs * 0.16);
+  return round2(ivaBaseBs - round2(ivaBaseBs / 1.16));
 }
 
 /**
@@ -83,7 +85,8 @@ export function calculateTotalInBs(
 ): number {
   const iva = calculateIvaOnBaseInBs(ivaBaseBs);
   const exemptSum = round2(subtotalBs - ivaBaseBs);
-  return round2(ivaBaseBs * 1.16 + exemptSum);
+  // IVA ya está incluido en ivaBaseBs → total = subtotal (no se suma IVA adicional).
+  return round2(subtotalBs);
 }
 
 /**

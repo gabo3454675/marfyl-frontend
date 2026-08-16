@@ -2151,10 +2151,12 @@
 
   /*
    * Scroll del documento (barra del navegador), no contenedor interno.
-   * Evita la doble barra junto al scrollbar del viewport.
+   * Sin overflow-x:hidden aquí: hidden+visible-y → overflow-y:auto (scrollport).
+   * Sin flex-1: en columna atrapa altura; POS/assistant lo fijan en layout.
    */
   .app-main-scroll {
-    @apply flex-1 min-w-0 overflow-x-hidden overflow-y-visible;
+    @apply min-w-0;
+    overflow: visible;
     padding-bottom: var(--app-content-pad-bottom);
   }
 
