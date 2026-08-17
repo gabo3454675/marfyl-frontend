@@ -26,6 +26,12 @@ import {
   floorOrderTotal,
   type FloorOrder,
 } from '@/lib/api/floor-orders';
+import {
+  SALE_MODE_LABELS,
+  allowedSaleModes,
+  isSaleModeAllowed,
+  type SaleMode,
+} from '@/lib/sale-mode';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePermission } from '@/hooks/usePermission';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
@@ -55,9 +61,13 @@ type Product = {
   isService?: boolean;
 };
 
-type CartLine = { product: Product; quantity: number; notes?: string };
+type CartLine = { product: Product; quantity: number; notes?: string; saleMode: SaleMode };
+
+const SERVICE_COMANDA_MAX_QTY = 999_999;
 
 function avail(p: Product) {
+  // Combo/servicio: no bloquear por stock del padre (availableStock 0 ocultaba combos)
+  if (p.isBundle || p.isService) return SERVICE_COMANDA_MAX_QTY;
   if (typeof p.availableStock === 'number') return Math.max(0, p.availableStock);
   return Math.max(0, p.stock - (p.reservedStock ?? 0));
 }
@@ -147,13 +157,7 @@ export default function ComandaMenuPage() {
         },
       });
       const list = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
-      return list.filter(
-        (p) =>
-          p.isActive !== false &&
-          !p.isBundle &&
-          !p.isService &&
-          avail(p) > 0,
-      );
+      return list.filter((p) => p.isActive !== false && avail(p) > 0);
     },
     enabled: !!orgId && canTakeFloorOrder,
     staleTime: 20_000,
@@ -203,29 +207,64 @@ export default function ComandaMenuPage() {
       );
       return;
     }
+    const saleMode: SaleMode = 'STANDARD';
     setCart((prev) => {
-      const i = prev.findIndex((l) => l.product.id === product.id);
+      const i = prev.findIndex(
+        (l) => l.product.id === product.id && l.saleMode === saleMode,
+      );
       if (i >= 0) {
         const next = [...prev];
         const q = Math.min(max, next[i].quantity + step);
         next[i] = { ...next[i], quantity: q };
         return next;
       }
-      return [...prev, { product, quantity: Math.min(max, step) }];
+      return [...prev, { product, quantity: Math.min(max, step), saleMode }];
     });
     setCartOpen(true);
   };
 
-  const setQty = (productId: number, quantity: number) => {
+  const setQty = (productId: number, quantity: number, saleMode: SaleMode = 'STANDARD') => {
     setCart((prev) =>
       prev
         .map((l) => {
-          if (l.product.id !== productId) return l;
+          if (l.product.id !== productId || l.saleMode !== saleMode) return l;
           const max = avail(l.product);
           return { ...l, quantity: Math.min(max, Math.max(0, quantity)) };
         })
         .filter((l) => l.quantity > 0),
     );
+  };
+
+  const changeSaleMode = (productId: number, prevMode: SaleMode, nextMode: SaleMode) => {
+    setCart((prev) => {
+      const source = prev.find((l) => l.product.id === productId && l.saleMode === prevMode);
+      if (!source) return prev;
+      if (!isSaleModeAllowed(nextMode, source.product)) {
+        toast.error(
+          nextMode === 'DESCORCHE'
+            ? 'Descorche solo aplica a productos de servicio'
+            : nextMode === 'COMBO'
+              ? 'Combo solo aplica a productos bundle'
+              : 'Modalidad no válida para este producto',
+        );
+        return prev;
+      }
+      if (nextMode === prevMode) return prev;
+      const target = prev.find((l) => l.product.id === productId && l.saleMode === nextMode);
+      const without = prev.filter(
+        (l) => !(l.product.id === productId && l.saleMode === prevMode),
+      );
+      if (target) {
+        const max = avail(source.product);
+        const merged = Math.min(max, target.quantity + source.quantity);
+        return without.map((l) =>
+          l.product.id === productId && l.saleMode === nextMode
+            ? { ...l, quantity: merged }
+            : l,
+        );
+      }
+      return [...without, { ...source, saleMode: nextMode }];
+    });
   };
 
   const sendMutation = useMutation({
@@ -266,6 +305,7 @@ export default function ComandaMenuPage() {
             productId: l.product.id,
             quantity: l.quantity,
             notes: l.notes,
+            saleMode: l.saleMode,
           })),
         });
       } else {
@@ -284,6 +324,7 @@ export default function ComandaMenuPage() {
             productId: l.product.id,
             quantity: l.quantity,
             notes: l.notes,
+            saleMode: l.saleMode,
           })),
         });
       }
@@ -828,9 +869,10 @@ export default function ComandaMenuPage() {
             <ul className="space-y-2">
               {cart.map((l) => {
                 const beer = isBeerProduct(l.product.name);
+                const modes = allowedSaleModes(l.product);
                 return (
                   <li
-                    key={l.product.id}
+                    key={`${l.product.id}-${l.saleMode}`}
                     className="rounded-xl border border-border/60 px-2.5 py-2"
                   >
                     <div className="flex items-center gap-2">
@@ -849,7 +891,9 @@ export default function ComandaMenuPage() {
                           size="icon"
                           variant="outline"
                           className="h-11 w-11"
-                          onClick={() => setQty(l.product.id, l.quantity - 1)}
+                          onClick={() =>
+                            setQty(l.product.id, l.quantity - 1, l.saleMode)
+                          }
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
@@ -861,12 +905,39 @@ export default function ComandaMenuPage() {
                           size="icon"
                           variant="outline"
                           className="h-11 w-11"
-                          onClick={() => setQty(l.product.id, l.quantity + 1)}
+                          onClick={() =>
+                            setQty(l.product.id, l.quantity + 1, l.saleMode)
+                          }
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
+                    {modes.length > 1 && (
+                      <div className="mt-1.5">
+                        <Label className="mb-1 block text-[11px] text-muted-foreground">
+                          Modalidad
+                        </Label>
+                        <select
+                          value={l.saleMode}
+                          onChange={(e) =>
+                            changeSaleMode(
+                              l.product.id,
+                              l.saleMode,
+                              e.target.value as SaleMode,
+                            )
+                          }
+                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          aria-label={`Modalidad · ${l.product.name}`}
+                        >
+                          {modes.map((mode) => (
+                            <option key={mode} value={mode}>
+                              {SALE_MODE_LABELS[mode]}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                     {beer && (
                       <div className="mt-1.5 flex gap-1">
                         <Button
@@ -874,7 +945,9 @@ export default function ComandaMenuPage() {
                           size="sm"
                           variant="ghost"
                           className="h-8 flex-1 text-[11px]"
-                          onClick={() => setQty(l.product.id, l.quantity + 1)}
+                          onClick={() =>
+                            setQty(l.product.id, l.quantity + 1, l.saleMode)
+                          }
                         >
                           +1 bot
                         </Button>
@@ -884,7 +957,11 @@ export default function ComandaMenuPage() {
                           variant="secondary"
                           className="h-8 flex-1 text-[11px]"
                           onClick={() =>
-                            setQty(l.product.id, l.quantity + BOTTLES_PER_TOBO)
+                            setQty(
+                              l.product.id,
+                              l.quantity + BOTTLES_PER_TOBO,
+                              l.saleMode,
+                            )
                           }
                         >
                           +1 tobo

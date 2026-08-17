@@ -10,6 +10,11 @@ import { Loader2, Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { round2 } from '@/lib/currencyConversion';
 import { isProductFeatureEnabled } from '@/lib/features';
+import {
+  SALE_MODE_LABELS,
+  allowedSaleModes,
+  type SaleMode,
+} from '@/lib/sale-mode';
 
 type CurrencyMode = 'BS' | 'USD';
 type PaymentMethod = 'CASH_USD' | 'CASH_BS' | 'PAGO_MOVIL' | 'ZELLE' | 'CARD' | 'CREDIT';
@@ -47,6 +52,7 @@ interface CartItem {
   variantName?: string;
   variantUnitQuantity?: number;
   unitPrice: number;
+  saleMode: SaleMode;
 }
 
 export interface PosCartPanelProps {
@@ -78,8 +84,19 @@ export interface PosCartPanelProps {
   processing: boolean;
   formatCurrency: (amount: number, forceCurrency?: CurrencyMode) => string;
   sellableUnits: (product: PosProduct) => number;
-  onUpdateQuantity: (productId: number, delta: number, variantId?: number) => void;
-  onRemoveFromCart: (productId: number, variantId?: number) => void;
+  onUpdateQuantity: (
+    productId: number,
+    delta: number,
+    variantId?: number,
+    saleMode?: SaleMode,
+  ) => void;
+  onRemoveFromCart: (productId: number, variantId?: number, saleMode?: SaleMode) => void;
+  onSaleModeChange: (
+    productId: number,
+    nextMode: SaleMode,
+    variantId?: number,
+    prevMode?: SaleMode,
+  ) => void;
   onCheckout: () => void;
   showCheckoutButton?: boolean;
   compact?: boolean;
@@ -108,6 +125,7 @@ export function PosCartPanel({
   sellableUnits,
   onUpdateQuantity,
   onRemoveFromCart,
+  onSaleModeChange,
   onCheckout,
   showCheckoutButton = true,
   compact = false,
@@ -362,9 +380,11 @@ export function PosCartPanel({
             </div>
           ) : (
             <div className="space-y-2">
-              {cart.map((item, idx) => (
+              {cart.map((item, idx) => {
+                const modes = allowedSaleModes(item.product);
+                return (
                 <div
-                  key={`${item.product.id}-${item.variantId ?? ''}`}
+                  key={`${item.product.id}-${item.variantId ?? ''}-${item.saleMode}`}
                   className="admin-pos-cart-item rounded-xl border border-border/80 bg-card p-3 shadow-sm transition-all duration-200 ease-out"
                   style={{
                     animation: `cartItemIn 300ms ease-out both`,
@@ -393,18 +413,46 @@ export function PosCartPanel({
                     <button
                       type="button"
                       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground/60 transition-all duration-150 ease-out hover:border-destructive/30 hover:bg-destructive/5 hover:text-destructive active:scale-95 touch-manipulation"
-                      onClick={() => onRemoveFromCart(item.product.id, item.variantId)}
+                      onClick={() =>
+                        onRemoveFromCart(item.product.id, item.variantId, item.saleMode)
+                      }
                       aria-label="Quitar del carrito"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
+                  {modes.length > 1 && (
+                    <div className="mb-2.5">
+                      <Label className="admin-pos-cart-field-label mb-1 block">Modalidad</Label>
+                      <select
+                        value={item.saleMode}
+                        onChange={(e) =>
+                          onSaleModeChange(
+                            item.product.id,
+                            e.target.value as SaleMode,
+                            item.variantId,
+                            item.saleMode,
+                          )
+                        }
+                        className="admin-pos-cart-select w-full"
+                        aria-label={`Modalidad de venta · ${item.product.name}`}
+                      >
+                        {modes.map((mode) => (
+                          <option key={mode} value={mode}>
+                            {SALE_MODE_LABELS[mode]}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground transition-all duration-150 ease-out hover:border-primary/30 hover:text-primary active:scale-95 touch-manipulation"
-                        onClick={() => onUpdateQuantity(item.product.id, -1, item.variantId)}
+                        onClick={() =>
+                          onUpdateQuantity(item.product.id, -1, item.variantId, item.saleMode)
+                        }
                         aria-label="Reducir cantidad"
                       >
                         <Minus className="h-3.5 w-3.5" />
@@ -415,7 +463,9 @@ export function PosCartPanel({
                       <button
                         type="button"
                         className="flex h-10 w-10 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground transition-all duration-150 ease-out hover:border-primary/30 hover:text-primary active:scale-95 touch-manipulation"
-                        onClick={() => onUpdateQuantity(item.product.id, 1, item.variantId)}
+                        onClick={() =>
+                          onUpdateQuantity(item.product.id, 1, item.variantId, item.saleMode)
+                        }
                         disabled={item.quantity >= sellableUnits(item.product)}
                         aria-label="Aumentar cantidad"
                       >
@@ -427,7 +477,8 @@ export function PosCartPanel({
                     </span>
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           )}
         </div>

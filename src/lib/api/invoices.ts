@@ -1,5 +1,6 @@
 import type { AxiosResponse } from 'axios';
 import type { Invoice, InvoiceItem, Customer } from '@/types/shared-types';
+import type { SaleMode } from '@/lib/sale-mode';
 import { apiClient } from './client';
 
 /**
@@ -75,7 +76,12 @@ export interface CreateInvoicePayload {
   customerId?: number;
   paymentMethod?: string;
   payments?: { method: string; amount: number; currency: string }[];
-  items: { productId: number; quantity: number }[];
+  items: {
+    productId: number;
+    quantity: number;
+    variantId?: number;
+    saleMode?: SaleMode;
+  }[];
 }
 
 export interface CreateInvoiceResponse {

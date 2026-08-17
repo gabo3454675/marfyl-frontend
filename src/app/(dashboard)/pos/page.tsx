@@ -43,6 +43,10 @@ import { variantService } from '@/lib/api/product-variants';
 import type { ProductVariant } from '@/lib/api/product-variants';
 import { PosOpenTabs } from '@/components/pos/pos-open-tabs';
 import { isModuleGalleryEnabled } from '@/lib/gallery/feature';
+import {
+  isSaleModeAllowed,
+  type SaleMode,
+} from '@/lib/sale-mode';
 
 interface Product {
   id: number;
@@ -98,6 +102,8 @@ interface CartItem {
   variantUnitQuantity?: number;
   /** Precio efectivo por unidad (precio de variante si aplica, o salePrice del producto). */
   unitPrice: number;
+  /** Modalidad de venta enviada al BE. Default STANDARD. */
+  saleMode: SaleMode;
 }
 
 interface TicketSummary {
@@ -225,15 +231,25 @@ export default function POSPage() {
     };
     queryClient.invalidateQueries({ queryKey: ['products', 'pos-catalog'] });
     setCart((prev) => {
-      const existing = prev.find((i) => i.product.id === product.id && !i.variantId);
+      const existing = prev.find(
+        (i) => i.product.id === product.id && !i.variantId && i.saleMode === 'STANDARD',
+      );
       if (existing) {
         return prev.map((i) =>
-          i.product.id === product.id && !i.variantId
+          i.product.id === product.id && !i.variantId && i.saleMode === 'STANDARD'
             ? { ...i, quantity: i.quantity + quantity }
             : i,
         );
       }
-      return [...prev, { product: mapped, quantity, unitPrice: Number(product.salePrice) }];
+      return [
+        ...prev,
+        {
+          product: mapped,
+          quantity,
+          unitPrice: Number(product.salePrice),
+          saleMode: 'STANDARD' as const,
+        },
+      ];
     });
     toast.success(`${product.name} agregado al carrito`);
   };
@@ -376,9 +392,13 @@ export default function POSPage() {
     const variantName = variant?.name;
     const variantUnitQuantity = variant?.unitQuantity;
 
+    const saleMode: SaleMode = 'STANDARD';
     setCart((prevCart) => {
       const existingItem = prevCart.find(
-        (item) => item.product.id === product.id && item.variantId === variantId,
+        (item) =>
+          item.product.id === product.id &&
+          item.variantId === variantId &&
+          item.saleMode === saleMode,
       );
       if (existingItem) {
         if (existingItem.quantity + step > maxQ) {
@@ -386,12 +406,25 @@ export default function POSPage() {
           return prevCart;
         }
         return prevCart.map((item) =>
-          item.product.id === product.id && item.variantId === variantId
+          item.product.id === product.id &&
+          item.variantId === variantId &&
+          item.saleMode === saleMode
             ? { ...item, quantity: item.quantity + step }
             : item,
         );
       }
-      return [...prevCart, { product, quantity: Math.min(maxQ, step), variantId, variantName, variantUnitQuantity, unitPrice }];
+      return [
+        ...prevCart,
+        {
+          product,
+          quantity: Math.min(maxQ, step),
+          variantId,
+          variantName,
+          variantUnitQuantity,
+          unitPrice,
+          saleMode,
+        },
+      ];
     });
   };
 
@@ -451,11 +484,20 @@ export default function POSPage() {
   };
 
   // Actualizar cantidad en el carrito
-  const updateQuantity = (productId: number, delta: number, variantId?: number) => {
+  const updateQuantity = (
+    productId: number,
+    delta: number,
+    variantId?: number,
+    saleMode: SaleMode = 'STANDARD',
+  ) => {
     setCart((prevCart) => {
       return prevCart
         .map((item) => {
-          if (item.product.id === productId && item.variantId === variantId) {
+          if (
+            item.product.id === productId &&
+            item.variantId === variantId &&
+            item.saleMode === saleMode
+          ) {
             const newQuantity = item.quantity + delta;
             if (newQuantity <= 0) return null;
             const maxQ = sellableUnits(item.product);
@@ -469,12 +511,76 @@ export default function POSPage() {
   };
 
   // Remover item del carrito
-  const removeFromCart = (productId: number, variantId?: number) => {
+  const removeFromCart = (
+    productId: number,
+    variantId?: number,
+    saleMode: SaleMode = 'STANDARD',
+  ) => {
     setCart((prevCart) =>
       prevCart.filter(
-        (item) => !(item.product.id === productId && item.variantId === variantId),
+        (item) =>
+          !(
+            item.product.id === productId &&
+            item.variantId === variantId &&
+            item.saleMode === saleMode
+          ),
       ),
     );
+  };
+
+  const changeSaleMode = (
+    productId: number,
+    nextMode: SaleMode,
+    variantId?: number,
+    prevMode: SaleMode = 'STANDARD',
+  ) => {
+    setCart((prevCart) => {
+      const source = prevCart.find(
+        (item) =>
+          item.product.id === productId &&
+          item.variantId === variantId &&
+          item.saleMode === prevMode,
+      );
+      if (!source) return prevCart;
+      if (!isSaleModeAllowed(nextMode, source.product)) {
+        toast.error(
+          nextMode === 'DESCORCHE'
+            ? 'Descorche solo aplica a productos de servicio'
+            : nextMode === 'COMBO'
+              ? 'Combo solo aplica a productos bundle'
+              : 'Modalidad no válida para este producto',
+        );
+        return prevCart;
+      }
+      if (nextMode === prevMode) return prevCart;
+
+      const target = prevCart.find(
+        (item) =>
+          item.product.id === productId &&
+          item.variantId === variantId &&
+          item.saleMode === nextMode,
+      );
+      const withoutSource = prevCart.filter(
+        (item) =>
+          !(
+            item.product.id === productId &&
+            item.variantId === variantId &&
+            item.saleMode === prevMode
+          ),
+      );
+      if (target) {
+        const maxQ = sellableUnits(source.product);
+        const mergedQty = Math.min(maxQ, target.quantity + source.quantity);
+        return withoutSource.map((item) =>
+          item.product.id === productId &&
+          item.variantId === variantId &&
+          item.saleMode === nextMode
+            ? { ...item, quantity: mergedQty }
+            : item,
+        );
+      }
+      return [...withoutSource, { ...source, saleMode: nextMode }];
+    });
   };
 
   const currentOrg = getCurrentOrganization();
@@ -588,6 +694,7 @@ export default function POSPage() {
       items: cart.map((item) => ({
         productId: item.product.id,
         quantity: item.quantity,
+        saleMode: item.saleMode,
         ...(item.variantId ? { variantId: item.variantId } : {}),
       })),
     };
@@ -771,6 +878,7 @@ export default function POSPage() {
     sellableUnits: (product: { id: number; stock: number }) => sellableUnits(product as Product),
     onUpdateQuantity: updateQuantity,
     onRemoveFromCart: removeFromCart,
+    onSaleModeChange: changeSaleMode,
     onCheckout: async () => {
       await handleCheckout();
       setMobileCartOpen(false);

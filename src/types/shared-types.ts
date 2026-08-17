@@ -92,6 +92,8 @@ export interface InvoiceItem {
   displayQuantity?: number;
   unitPrice: number | string;
   subtotal: number | string;
+  /** Modalidad de venta: STANDARD | DESCORCHE | COMBO */
+  saleMode?: import('@/lib/sale-mode').SaleMode;
   description?: string;
   createdAt?: Date;
   updatedAt?: Date;

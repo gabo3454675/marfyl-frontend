@@ -3,7 +3,14 @@ import Dexie, { type Table } from 'dexie';
 /** Payload para crear factura (compatible con POST /invoices) */
 export interface PendingInvoicePayload {
   customerId?: number;
-  items: { productId: number; quantity: number }[];
+  paymentMethod?: string;
+  payments?: { method: string; amount: number; currency: string }[];
+  items: {
+    productId: number;
+    quantity: number;
+    variantId?: number;
+    saleMode?: import('@/lib/sale-mode').SaleMode;
+  }[];
   notes?: string;
 }
 

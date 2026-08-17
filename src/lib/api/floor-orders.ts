@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/api';
+import type { SaleMode } from '@/lib/sale-mode';
 
 export type FloorOrderStatus =
   | 'DRAFT'
@@ -12,6 +13,8 @@ export type FloorStation = 'BAR' | 'KITCHEN' | 'OTHER';
 
 export type FloorPaymentMode = 'INMEDIATO' | 'CUENTA_ABIERTA';
 
+export type { SaleMode };
+
 export type FloorOrderItem = {
   id: number;
   productId: number;
@@ -19,6 +22,7 @@ export type FloorOrderItem = {
   unitPrice: number | string;
   notes?: string | null;
   station: FloorStation;
+  saleMode?: SaleMode;
   product?: {
     id: number;
     name: string;
@@ -69,7 +73,7 @@ export type CreateFloorOrderPayload = {
   customerName?: string;
   customerId?: number;
   notes?: string;
-  items: { productId: number; quantity: number; notes?: string }[];
+  items: { productId: number; quantity: number; notes?: string; saleMode?: SaleMode }[];
   sendNow?: boolean;
   paymentMode?: FloorPaymentMode;
   customerTaxId?: string;
@@ -141,6 +145,7 @@ export type FloorOrderHistoryLine = {
     quantity: number;
     unitPrice: number;
     station: FloorStation;
+    saleMode?: SaleMode;
   }[];
 };
 
