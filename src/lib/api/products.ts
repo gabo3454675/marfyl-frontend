@@ -81,6 +81,23 @@ export type BomOverview = {
   }[];
 };
 
+export type ComboWorkspaceItem = {
+  id: number;
+  name: string;
+  sku?: string | null;
+  salePrice: number;
+  isBundle: boolean;
+  isService: boolean;
+  isActive?: boolean;
+  bundleComponents?: unknown;
+};
+
+export type ComboWorkspace = {
+  combos: ComboWorkspaceItem[];
+  services: ComboWorkspaceItem[];
+  recipeCatalog: { id: number; name: string; sku?: string | null; isBundle?: boolean }[];
+};
+
 export const productService = {
   getPaginated(params: PaginationParams = {}): Promise<PaginatedResponse<Product>> {
     const searchParams = new URLSearchParams();
@@ -106,7 +123,14 @@ export const productService = {
     return apiClient.get<LowStockProduct[]>('/products/alertas-stock').then((res) => res.data);
   },
   getBom(): Promise<BomOverview> {
-    return apiClient.get<BomOverview>('/products/bom').then((res) => res.data);
+    return apiClient
+      .get<BomOverview>('/products/bom', { timeout: 45_000 })
+      .then((res) => res.data);
+  },
+  getComboWorkspace(): Promise<ComboWorkspace> {
+    return apiClient
+      .get<ComboWorkspace>('/products/combo-workspace', { timeout: 45_000 })
+      .then((res) => res.data);
   },
   create(payload: CreateProductPayload): Promise<Product> {
     return apiClient.post<Product>('/products', payload).then((res) => res.data);

@@ -84,26 +84,26 @@ export default function ModuleOverviewPage() {
   const items = resolveModuleItems(mod, permissions, currentOrg);
 
   return (
-    <AdminPanel className="p-6 md:p-8 lg:p-10">
-      <div className="mb-10">
-        <div className="flex items-center gap-5">
+    <AdminPanel className="p-4 sm:p-6 md:p-8 lg:p-10">
+      <div className="mb-5 sm:mb-10">
+        <div className="flex items-center gap-3 sm:gap-5">
           <div
             className={cn(
-              'flex h-16 w-16 items-center justify-center rounded-2xl',
+              'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl sm:h-16 sm:w-16',
               'bg-gradient-to-br shadow-lg shadow-black/5',
               mod.accentGradient,
             )}
           >
-            <mod.icon className="h-8 w-8 text-white" />
+            <mod.icon className="h-6 w-6 text-white sm:h-8 sm:w-8" />
           </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">{mod.label}</h1>
-            <p className="text-muted-foreground mt-1">{mod.description}</p>
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold tracking-tight sm:text-3xl">{mod.label}</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground sm:mt-1">{mod.description}</p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
         {items.map((item, index) => {
           // Usar color del item si existe, si no el del módulo
           const itemGradient = item.itemAccentGradient || mod.accentGradient;
@@ -112,10 +112,10 @@ export default function ModuleOverviewPage() {
               key={item.id}
               href={item.href}
               className={cn(
-                'group relative flex items-center gap-4 rounded-2xl border border-border/60 p-5',
-                'bg-card/80 backdrop-blur-sm overflow-hidden',
+                'group relative flex min-h-[3.25rem] items-center gap-3 rounded-2xl border border-border/60 p-3.5',
+                'bg-card/80 backdrop-blur-sm overflow-hidden touch-manipulation',
                 'transition-all duration-300 ease-out',
-                'hover:shadow-lg hover:shadow-black/5 hover:-translate-y-0.5',
+                'active:scale-[0.99] sm:p-5 sm:hover:shadow-lg sm:hover:shadow-black/5 sm:hover:-translate-y-0.5',
               )}
             >
               {/* Barra de color lateral */}

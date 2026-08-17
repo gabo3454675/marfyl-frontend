@@ -68,7 +68,7 @@ export function AdminPageShell({
           title={title}
           subtitle={subtitle}
           actions={actions}
-          className={cn('mb-5 sm:mb-6 md:mb-7', headerClassName)}
+          className={cn('mb-3.5 sm:mb-6 md:mb-7', headerClassName)}
         />
       )}
       <div className={cn('admin-page-body', contentClassName)}>

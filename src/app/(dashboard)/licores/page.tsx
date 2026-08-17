@@ -28,6 +28,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { liquorSalesApi, type LiquorPack } from '@/lib/api/liquor-sales';
+import { getApiErrorMessage } from '@/lib/api/get-error-message';
 import { CombosServiciosPanel } from './combos-servicios-panel';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -315,7 +316,10 @@ export default function LicoresPage() {
         {error && (
           <AdminCard title="Error">
             <p className="text-sm text-destructive">
-              No se pudo cargar el reporte. Revisa la API o el día seleccionado.
+              {getApiErrorMessage(
+                error,
+                'No se pudo cargar el reporte. Revisa la API o el día seleccionado.',
+              )}
             </p>
           </AdminCard>
         )}

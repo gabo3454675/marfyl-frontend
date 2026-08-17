@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
+import { Card } from '@/components/ui/card';
 import { Plus, Edit, Trash2, Search, Loader2, AlertCircle } from 'lucide-react';
 import apiClient from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -189,7 +190,7 @@ export default function CustomersPage() {
       loading={loading && customers.length === 0}
       actions={
         canManageCustomers ? (
-          <Button onClick={() => handleOpenDialog()} className="cursor-pointer">
+          <Button onClick={() => handleOpenDialog()} className="w-full cursor-pointer sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Nuevo Cliente
           </Button>
@@ -220,6 +221,44 @@ export default function CustomersPage() {
                 {search ? 'No se encontraron clientes' : 'No hay clientes registrados'}
               </p>
             ) : (
+              <>
+                <div className="space-y-3 p-4 md:hidden">
+                  {customers.map((customer) => (
+                    <Card key={customer.id} className="p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold">{customer.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {customer.taxId || 'Sin documento'}
+                            {customer.phone ? ` · ${customer.phone}` : ''}
+                          </p>
+                          {customer.email ? (
+                            <p className="truncate text-xs text-muted-foreground">{customer.email}</p>
+                          ) : null}
+                        </div>
+                        {overdueCustomerIds.includes(customer.id) && (
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium bg-destructive/15 text-destructive border border-destructive/30">
+                            <AlertCircle className="h-3.5 w-3.5" />
+                            Deuda
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        {canManageCustomers && (
+                          <Button variant="outline" size="sm" className="min-h-11" onClick={() => handleOpenDialog(customer)}>
+                            <Edit className="mr-1 h-4 w-4" /> Editar
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button variant="outline" size="sm" className="min-h-11 text-destructive" onClick={() => handleDelete(customer.id)}>
+                            <Trash2 className="mr-1 h-4 w-4" /> Eliminar
+                          </Button>
+                        )}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+                <div className="hidden md:block">
               <AdminTableWrap>
               <Table>
                 <TableHeader>
@@ -278,15 +317,17 @@ export default function CustomersPage() {
                 </TableBody>
               </Table>
               </AdminTableWrap>
+                </div>
+              </>
             )}
 
         {/* Paginación */}
         {pagination && pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t">
+          <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-muted-foreground">
               Mostrando {customers.length} de {pagination.total} clientes
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2 sm:justify-end">
               <Button
                 variant="outline"
                 size="sm"

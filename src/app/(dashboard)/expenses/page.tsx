@@ -28,6 +28,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
+import { Card } from '@/components/ui/card';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
 import { ImportPreviewShell } from '@/components/import';
@@ -497,7 +498,7 @@ export default function ExpensesPage() {
       subtitle="Registra y monitorea los egresos de tu empresa"
       actions={
         canManageExpenses ? (
-          <Button onClick={() => handleOpenExpenseDialog()} className="cursor-pointer">
+          <Button onClick={() => handleOpenExpenseDialog()} className="w-full cursor-pointer sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Registrar Gasto
           </Button>
@@ -530,7 +531,7 @@ export default function ExpensesPage() {
 
         {/* Tabs para Gastos y Proveedores */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="flex flex-wrap h-auto gap-1">
+          <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 overflow-x-auto">
             <TabsTrigger value="expenses">Gastos</TabsTrigger>
             <TabsTrigger value="import">Importar factura</TabsTrigger>
             <TabsTrigger value="suppliers">Proveedores</TabsTrigger>
@@ -560,6 +561,62 @@ export default function ExpensesPage() {
                     No hay gastos registrados
                   </div>
                 ) : (
+                  <>
+                    <div className="space-y-3 md:hidden">
+                      {expenses.map((expense) => (
+                        <Card key={expense.id} className="p-4">
+                          <div className="mb-2 flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="truncate font-semibold">{expense.description}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatDate(expense.date)}
+                                {expense.supplier?.name ? ` · ${expense.supplier.name}` : ''}
+                                {` · ${expense.category.name}`}
+                              </p>
+                            </div>
+                            <span
+                              className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
+                                expense.status === 'PAID'
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                              }`}
+                            >
+                              {expense.status === 'PAID' ? 'Pagado' : 'Pendiente'}
+                            </span>
+                          </div>
+                          <p className="mb-1 text-base font-bold tabular-nums text-primary">
+                            {formatForDisplay(expense.amount)}
+                          </p>
+                          <p className="mb-3 text-xs text-muted-foreground">
+                            Abonado {formatForDisplay(expense.amountPaid ?? 0)} · saldo{' '}
+                            {formatForDisplay(expense.balanceDue ?? 0)}
+                          </p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {canManageExpenses && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="min-h-11 cursor-pointer"
+                                onClick={() => handleOpenExpenseDialog(expense)}
+                              >
+                                <Edit className="mr-1 h-4 w-4" /> Editar
+                              </Button>
+                            )}
+                            {canDelete && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="min-h-11 cursor-pointer text-destructive"
+                                onClick={() => handleDeleteExpense(expense.id)}
+                              >
+                                <Trash2 className="mr-1 h-4 w-4" /> Eliminar
+                              </Button>
+                            )}
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                    <div className="hidden md:block">
                   <AdminTableWrap>
                     <Table>
                       <TableHeader>
@@ -633,15 +690,17 @@ export default function ExpensesPage() {
                       </TableBody>
                     </Table>
                   </AdminTableWrap>
+                    </div>
+                  </>
                 )}
 
                 {/* Paginación */}
                 {pagination && pagination.totalPages > 1 && (
-                  <div className="flex items-center justify-between px-4 py-3 border-t">
+                  <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="text-sm text-muted-foreground">
                       Mostrando {expenses.length} de {pagination.total} gastos
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between gap-2 sm:justify-end">
                       <Button
                         variant="outline"
                         size="sm"
@@ -815,6 +874,20 @@ export default function ExpensesPage() {
                     unmatched={importPreview.unmatched}
                   >
                     {importPreview.lines.length > 0 ? (
+                      <>
+                        <div className="space-y-2 md:hidden">
+                          {importPreview.lines.map((line) => (
+                            <div key={line.productId} className="rounded-xl border border-border/60 p-3">
+                              <p className="font-medium">{line.name}</p>
+                              <p className="text-xs text-muted-foreground">{line.sku || 'Sin SKU'}</p>
+                              <div className="mt-2 flex items-center justify-between text-sm">
+                                <span>{line.quantity} × {formatForDisplay(line.unitCostUsd)}</span>
+                                <span className="font-semibold tabular-nums">{formatForDisplay(line.lineTotal)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="hidden md:block">
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -837,6 +910,8 @@ export default function ExpensesPage() {
                           ))}
                         </TableBody>
                       </Table>
+                        </div>
+                      </>
                     ) : null}
                   </ImportPreviewShell>
                 )}
@@ -849,7 +924,7 @@ export default function ExpensesPage() {
               title="Proveedores"
               headerActions={
                 canManageExpenses ? (
-                  <Button onClick={() => handleOpenSupplierDialog()} className="cursor-pointer">
+                  <Button onClick={() => handleOpenSupplierDialog()} className="w-full cursor-pointer sm:w-auto">
                     <Plus className="mr-2 h-4 w-4" />
                     Nuevo Proveedor
                   </Button>
@@ -870,6 +945,40 @@ export default function ExpensesPage() {
                     </Button>
                   </div>
                 ) : (
+                  <>
+                    <div className="space-y-3 md:hidden">
+                      {suppliers.map((supplier) => (
+                        <Card key={supplier.id} className="p-4">
+                          <p className="font-semibold">{supplier.name}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {supplier.taxId || 'Sin RIF'}
+                            {supplier.phone ? ` · ${supplier.phone}` : ''}
+                          </p>
+                          {supplier.email ? (
+                            <p className="truncate text-xs text-muted-foreground">{supplier.email}</p>
+                          ) : null}
+                          <div className="mt-3 grid grid-cols-2 gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="min-h-11 cursor-pointer"
+                              onClick={() => handleOpenSupplierDialog(supplier)}
+                            >
+                              <Edit className="mr-1 h-4 w-4" /> Editar
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="min-h-11 cursor-pointer text-destructive"
+                              onClick={() => handleDeleteSupplier(supplier.id)}
+                            >
+                              <Trash2 className="mr-1 h-4 w-4" /> Eliminar
+                            </Button>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                    <div className="hidden md:block">
                   <AdminTableWrap>
                     <Table>
                       <TableHeader>
@@ -913,6 +1022,8 @@ export default function ExpensesPage() {
                       </TableBody>
                     </Table>
                   </AdminTableWrap>
+                    </div>
+                  </>
                 )}
             </AdminCard>
           </TabsContent>
@@ -930,7 +1041,7 @@ export default function ExpensesPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="date">Fecha *</Label>
                   <Input

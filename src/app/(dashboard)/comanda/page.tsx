@@ -115,6 +115,19 @@ export default function ComandaMenuPage() {
   const [foundCustomer, setFoundCustomer] = useState<{ id: number; name: string; taxId: string | null; phone: string | null } | null>(null);
   const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
 
+  useEffect(() => {
+    const scroller = document.querySelector('.app-main-scroll') as HTMLElement | null;
+    if (!scroller) return;
+    if (cartOpen) {
+      scroller.style.overflow = 'hidden';
+    } else {
+      scroller.style.overflow = '';
+    }
+    return () => {
+      scroller.style.overflow = '';
+    };
+  }, [cartOpen]);
+
   // Search customer by taxId with debounce
   const debouncedTaxId = useDebounce(customerTaxId, 300);
 
@@ -471,7 +484,7 @@ export default function ComandaMenuPage() {
       ) : (
       <>
       {/* Floating Pedido button */}
-      <div className="sticky top-0 z-30 -mx-4 px-4 py-2 sm:-mx-6 sm:px-6">
+      <div className="sticky top-0 z-30 bg-background/95 py-2 backdrop-blur-md">
         <div className="flex justify-end">
           <Button
             type="button"
@@ -638,13 +651,13 @@ export default function ComandaMenuPage() {
       />
       <aside
         className={cn(
-          'fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl border border-border bg-background p-4 shadow-2xl transition-transform sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-[22rem] sm:rounded-none sm:border-l',
+          'fixed inset-x-0 bottom-0 z-50 flex max-h-[85vh] flex-col overflow-hidden rounded-t-2xl border border-border bg-background shadow-2xl transition-transform sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-[22rem] sm:rounded-none sm:border-l',
           cartOpen
             ? 'translate-y-0 sm:translate-x-0'
             : 'translate-y-full sm:translate-y-0 sm:translate-x-full',
         )}
       >
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-0 flex shrink-0 items-center justify-between p-4 pb-2">
           <h2 className="text-lg font-semibold">Pedido</h2>
           <Button
             type="button"
@@ -657,7 +670,7 @@ export default function ComandaMenuPage() {
           </Button>
         </div>
 
-        <div className="space-y-3">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 pb-[max(1rem,var(--app-safe-bottom))]">
           {/* Payment Mode Toggle */}
           <div className="space-y-1.5">
             <Label>Modo de pago</Label>
@@ -703,9 +716,9 @@ export default function ComandaMenuPage() {
               </div>
               {canAccessPOS && selectedTable?.accountId && (
                 <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
-                  <div className="flex items-center justify-between gap-3 text-sm">
+                  <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                     <span className="font-medium">{selectedTable.label} · cuenta abierta</span>
-                    <span className="tabular-nums">
+                    <span className="tabular-nums text-xs sm:text-sm">
                       Total {formatUsdAmount(selectedTable.totalUsd)} · saldo {formatUsdAmount(selectedTable.balanceUsd)}
                     </span>
                   </div>

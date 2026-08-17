@@ -90,6 +90,7 @@ export const liquorSalesApi = {
     apiClient
       .get<LiquorSalesReport>('/invoices/liquor-sales', {
         params: day ? { day } : undefined,
+        timeout: 45_000,
       })
       .then((r) => r.data),
 };

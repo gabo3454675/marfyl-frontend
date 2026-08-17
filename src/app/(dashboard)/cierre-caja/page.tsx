@@ -197,8 +197,8 @@ export default function CierreCajaPage() {
           }
           description="Monto inicial en USD y bolívares. También puedes abrir desde el interruptor de caja."
         >
-          <form onSubmit={handleApertura} className="flex flex-wrap items-end gap-4">
-            <div className="min-w-[180px] space-y-2">
+          <form onSubmit={handleApertura} className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
+            <div className="w-full min-w-0 space-y-2 sm:w-auto sm:min-w-[180px]">
               <Label htmlFor="montoInicial">Monto inicial (USD)</Label>
               <Input
                 id="montoInicial"
@@ -209,7 +209,7 @@ export default function CierreCajaPage() {
                 onChange={(e) => setMontoInicial(e.target.value)}
               />
             </div>
-            <div className="min-w-[180px] space-y-2">
+            <div className="w-full min-w-0 space-y-2 sm:w-auto sm:min-w-[180px]">
               <Label htmlFor="montoInicialBs">Monto inicial (Bs)</Label>
               <Input
                 id="montoInicialBs"

@@ -115,12 +115,12 @@ export function FloorAuditPanel() {
               type="month"
               value={month}
               onChange={(e) => setMonth(e.target.value)}
-              className="h-10 w-[11.5rem] pl-9"
+              className="h-10 w-full min-[480px]:w-[11.5rem] pl-9"
             />
           </div>
         </div>
         {data?.seeAll && (
-          <div className="space-y-1.5 min-w-[12rem]">
+          <div className="min-w-0 w-full space-y-1.5 sm:min-w-[12rem] sm:w-auto">
             <Label className="text-xs text-muted-foreground">Anfitrión</Label>
             <Select value={hostFilter} onValueChange={setHostFilter}>
               <SelectTrigger className="h-10">
@@ -233,6 +233,40 @@ export function FloorAuditPanel() {
                 No hay pedidos cobrados en este período.
               </p>
             ) : (
+              <>
+                <div className="space-y-2 md:hidden">
+                  {data.orders.map((o) => {
+                    const open = expanded === o.id;
+                    return (
+                      <button
+                        key={o.id}
+                        type="button"
+                        onClick={() => setExpanded(open ? null : o.id)}
+                        className={cn(
+                          'w-full rounded-2xl border border-border/70 bg-card p-3.5 text-left touch-manipulation',
+                          open && 'bg-muted/30',
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-sm">
+                              {o.tableLabel}
+                              {o.customerName ? ` · ${o.customerName}` : ''}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {formatWhen(o.chargedAt)} · Pedido #{o.id}
+                            </p>
+                          </div>
+                          <span className="shrink-0 tabular-nums text-sm font-semibold">
+                            {formatUsdAmount(o.totalUsd)}
+                          </span>
+                        </div>
+                        {open && <OrderExpand order={o} />}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="hidden md:block">
               <AdminTableWrap>
                 <Table>
                   <TableHeader>
@@ -286,6 +320,8 @@ export function FloorAuditPanel() {
                   </TableBody>
                 </Table>
               </AdminTableWrap>
+                </div>
+              </>
             )}
           </AdminCard>
         </>

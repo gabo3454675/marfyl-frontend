@@ -37,7 +37,7 @@ export function AdminPageHeader({
         ) : null}
       </div>
       {actions ? (
-        <div className="flex min-w-0 w-full flex-wrap items-center gap-2 min-[600px]:w-auto min-[600px]:shrink-0 sm:w-auto sm:shrink-0">
+        <div className="flex min-w-0 w-full flex-col gap-2 min-[600px]:w-auto min-[600px]:shrink-0 min-[600px]:flex-row min-[600px]:flex-wrap min-[600px]:items-center sm:w-auto sm:shrink-0 sm:flex-row sm:flex-wrap [&_button]:w-full sm:[&_button]:w-auto">
           {actions}
         </div>
       ) : null}

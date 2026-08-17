@@ -43,8 +43,6 @@ export default function DashboardLayout({
   const isStationLocked = isPosOnlySeller || isWaiterOnly || isKitchenOnly;
   const isAssistantRoute = pathname === '/assistant' || pathname.startsWith('/assistant/');
   const isPosRoute = pathname === '/pos' || isPosOnlySeller;
-  const isComandaRoute =
-    pathname.startsWith('/comanda') || isWaiterOnly || isKitchenOnly;
   const devPreview = isFiscalPreviewMode();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const hasHydrated = useAuthStore((state) => state._hasHydrated);
@@ -316,22 +314,14 @@ export default function DashboardLayout({
       <NotificationFeedProvider>
         <div
           className={cn(
-            'dm-app-shell flex min-h-[100dvh] flex-col md:flex-row md:gap-0',
-            isPosRoute && 'h-[100dvh] max-h-[100dvh] overflow-hidden',
+            'dm-app-shell flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden md:flex-row md:gap-0',
             isPosOnlySeller && 'dm-app-shell--pos-only',
             isModuleGalleryEnabled() && 'dm-app-shell--gallery',
           )}
         >
           <DmAmbientMotion palette="a" intensity="subtle" />
           {!isModuleGalleryEnabled() && <Sidebar />}
-          <main
-            className={cn(
-              'admin-main-pane min-w-0 w-full bg-background',
-              isPosRoute
-                ? 'flex flex-1 flex-col min-h-0 overflow-hidden'
-                : 'flex flex-1 flex-col',
-            )}
-          >
+          <main className="admin-main-pane flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden bg-background">
             {isModuleGalleryEnabled() ? (
               <GalleryAppBar
                 homeHref={stationHomeHref}
@@ -343,15 +333,14 @@ export default function DashboardLayout({
             )}
             <div
               className={cn(
-                'app-main-scroll',
-                (isPosRoute || isComandaRoute) && 'app-main-scroll--pos',
-                isPosRoute && 'flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden',
+                'app-main-scroll flex min-h-0 min-w-0 flex-1 flex-col',
+                isPosRoute && 'app-main-scroll--pos overflow-hidden',
               )}
             >
               <div
                 className={cn(
                   'app-page-shell',
-                  isPosRoute && 'app-page-shell--pos flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden',
+                  isPosRoute && 'app-page-shell--pos flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden',
                 )}
               >
                 <RouteGuard pathname={pathname}>
@@ -373,22 +362,14 @@ export default function DashboardLayout({
       <>
       <div
         className={cn(
-          'dm-app-shell flex min-h-[100dvh] flex-col md:flex-row md:gap-0',
-          (isAssistantRoute || isPosRoute) && 'h-[100dvh] max-h-[100dvh] overflow-hidden',
+          'dm-app-shell flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden md:flex-row md:gap-0',
           isPosOnlySeller && 'dm-app-shell--pos-only',
           isModuleGalleryEnabled() && 'dm-app-shell--gallery',
         )}
       >
         {!isPosOnlySeller && !isModuleGalleryEnabled() && <DmAmbientMotion palette="a" intensity="subtle" />}
         {!isPosOnlySeller && !isModuleGalleryEnabled() && <Sidebar />}
-        <main
-          className={cn(
-            'admin-main-pane min-w-0 w-full bg-background',
-            (isAssistantRoute || isPosRoute)
-              ? 'flex flex-1 flex-col min-h-0 overflow-hidden'
-              : 'flex-1',
-          )}
-        >
+        <main className="admin-main-pane flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden bg-background">
           {isModuleGalleryEnabled() ? (
             <GalleryAppBar />
           ) : (
@@ -398,22 +379,22 @@ export default function DashboardLayout({
           )}
           {devPreview && !isPosOnlySeller && !isModuleGalleryEnabled() && <DevAppSwitcher />}
           <div
-            className={
+            className={cn(
               isAssistantRoute
-                ? 'flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden'
+                ? 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'
                 : isPosRoute
-                  ? 'app-main-scroll app-main-scroll--pos flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden'
-                  : 'app-main-scroll'
-            }
+                  ? 'app-main-scroll app-main-scroll--pos flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'
+                  : 'app-main-scroll flex min-h-0 min-w-0 flex-1 flex-col',
+            )}
           >
             <div
-              className={
+              className={cn(
                 isAssistantRoute
-                  ? 'flex flex-1 flex-col min-h-0 min-w-0'
+                  ? 'flex min-h-0 min-w-0 flex-1 flex-col'
                   : isPosRoute
-                    ? 'app-page-shell app-page-shell--pos flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden'
-                    : 'app-page-shell'
-              }
+                    ? 'app-page-shell app-page-shell--pos flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'
+                    : 'app-page-shell',
+              )}
             >
               <RouteGuard pathname={pathname}>
                 {children}

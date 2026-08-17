@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AdminPageShell } from '@/components/admin/admin-page-shell';
 import { AdminCard, AdminTableWrap } from '@/components/admin/admin-card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -133,6 +134,33 @@ export default function AccountsPayablePage() {
           ) : rows.length === 0 ? (
             <p className="text-center py-8 text-muted-foreground">No hay obligaciones pendientes.</p>
           ) : (
+            <>
+              <div className="space-y-3 md:hidden">
+                {rows.map((r) => (
+                  <Card key={r.id} className="p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold">{r.supplier?.name ?? 'Sin proveedor'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(r.date).toLocaleDateString('es-VE')}
+                          {r.referenceNumber ? ` · ${r.referenceNumber}` : ''}
+                        </p>
+                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{r.description}</p>
+                      </div>
+                      <span className="shrink-0 text-sm font-semibold tabular-nums text-amber-700 dark:text-amber-400">
+                        {formatForDisplay(r.balanceDue ?? 0)}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Total {formatForDisplay(r.amount)} · abonado {formatForDisplay(r.amountPaid ?? 0)}
+                    </p>
+                    <Button size="sm" variant="outline" className="mt-3 min-h-11 w-full cursor-pointer" onClick={() => openPay(r)}>
+                      Abonar
+                    </Button>
+                  </Card>
+                ))}
+              </div>
+              <div className="hidden md:block">
             <AdminTableWrap>
               <Table>
                 <TableHeader>
@@ -169,6 +197,8 @@ export default function AccountsPayablePage() {
                 </TableBody>
               </Table>
             </AdminTableWrap>
+              </div>
+            </>
           )}
       </AdminCard>
 

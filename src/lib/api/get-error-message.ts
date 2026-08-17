@@ -16,6 +16,9 @@ export function getApiErrorMessage(err: unknown, fallback = 'Error al cargar dat
     return 'No hay conexión con el API. Inicie el backend (puerto 3001) y, si usa datos reales, PostgreSQL con Docker (puerto 5433).';
   }
   if (err instanceof AxiosError) {
+    if (err.code === 'ECONNABORTED') {
+      return 'La consulta tardó demasiado. Intenta de nuevo.';
+    }
     const data = err.response?.data as { message?: string | string[] } | undefined;
     const msg = data?.message;
     if (typeof msg === 'string') {

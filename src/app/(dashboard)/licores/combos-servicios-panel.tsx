@@ -22,14 +22,11 @@ import {
   parseRecipeFromUnknown,
   type RecipeLine,
 } from '@/components/bundle-recipe-editor';
-import { productService, type BomComboView, type Product } from '@/lib/api/products';
+import { productService, type BomComboView, type ComboWorkspaceItem } from '@/lib/api/products';
+import { getApiErrorMessage } from '@/lib/api/get-error-message';
 import { useDisplayCurrency } from '@/hooks/useDisplayCurrency';
 import { usePermission } from '@/hooks/usePermission';
 import { toast } from 'sonner';
-
-type CatalogProduct = Product & {
-  bundleComponents?: unknown;
-};
 
 type Kind = 'combo' | 'service';
 
@@ -38,9 +35,9 @@ export function CombosServiciosPanel() {
   const { canManageProducts } = usePermission();
   const { formatForDisplay } = useDisplayCurrency();
 
-  const { data: catalog = [], isLoading } = useQuery({
-    queryKey: ['products', 'licores-combos'],
-    queryFn: () => productService.getAll() as Promise<CatalogProduct[]>,
+  const { data: workspace, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ['products', 'combo-workspace'],
+    queryFn: () => productService.getComboWorkspace(),
     staleTime: 30_000,
   });
 
@@ -56,25 +53,13 @@ export function CombosServiciosPanel() {
     return map;
   }, [bom]);
 
-  const combos = useMemo(
-    () => catalog.filter((p) => p.isBundle),
-    [catalog],
-  );
-  const services = useMemo(
-    () => catalog.filter((p) => p.isService && !p.isBundle),
-    [catalog],
-  );
-  const recipeCatalog = useMemo(
-    () =>
-      catalog
-        .filter((p) => !p.isBundle)
-        .map((p) => ({ id: p.id, name: p.name, sku: p.sku, isBundle: p.isBundle })),
-    [catalog],
-  );
+  const combos = workspace?.combos ?? [];
+  const services = workspace?.services ?? [];
+  const recipeCatalog = workspace?.recipeCatalog ?? [];
 
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<Kind>('combo');
-  const [editing, setEditing] = useState<CatalogProduct | null>(null);
+  const [editing, setEditing] = useState<ComboWorkspaceItem | null>(null);
   const [name, setName] = useState('');
   const [salePrice, setSalePrice] = useState('');
   const [lines, setLines] = useState<RecipeLine[]>([]);
@@ -82,9 +67,11 @@ export function CombosServiciosPanel() {
 
   const nameById = useMemo(() => {
     const map = new Map<number, string>();
-    for (const p of catalog) map.set(p.id, p.name);
+    for (const p of combos) map.set(p.id, p.name);
+    for (const p of services) map.set(p.id, p.name);
+    for (const p of recipeCatalog) map.set(p.id, p.name);
     return map;
-  }, [catalog]);
+  }, [combos, services, recipeCatalog]);
 
   const openCreate = (nextKind: Kind) => {
     setKind(nextKind);
@@ -95,7 +82,7 @@ export function CombosServiciosPanel() {
     setOpen(true);
   };
 
-  const openEdit = (product: CatalogProduct) => {
+  const openEdit = (product: ComboWorkspaceItem) => {
     const nextKind: Kind = product.isBundle ? 'combo' : 'service';
     setKind(nextKind);
     setEditing(product);
@@ -133,6 +120,7 @@ export function CombosServiciosPanel() {
       setOpen(false);
       await queryClient.invalidateQueries({ queryKey: ['products'] });
       await queryClient.invalidateQueries({ queryKey: ['products', 'bom'] });
+      await queryClient.invalidateQueries({ queryKey: ['products', 'combo-workspace'] });
     } catch (e) {
       const msg =
         e && typeof e === 'object' && 'response' in e
@@ -144,7 +132,7 @@ export function CombosServiciosPanel() {
     }
   };
 
-  const recipeLabel = (product: CatalogProduct) => {
+  const recipeLabel = (product: ComboWorkspaceItem) => {
     const parsed = parseRecipeFromUnknown(product.bundleComponents);
     if (parsed.length === 0) {
       return product.isService ? 'Solo cobro, sin descontar inventario' : 'Sin productos';
@@ -196,6 +184,18 @@ export function CombosServiciosPanel() {
         <div className="flex justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
+      ) : isError ? (
+        <AdminCard title="Error">
+          <p className="text-sm text-destructive">
+            {getApiErrorMessage(
+              error,
+              'No se pudieron cargar combos y servicios. Revisa la API e inténtalo de nuevo.',
+            )}
+          </p>
+          <Button type="button" variant="secondary" className="mt-3" onClick={() => void refetch()}>
+            Reintentar
+          </Button>
+        </AdminCard>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           <KindList
@@ -299,11 +299,11 @@ function KindList({
   title: string;
   icon: ReactNode;
   empty: string;
-  items: CatalogProduct[];
+  items: ComboWorkspaceItem[];
   formatPrice: (n: number) => string;
-  recipeLabel: (p: CatalogProduct) => string;
+  recipeLabel: (p: ComboWorkspaceItem) => string;
   canEdit: boolean;
-  onEdit: (p: CatalogProduct) => void;
+  onEdit: (p: ComboWorkspaceItem) => void;
   bomById?: Map<number, BomComboView>;
 }) {
   return (

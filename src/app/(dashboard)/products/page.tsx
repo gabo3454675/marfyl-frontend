@@ -919,11 +919,11 @@ export default function ProductsPage() {
 
         {/* Paginación */}
         {!lowStockOnly && pagination && pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t">
+          <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-muted-foreground">
               Mostrando {products.length} de {pagination.total} productos
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2 sm:justify-end">
               <Button
                 variant="outline"
                 size="sm"
@@ -974,7 +974,7 @@ export default function ProductsPage() {
                     required
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
                     <Label htmlFor="sku">SKU</Label>
                     <Input
@@ -992,7 +992,7 @@ export default function ProductsPage() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
                     <Label htmlFor="costPrice">Precio de Costo</Label>
                     <Input
@@ -1036,7 +1036,7 @@ export default function ProductsPage() {
                     El producto se guarda en esta moneda. En el POS se convierte con la tasa del día si el cliente paga en la otra moneda.
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
                     <Label htmlFor="stock">Stock</Label>
                     <Input

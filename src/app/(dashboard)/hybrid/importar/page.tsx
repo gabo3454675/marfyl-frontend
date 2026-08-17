@@ -640,10 +640,10 @@ export default function HybridImportarPage() {
                       </div>
                       <StatusBadge status={inv.status} />
                     </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>Hybrid: {inv.hybridStatus}</span>
-                      <span>Marfyl: {inv.marfylStatus || '—'}</span>
-                      <span className="font-semibold text-foreground">
+                    <div className="grid grid-cols-1 gap-x-2 gap-y-1 text-xs text-muted-foreground sm:grid-cols-3 sm:items-center">
+                      <span className="truncate">Hybrid: {inv.hybridStatus}</span>
+                      <span className="truncate">Marfyl: {inv.marfylStatus || '—'}</span>
+                      <span className="font-semibold tabular-nums text-foreground sm:text-right">
                         {formatMoney(inv.totalAmount)}
                       </span>
                     </div>
@@ -724,7 +724,7 @@ export default function HybridImportarPage() {
 
             {/* Bottom action bar */}
             {selectedReadyCount > 0 && (
-              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-border/60 bg-muted/30 p-3 sm:p-4">
+              <div className="sticky bottom-[calc(var(--app-safe-bottom)+0.75rem)] z-20 mt-4 flex flex-col gap-3 rounded-lg border border-border/60 bg-background/95 p-3 shadow-lg backdrop-blur-md sm:relative sm:bottom-auto sm:flex-row sm:items-center sm:justify-between sm:p-4 sm:shadow-none">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                   <p className="text-sm font-medium">

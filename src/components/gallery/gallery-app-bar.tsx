@@ -48,7 +48,7 @@ export function GalleryAppBar({
   return (
     <header
       className={cn(
-        'gallery-app-bar sticky top-0 z-30 shrink-0 border-b border-border/60',
+        'gallery-app-bar z-30 shrink-0 border-b border-border/60',
         'bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/70',
         className,
       )}
@@ -78,7 +78,7 @@ export function GalleryAppBar({
         <div className="ml-auto flex min-w-0 items-center gap-1.5 sm:gap-2.5">
           <OrganizationSwitcher
             variant="gallery"
-            className="max-w-[min(42vw,10.5rem)] min-[400px]:max-w-[min(50vw,14rem)] sm:max-w-[22rem]"
+            className="max-w-[min(48vw,12rem)] min-[400px]:max-w-[min(54vw,16rem)] sm:max-w-[22rem]"
           />
           <div className="hidden shrink-0 items-center rounded-xl border bg-muted/30 p-0.5 sm:flex">
             <button
@@ -113,7 +113,7 @@ export function GalleryAppBar({
             className="hidden h-9 min-h-9 shrink-0 gap-1.5 rounded-xl px-2 text-xs sm:inline-flex sm:px-2.5 sm:text-sm"
           />
           {canManageCierreCaja && <CashboxSwitchWrapper />}
-          <ThemeToggle variant="compact" className="shrink-0" />
+          <ThemeToggle variant="compact" className="shrink-0 [&>svg]:hidden min-[380px]:[&>svg]:block" />
           <Button
             type="button"
             variant="ghost"

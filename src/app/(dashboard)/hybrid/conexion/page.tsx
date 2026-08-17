@@ -197,7 +197,7 @@ function ConexionTab({ active }: { active: boolean }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-sm font-medium">Diagnóstico de conexión</h3>
           <p className="text-xs text-muted-foreground">
@@ -208,7 +208,7 @@ function ConexionTab({ active }: { active: boolean }) {
           type="button"
           variant="outline"
           size="sm"
-          className="cursor-pointer"
+          className="w-full cursor-pointer sm:w-auto"
           onClick={() => void load()}
           disabled={loading}
         >
@@ -1164,26 +1164,26 @@ export default function HybridConexionPage() {
       subtitle="Consulte ventas, inventario, clientes y existencias de Hybrid POS vía API Marfyl."
     >
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full sm:w-auto">
+        <TabsList className="flex h-auto w-full justify-start gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] sm:w-auto [&::-webkit-scrollbar]:hidden">
           {isSuperAdmin ? (
-            <TabsTrigger value="conexion" className="gap-1.5">
+            <TabsTrigger value="conexion" className="shrink-0 gap-1.5">
               <Cable className="h-4 w-4" />
               <span className="hidden sm:inline">Conexión</span>
             </TabsTrigger>
           ) : null}
-          <TabsTrigger value="ventas" className="gap-1.5">
+          <TabsTrigger value="ventas" className="shrink-0 gap-1.5">
             <FileSearch className="h-4 w-4" />
             <span className="hidden sm:inline">Ventas</span>
           </TabsTrigger>
-          <TabsTrigger value="inventario" className="gap-1.5">
+          <TabsTrigger value="inventario" className="shrink-0 gap-1.5">
             <Package className="h-4 w-4" />
             <span className="hidden sm:inline">Inventario</span>
           </TabsTrigger>
-          <TabsTrigger value="clientes" className="gap-1.5">
+          <TabsTrigger value="clientes" className="shrink-0 gap-1.5">
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">Clientes</span>
           </TabsTrigger>
-          <TabsTrigger value="existencia" className="gap-1.5">
+          <TabsTrigger value="existencia" className="shrink-0 gap-1.5">
             <Box className="h-4 w-4" />
             <span className="hidden sm:inline">Existencia</span>
           </TabsTrigger>

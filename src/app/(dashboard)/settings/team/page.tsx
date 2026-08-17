@@ -482,7 +482,7 @@ export default function TeamPage() {
       title="Mi Equipo"
       subtitle="Gestiona los miembros de tu organización"
       actions={
-        <Button onClick={handleOpenInviteDialog} className="cursor-pointer">
+        <Button onClick={handleOpenInviteDialog} className="w-full cursor-pointer sm:w-auto">
           <UserPlus className="mr-2 h-4 w-4" />
           Agregar Miembro
         </Button>
@@ -499,8 +499,8 @@ export default function TeamPage() {
             }
             description="Tasa BCV oficial. Se actualiza sola varias veces al día desde DolarApi."
           >
-            <div className="flex flex-wrap items-end gap-4">
-              <div className="space-y-2 flex-1 min-w-[140px]">
+            <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
+              <div className="w-full min-w-0 space-y-2 sm:min-w-[140px] sm:flex-1">
                 <Label htmlFor="exchangeRate">Tasa BCV (automática)</Label>
                 <Input
                   id="exchangeRate"
@@ -511,7 +511,7 @@ export default function TeamPage() {
                   value={exchangeRate}
                 />
               </div>
-              <div className="space-y-2 min-w-[100px]">
+              <div className="w-full min-w-0 space-y-2 sm:w-auto sm:min-w-[100px]">
                 <Label htmlFor="currencyCode">Código moneda</Label>
                 <Input
                   id="currencyCode"
@@ -522,7 +522,7 @@ export default function TeamPage() {
                   onChange={(e) => setCurrencyCode(e.target.value)}
                 />
               </div>
-              <div className="space-y-2 min-w-[100px]">
+              <div className="w-full min-w-0 space-y-2 sm:w-auto sm:min-w-[100px]">
                 <Label htmlFor="currencySymbol">Símbolo</Label>
                 <Input
                   id="currencySymbol"
@@ -533,7 +533,7 @@ export default function TeamPage() {
                   onChange={(e) => setCurrencySymbol(e.target.value)}
                 />
               </div>
-              <Button onClick={handleSaveExchangeRate} disabled={savingRate} className="cursor-pointer">
+              <Button onClick={handleSaveExchangeRate} disabled={savingRate} className="w-full cursor-pointer sm:w-auto">
                 {savingRate ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {savingRate ? ' Guardando...' : 'Guardar moneda'}
               </Button>
